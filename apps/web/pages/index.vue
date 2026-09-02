@@ -1,126 +1,76 @@
 <template>
   <section class="flex flex-col items-center text-center">
-    <p class="text-sm font-medium uppercase tracking-[0.2em] text-[var(--cheer-leaf)]">
-      Cheer
-    </p>
-
     <h1
-      class="mt-4 max-w-3xl text-4xl font-bold leading-[1.1] tracking-tight text-[var(--cheer-ink)] sm:text-5xl lg:text-6xl"
+      class="hero-animate hero-animate-delay-1 mt-4 max-w-3xl text-4xl font-bold leading-[1.1] tracking-tight text-[var(--cheer-ink)] sm:text-5xl lg:text-6xl"
     >
       One link for everyone who wants to support your work.
     </h1>
 
     <p
-      class="mt-5 max-w-2xl text-base leading-relaxed text-[var(--cheer-ink)]/70 sm:text-lg sm:leading-relaxed"
+      class="hero-animate hero-animate-delay-2 mt-5 max-w-2xl text-base leading-relaxed text-[var(--cheer-ink)]/70 sm:text-lg sm:leading-relaxed"
     >
       Cheer helps African creators and builders receive personal support —
       without sending a bank account to every fan.
     </p>
 
-    <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+    <div
+      class="hero-animate hero-animate-delay-3 mt-8 flex flex-wrap items-center justify-center gap-3"
+    >
       <NuxtLink
         to="/signup"
-        class="inline-flex items-center justify-center rounded-full bg-[var(--cheer-leaf)] px-6 py-2.5 text-sm font-semibold text-white transition duration-200 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cheer-leaf)] focus-visible:ring-offset-2"
+        class="hero-cta hero-cta-primary inline-flex items-center justify-center rounded-full bg-[var(--cheer-leaf)] px-6 py-2.5 text-sm font-semibold text-white hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cheer-leaf)] focus-visible:ring-offset-2"
       >
         Get started
       </NuxtLink>
       <NuxtLink
         to="/#how-it-works"
-        class="inline-flex items-center justify-center rounded-full border border-black/10 bg-white/60 px-6 py-2.5 text-sm font-semibold text-[var(--cheer-ink)] transition duration-200 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cheer-leaf)] focus-visible:ring-offset-2"
+        class="hero-cta hero-cta-secondary inline-flex items-center justify-center rounded-full border border-black/10 bg-white/60 px-6 py-2.5 text-sm font-semibold text-[var(--cheer-ink)] hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cheer-leaf)] focus-visible:ring-offset-2"
       >
         How it works
       </NuxtLink>
     </div>
 
-    <!-- Product visual -->
     <div
-      class="relative mt-12 w-full max-w-4xl overflow-hidden rounded-2xl border border-black/10 bg-[var(--cheer-ink)] shadow-lg shadow-black/10 sm:mt-16"
-      aria-label="Preview of a Cheer creator tipping page"
+      ref="visualRef"
+      class="hero-visual relative mt-12 w-full max-w-4xl sm:mt-16"
+      :class="{ 'is-visible': visualVisible }"
     >
-      <div
-        class="absolute inset-0 opacity-40"
-        style="
-          background:
-            radial-gradient(circle at 20% 20%, rgba(200, 240, 221, 0.35), transparent 40%),
-            radial-gradient(circle at 80% 70%, rgba(240, 162, 2, 0.35), transparent 35%);
-        "
-      />
+      <div class="hero-glow" aria-hidden="true" />
 
-      <div class="relative">
-        <!-- Browser chrome -->
+      <figure
+        class="hero-screenshot relative overflow-hidden rounded-2xl border border-black/10 bg-[var(--cheer-ink)] shadow-lg shadow-black/10"
+      >
         <div
-          class="flex items-center gap-2 border-b border-white/10 px-4 py-3 sm:px-5"
+          class="aspect-video w-full bg-[var(--cheer-ink)]"
+          style="
+            background:
+              radial-gradient(circle at 20% 20%, rgba(200, 240, 221, 0.08), transparent 40%),
+              radial-gradient(circle at 80% 70%, rgba(240, 162, 2, 0.06), transparent 35%),
+              var(--cheer-ink);
+          "
+          aria-hidden="true"
+        />
+        <div
+          class="pointer-events-none absolute inset-0 flex items-center justify-center"
+          aria-hidden="true"
         >
-          <span class="h-2.5 w-2.5 rounded-full bg-white/20" />
-          <span class="h-2.5 w-2.5 rounded-full bg-white/20" />
-          <span class="h-2.5 w-2.5 rounded-full bg-white/20" />
-          <p class="mx-auto truncate text-xs font-medium tracking-wide text-white/50 sm:text-sm">
-            cheer.cash/dina
-          </p>
-        </div>
-
-        <!-- Page content -->
-        <div class="space-y-6 px-5 py-8 text-left sm:px-8 sm:py-10">
-          <div class="flex items-center gap-4">
-            <div
-              class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--cheer-leaf)] text-lg font-bold text-white sm:h-16 sm:w-16 sm:text-xl"
-            >
-              D
-            </div>
-            <div>
-              <p class="text-xl font-semibold text-white sm:text-2xl">Dina Akinyemi</p>
-              <p class="text-sm text-white/60">Builder &amp; creator</p>
-            </div>
-          </div>
-
-          <div class="space-y-3">
-            <p class="text-sm font-medium text-[var(--cheer-mint)]">Choose an amount</p>
-            <div class="grid grid-cols-3 gap-2 sm:gap-3">
-              <button
-                type="button"
-                tabindex="-1"
-                class="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm font-semibold text-white transition sm:py-3.5 sm:text-base"
-              >
-                ₦500
-              </button>
-              <button
-                type="button"
-                tabindex="-1"
-                class="rounded-xl border border-[var(--cheer-leaf)] bg-[var(--cheer-leaf)]/20 px-3 py-3 text-sm font-semibold text-white sm:py-3.5 sm:text-base"
-              >
-                ₦1,000
-              </button>
-              <button
-                type="button"
-                tabindex="-1"
-                class="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm font-semibold text-white transition sm:py-3.5 sm:text-base"
-              >
-                ₦2,000
-              </button>
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <label class="text-sm font-medium text-[var(--cheer-mint)]">
-              Add a message <span class="text-white/40">(optional)</span>
-            </label>
-            <div
-              class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/40"
-            >
-              Say something kind…
-            </div>
-          </div>
-
-          <button
-            type="button"
-            tabindex="-1"
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--cheer-leaf)] px-5 py-3.5 text-sm font-semibold text-white sm:text-base"
+          <span
+            class="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-white/90 text-[var(--cheer-ink)] shadow-lg shadow-black/20 backdrop-blur-sm sm:h-16 sm:w-16"
           >
-            Send tip
-            <span aria-hidden="true">→</span>
-          </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              class="ml-0.5 h-6 w-6 sm:h-7 sm:w-7"
+            >
+              <path
+                d="M8 5.14v14.72a1 1 0 0 0 1.5.86l11.04-7.36a1 1 0 0 0 0-1.72L9.5 4.28a1 1 0 0 0-1.5.86z"
+              />
+            </svg>
+          </span>
         </div>
-      </div>
+        <figcaption class="sr-only">Product demo video coming soon</figcaption>
+      </figure>
     </div>
   </section>
 </template>
@@ -128,5 +78,40 @@
 <script setup lang="ts">
 useHead({
   title: 'Cheer — Support African creators',
+});
+
+const visualRef = ref<HTMLElement | null>(null);
+const visualVisible = ref(false);
+
+let visualObserver: IntersectionObserver | null = null;
+
+onMounted(() => {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReducedMotion) {
+    visualVisible.value = true;
+    return;
+  }
+
+  const el = visualRef.value;
+  if (!el) {
+    visualVisible.value = true;
+    return;
+  }
+
+  visualObserver = new IntersectionObserver(
+    ([entry]) => {
+      if (entry?.isIntersecting) {
+        visualVisible.value = true;
+        visualObserver?.disconnect();
+      }
+    },
+    { threshold: 0.15, rootMargin: '0px 0px -4% 0px' },
+  );
+
+  visualObserver.observe(el);
+});
+
+onUnmounted(() => {
+  visualObserver?.disconnect();
 });
 </script>
