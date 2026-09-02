@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cheer-ink: #0f1c17;
+  --cheer-leaf: #1f6b4a;
+  --cheer-mint: #c8f0dd;
+  --cheer-sand: #f3efe6;
+  --cheer-glow: #f0a202;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--cheer-ink);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(31, 107, 74, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(240, 162, 2, 0.12), transparent 50%),
+    linear-gradient(180deg, #f7f4ee 0%, var(--cheer-sand) 100%);
+  font-family: 'Segoe UI', 'Avenir Next', 'Helvetica Neue', sans-serif;
+}

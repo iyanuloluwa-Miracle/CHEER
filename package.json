@@ -1,0 +1,30 @@
+{
+  "name": "cheer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cheer — creator support platform for African builders",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:api": "npm run start:dev -w @cheer/api",
+    "dev:web": "npm run dev -w @cheer/web",
+    "build": "npm run build -w @cheer/api && npm run build -w @cheer/web",
+    "build:api": "npm run build -w @cheer/api",
+    "build:web": "npm run build -w @cheer/web",
+    "lint": "npm run lint -w @cheer/api && npm run lint -w @cheer/web",
+    "lint:api": "npm run lint -w @cheer/api",
+    "lint:web": "npm run lint -w @cheer/web",
+    "typecheck": "npm run typecheck -w @cheer/api && npm run typecheck -w @cheer/web",
+    "typecheck:api": "npm run typecheck -w @cheer/api",
+    "typecheck:web": "npm run typecheck -w @cheer/web",
+    "test": "npm run test -w @cheer/api && npm run test -w @cheer/web",
+    "test:api": "npm run test -w @cheer/api",
+    "test:web": "npm run test -w @cheer/web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
