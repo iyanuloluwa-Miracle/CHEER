@@ -44,11 +44,13 @@ const label = computed(() => {
   if (pending.value) return 'checking';
   if (error.value) return 'unreachable';
   if (health.value?.status === 'ok') return 'ok';
+  if (health.value?.status === 'degraded') return 'degraded';
   return 'unknown';
 });
 
 const statusClass = computed(() => {
   if (health.value?.status === 'ok') return 'text-[var(--cheer-leaf)]';
+  if (health.value?.status === 'degraded') return 'text-amber-700';
   if (error.value) return 'text-red-700';
   return 'text-[var(--cheer-ink)]/60';
 });

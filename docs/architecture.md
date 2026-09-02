@@ -1,7 +1,7 @@
 # Cheer Architecture
 
 **Product:** Cheer (`cheer.cash`) — support/tipping for African creators  
-**Status:** Phase 2 foundation implemented (Nuxt + NestJS monorepo)
+**Status:** Phase 3 persistence layer added (Prisma + PostgreSQL schema)
 
 ---
 

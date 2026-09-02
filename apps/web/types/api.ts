@@ -1,6 +1,7 @@
 export interface HealthResponse {
-  status: 'ok';
+  status: 'ok' | 'degraded';
   service: string;
+  database?: 'up' | 'down';
   timestamp: string;
 }
 

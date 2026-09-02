@@ -26,6 +26,9 @@ docs/      Architecture & integration research
 npm install
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
+docker compose up -d postgres
+npm run prisma:migrate -w @cheer/api
+npm run prisma:seed -w @cheer/api
 ```
 
 ## Develop

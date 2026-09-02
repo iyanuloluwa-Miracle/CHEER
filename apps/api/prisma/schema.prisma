@@ -1,0 +1,285 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum SocialPlatform {
+  X
+  INSTAGRAM
+  LINKEDIN
+  GITHUB
+  YOUTUBE
+  TIKTOK
+  WEBSITE
+  OTHER
+}
+
+enum TipStatus {
+  CREATED
+  CHECKOUT_PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
+enum PaymentProvider {
+  BACHS
+  /// Development / seed only — never treat as a live Bachs payment
+  DEV_SEED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum OtpPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  LOGIN
+}
+
+enum NotificationType {
+  EMAIL_OTP
+  EMAIL_TIP_RECEIVED
+  EMAIL_GENERIC
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+}
+
+enum NotificationProvider {
+  SENDBYTE
+  DEV_LOG
+}
+
+enum AuditAction {
+  USER_CREATED
+  EMAIL_VERIFIED
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  PROFILE_UPDATED
+  TIP_CREATED
+  TIP_STATUS_CHANGED
+  PAYMENT_STATUS_CHANGED
+  PAYOUT_REQUESTED
+  WEBHOOK_RECEIVED
+  WEBHOOK_IGNORED_DUPLICATE
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  /// bcrypt/argon2 hash only — never plaintext. Nullable until auth Phase 4 sets it.
+  passwordHash    String?
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  creatorProfile CreatorProfile?
+  otpChallenges  OtpChallenge[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]     @relation("AuditActor")
+
+  @@index([createdAt])
+}
+
+model CreatorProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  username       String   @unique
+  displayName    String
+  bio            String?  @db.Text
+  avatarUrl      String?
+  /// Default thank-you / support page copy shown to supporters
+  supportMessage String?  @db.Text
+  /// ISO 4217 default tip currency (Bachs amounts are decimal strings)
+  currency       String   @default("NGN") @db.Char(3)
+  isActive       Boolean  @default(true)
+  /// Bachs Connect account id when onboarded (Phase 11)
+  bachsAccountId String?  @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  socialLinks SocialLink[]
+  tips       Tip[]
+
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model SocialLink {
+  id        String         @id @default(cuid())
+  creatorId String
+  platform  SocialPlatform
+  url       String
+  label     String?
+  sortOrder Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  creator CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([creatorId, platform, url])
+  @@index([creatorId, sortOrder])
+}
+
+// ---------------------------------------------------------------------------
+// Tips & payments (Tip = business record; PaymentTransaction = provider record)
+// ---------------------------------------------------------------------------
+
+model Tip {
+  id                    String    @id @default(cuid())
+  creatorId             String
+  /// Cheer-facing amount — Decimal, never float. Matches Bachs decimal-string precision.
+  amount                Decimal   @db.Decimal(18, 2)
+  currency              String    @db.Char(3)
+  message               String?   @db.Text
+  isAnonymous           Boolean   @default(false)
+  /// Shown only when isAnonymous is false
+  supporterName         String?
+  supporterEmail        String?
+  status                TipStatus @default(CREATED)
+  paymentTransactionId  String?   @unique
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  creator            CreatorProfile     @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  paymentTransaction PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id], onDelete: SetNull)
+
+  @@index([creatorId, createdAt(sort: Desc)])
+  @@index([creatorId, status])
+  @@index([status, createdAt])
+}
+
+model PaymentTransaction {
+  id                String          @id @default(cuid())
+  /// Stable Cheer reference sent to Bachs as `reference` / metadata
+  internalReference String          @unique
+  provider          PaymentProvider
+  /// Provider checkout / charge id (e.g. Bachs chk_ / ch_) — unique when present
+  providerReference String?
+  amount            Decimal         @db.Decimal(18, 2)
+  currency          String          @db.Char(3)
+  status            PaymentStatus   @default(PENDING)
+  /// Non-secret provider payload snippets for reconciliation
+  metadata          Json?
+  rawProviderStatus String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  tip Tip?
+
+  @@unique([provider, providerReference])
+  @@index([status, createdAt])
+  @@index([provider, status])
+  @@index([createdAt])
+}
+
+/// Deduplicate Bachs (and other) webhook deliveries — at-least-once safe
+model WebhookEvent {
+  id           String   @id @default(cuid())
+  /// Provider event id (e.g. Bachs evt_...) — unique for idempotency
+  providerEventId String @unique
+  provider     PaymentProvider
+  eventType    String
+  payload      Json
+  processedAt  DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([provider, eventType, createdAt])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// OTP (hashed only)
+// ---------------------------------------------------------------------------
+
+model OtpChallenge {
+  id           String     @id @default(cuid())
+  userId       String?
+  email        String
+  /// HMAC/sha256 (or similar) of OTP — never plaintext
+  codeHash     String
+  purpose      OtpPurpose
+  expiresAt    DateTime
+  attemptCount Int        @default(0)
+  maxAttempts  Int        @default(5)
+  consumedAt   DateTime?
+  createdAt    DateTime   @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, purpose, createdAt(sort: Desc)])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (SendByte delivery tracking)
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id                String               @id @default(cuid())
+  userId            String?
+  email             String
+  type              NotificationType
+  provider          NotificationProvider @default(SENDBYTE)
+  providerMessageId String?
+  status            NotificationStatus   @default(QUEUED)
+  metadata          Json?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([providerMessageId])
+  @@index([status, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Audit
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  actorUserId String?
+  action     AuditAction
+  entityType String?
+  entityId   String?
+  /// Must never contain secrets, OTP codes, or API keys
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt(sort: Desc)])
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

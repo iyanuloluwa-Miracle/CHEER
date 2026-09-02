@@ -2,6 +2,7 @@ import { plainToInstance } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUrl,
@@ -48,8 +49,8 @@ class EnvironmentVariables {
   OTP_HASH_PEPPER?: string;
 
   @IsString()
-  @IsOptional()
-  DATABASE_URL?: string;
+  @IsNotEmpty()
+  DATABASE_URL!: string;
 
   @IsString()
   @IsOptional()
@@ -77,6 +78,11 @@ class EnvironmentVariables {
 }
 
 export function validateEnv(config: Record<string, unknown>) {
+  if (!config.DATABASE_URL) {
+    config.DATABASE_URL =
+      'postgresql://cheer:cheer@localhost:5432/cheer?schema=public';
+  }
+
   const validated = plainToInstance(EnvironmentVariables, config, {
     enableImplicitConversion: true,
   });

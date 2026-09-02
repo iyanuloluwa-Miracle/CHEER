@@ -22,7 +22,13 @@
     "typecheck:web": "npm run typecheck -w @cheer/web",
     "test": "npm run test -w @cheer/api && npm run test -w @cheer/web",
     "test:api": "npm run test -w @cheer/api",
-    "test:web": "npm run test -w @cheer/web"
+    "test:web": "npm run test -w @cheer/web",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "prisma:generate": "npm run prisma:generate -w @cheer/api",
+    "prisma:migrate": "npm run prisma:migrate -w @cheer/api",
+    "prisma:seed": "npm run prisma:seed -w @cheer/api",
+    "prisma:validate": "npm run prisma:validate -w @cheer/api"
   },
   "engines": {
     "node": ">=20"

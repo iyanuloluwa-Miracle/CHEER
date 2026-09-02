@@ -14,6 +14,7 @@ Research and architecture for **Cheer** (AIB Ship 2026). Application code is not
 | [outray-development.md](./outray-development.md) | OutRay local webhook tunnels |
 | [PHASE-1-ARCHITECTURE.md](./PHASE-1-ARCHITECTURE.md) | Earlier Phase 1 notes (superseded in part by the files above) |
 | [PHASE-2-FOUNDATION.md](./PHASE-2-FOUNDATION.md) | Phase 2 monorepo foundation summary |
+| [PHASE-3-DATABASE.md](./PHASE-3-DATABASE.md) | Phase 3 PostgreSQL + Prisma |
 
 ## Root env template
 
