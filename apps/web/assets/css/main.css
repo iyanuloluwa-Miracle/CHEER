@@ -8,6 +8,56 @@
   --cheer-mint: #c8f0dd;
   --cheer-sand: #f3efe6;
   --cheer-glow: #f0a202;
+  --font-sans: 'Darker Grotesque', sans-serif;
+}
+
+@layer base {
+  html {
+    @apply font-sans antialiased;
+  }
+
+  body {
+    @apply font-normal;
+  }
+
+  h1,
+  h2 {
+    @apply font-bold;
+  }
+
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold;
+  }
+
+  nav {
+    @apply font-medium;
+  }
+
+  button,
+  [type='button'],
+  [type='submit'],
+  [type='reset'] {
+    @apply font-semibold;
+  }
+
+  label {
+    @apply font-medium;
+  }
+
+  th {
+    @apply font-semibold;
+  }
+
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+      'Courier New', monospace;
+  }
 }
 
 html,
@@ -22,5 +72,4 @@ body {
     radial-gradient(1200px 600px at 10% -10%, rgba(31, 107, 74, 0.18), transparent 55%),
     radial-gradient(900px 500px at 100% 0%, rgba(240, 162, 2, 0.12), transparent 50%),
     linear-gradient(180deg, #f7f4ee 0%, var(--cheer-sand) 100%);
-  font-family: 'Segoe UI', 'Avenir Next', 'Helvetica Neue', sans-serif;
 }
