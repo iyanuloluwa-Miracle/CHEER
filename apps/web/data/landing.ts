@@ -33,6 +33,7 @@ export const howItWorksSteps: readonly HowItWorksStep[] = [
     visual: 'share',
     visualCaption: 'Preview of sharing a Cheer link across social platforms',
     visualTheme: 'light',
+    illustration: '/Social%20media-bro.svg',
   },
   {
     title: 'Receive support instantly',
@@ -40,6 +41,7 @@ export const howItWorksSteps: readonly HowItWorksStep[] = [
       'Fans pick an amount, leave a kind message, and you get paid. Simple, personal, and built for creators.',
     visual: 'receive',
     visualCaption: 'Preview of a fan sending a tip through Cheer',
-    visualTheme: 'dark',
+    visualTheme: 'light',
+    illustration: '/Online%20transactions-bro.svg',
   },
 ] as const;
