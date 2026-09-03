@@ -1,7 +1,7 @@
 <template>
   <li
     ref="targetRef"
-    class="motion-reveal grid items-center gap-8 lg:grid-cols-2 lg:gap-12"
+    class="motion-reveal grid items-center gap-6 lg:grid-cols-2 lg:gap-10"
     :class="{ 'is-visible': isVisible }"
   >
     <div
@@ -26,9 +26,9 @@
         v-if="step.illustration"
         :src="step.illustration"
         :alt="step.visualCaption"
-        class="mx-auto h-auto w-full max-w-md object-contain lg:mx-0 lg:max-w-none"
-        width="560"
-        height="420"
+        class="mx-auto h-auto w-full max-w-sm object-contain sm:max-w-md lg:mx-0 lg:max-h-80 lg:max-w-lg"
+        width="480"
+        height="360"
         loading="lazy"
         decoding="async"
       />

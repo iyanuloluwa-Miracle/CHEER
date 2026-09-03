@@ -1,7 +1,7 @@
 <template>
   <section
     :id="section.id"
-    class="scroll-mt-28 mt-24 sm:mt-32"
+    class="scroll-mt-28 mt-16 sm:mt-20"
     :aria-labelledby="`${section.id}-heading`"
   >
     <UiSectionHeader
@@ -11,7 +11,7 @@
       :heading-id="`${section.id}-heading`"
     />
 
-    <ol class="mt-16 space-y-20 sm:mt-20 sm:space-y-24">
+    <ol class="mt-10 space-y-12 sm:mt-12 sm:space-y-16">
       <LandingHowItWorksStep
         v-for="(step, index) in steps"
         :key="step.title"
