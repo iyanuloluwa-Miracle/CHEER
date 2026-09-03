@@ -69,171 +69,89 @@ body {
 body {
   margin: 0;
   color: var(--cheer-ink);
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(31, 107, 74, 0.18), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, rgba(240, 162, 2, 0.12), transparent 50%),
-    linear-gradient(180deg, #f7f4ee 0%, var(--cheer-sand) 100%);
+  background-color: #f7f4ee;
 }
 
-/* ── Hero animations ─────────────────────────────────────────────── */
+/* ── Motion utilities ────────────────────────────────────────────── */
 
-@keyframes hero-fade-up {
+@keyframes motion-fade-up {
   from {
     opacity: 0;
-    transform: translate3d(0, 1.25rem, 0);
+    transform: translate3d(0, 0.75rem, 0);
   }
 
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes hero-float {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-
-  50% {
-    transform: translate3d(0, -10px, 0);
-  }
-}
-
-@keyframes hero-glow-drift {
-  0%,
-  100% {
-    opacity: 0.55;
-    transform: translate3d(-2%, 0, 0) scale(1);
-  }
-
-  50% {
-    opacity: 0.75;
-    transform: translate3d(2%, -1%, 0) scale(1.04);
-  }
-}
-
-@keyframes hero-scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
   }
 }
 
 @layer components {
-  .hero-animate {
+  .motion-animate {
     opacity: 0;
-    animation: hero-fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    will-change: opacity, transform;
+    animation: motion-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 
-  .hero-animate-delay-1 {
-    animation-delay: 0.08s;
+  .motion-animate-delay-1 {
+    animation-delay: 0.06s;
   }
 
-  .hero-animate-delay-2 {
-    animation-delay: 0.2s;
+  .motion-animate-delay-2 {
+    animation-delay: 0.14s;
   }
 
-  .hero-animate-delay-3 {
-    animation-delay: 0.34s;
+  .motion-animate-delay-3 {
+    animation-delay: 0.22s;
   }
 
-  .hero-cta {
+  .motion-cta {
     transition:
-      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
       background-color 0.2s ease,
       filter 0.2s ease;
   }
 
-  .hero-cta:hover {
-    transform: translate3d(0, -2px, 0) scale(1.02);
+  .motion-cta:hover {
+    transform: translate3d(0, -1px, 0);
   }
 
-  .hero-cta:active {
-    transform: translate3d(0, 0, 0) scale(0.99);
-  }
-
-  .hero-cta-primary:hover {
-    box-shadow: 0 8px 24px -6px rgba(31, 107, 74, 0.35);
-  }
-
-  .hero-cta-secondary:hover {
-    box-shadow: 0 6px 20px -8px rgba(15, 28, 23, 0.12);
-  }
-
-  .hero-visual {
-    opacity: 0;
-    transform: scale(0.96);
-    transition:
-      opacity 1s cubic-bezier(0.22, 1, 0.36, 1),
-      transform 1s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: opacity, transform;
-  }
-
-  .hero-visual.is-visible {
-    opacity: 1;
-    transform: scale(1);
-  }
-
-  .hero-visual.is-visible .hero-screenshot {
-    animation: hero-float 7s ease-in-out infinite;
-  }
-
-  .hero-glow {
-    position: absolute;
-    inset: -12% -8%;
-    z-index: 0;
-    border-radius: 50%;
-    background:
-      radial-gradient(ellipse 55% 45% at 30% 40%, rgba(31, 107, 74, 0.22), transparent 70%),
-      radial-gradient(ellipse 50% 40% at 70% 60%, rgba(240, 162, 2, 0.14), transparent 65%),
-      radial-gradient(ellipse 40% 35% at 50% 50%, rgba(200, 240, 221, 0.18), transparent 60%);
-    filter: blur(40px);
-    pointer-events: none;
-    animation: hero-glow-drift 12s ease-in-out infinite;
-    will-change: transform, opacity;
-  }
-
-  .hero-screenshot {
-    position: relative;
-    z-index: 1;
+  .motion-cta:active {
     transform: translate3d(0, 0, 0);
-    will-change: transform;
+  }
+
+  .motion-cta-primary:hover {
+    box-shadow: 0 4px 14px -4px rgba(31, 107, 74, 0.3);
+  }
+
+  .motion-reveal {
+    opacity: 0;
+    transform: translate3d(0, 1rem, 0);
+    transition:
+      opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .motion-reveal.is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-animate {
+  .motion-animate {
     opacity: 1;
     animation: none;
-    will-change: auto;
   }
 
-  .hero-cta:hover,
-  .hero-cta:active {
+  .motion-cta:hover,
+  .motion-cta:active {
     transform: none;
   }
 
-  .hero-visual {
+  .motion-reveal {
     opacity: 1;
     transform: none;
     transition: none;
-    will-change: auto;
-  }
-
-  .hero-visual.is-visible .hero-screenshot {
-    animation: none;
-  }
-
-  .hero-glow {
-    animation: none;
-    will-change: auto;
   }
 }

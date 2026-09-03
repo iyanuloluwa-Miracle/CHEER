@@ -1,7 +1,7 @@
 <template>
   <header class="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-4 sm:pt-5">
     <div
-      class="pointer-events-auto w-fit max-w-[calc(100vw-2rem)] rounded-full border border-black/10 bg-white/80 shadow-sm shadow-black/[0.04] backdrop-blur-md transition-[border-radius,box-shadow] duration-200"
+      class="pointer-events-auto w-fit max-w-[calc(100vw-2rem)] rounded-full border border-black/10 bg-white shadow-sm transition-[border-radius] duration-200"
       :class="menuOpen ? 'rounded-3xl sm:rounded-full' : ''"
     >
       <div class="flex items-center justify-between gap-4 px-4 py-2.5 sm:gap-6 sm:px-5 sm:py-3">
@@ -49,12 +49,11 @@
           >
             {{ loginLink.label }}
           </NuxtLink>
-          <NuxtLink
+          <UiButtonLink
             :to="signupLink.to"
-            class="inline-flex items-center justify-center rounded-full bg-[var(--cheer-leaf)] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cheer-leaf)] focus-visible:ring-offset-2 focus-visible:ring-offset-white/80"
-          >
-            {{ signupLink.label }}
-          </NuxtLink>
+            :label="signupLink.label"
+            size="sm"
+          />
         </div>
 
         <!-- Mobile menu toggle -->
@@ -111,7 +110,7 @@
           aria-label="Main navigation"
         >
           <ul class="space-y-1">
-            <li v-for="link in mobileLinks" :key="link.to">
+            <li v-for="link in mobileNavLinks" :key="link.to">
               <NuxtLink
                 :to="link.to"
                 class="block rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--cheer-ink)]/70 transition-colors duration-200 hover:bg-black/[0.03] hover:text-[var(--cheer-leaf)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cheer-leaf)]"
@@ -122,13 +121,12 @@
               </NuxtLink>
             </li>
             <li class="pt-2">
-              <NuxtLink
+              <UiButtonLink
                 :to="signupLink.to"
-                class="flex w-full items-center justify-center rounded-full bg-[var(--cheer-leaf)] px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cheer-leaf)] focus-visible:ring-offset-2"
+                :label="signupLink.label"
+                full-width
                 @click="closeMenu"
-              >
-                {{ signupLink.label }}
-              </NuxtLink>
+              />
             </li>
           </ul>
         </nav>
@@ -141,17 +139,14 @@
 /**
  * Public marketing navbar. Authenticated dashboard navigation will be a separate component.
  */
+import {
+  loginLink,
+  mobileNavLinks,
+  sectionLinks,
+  signupLink,
+} from '~/data/navigation';
+
 const route = useRoute();
-
-const sectionLinks = [
-  { label: 'How it works', to: '/#how-it-works' },
-  { label: 'For Creators', to: '/#for-creators' },
-] as const;
-
-const loginLink = { label: 'Log in', to: '/login' } as const;
-const signupLink = { label: 'Get started', to: '/signup' } as const;
-
-const mobileLinks = [...sectionLinks, loginLink];
 
 const menuOpen = ref(false);
 
