@@ -25,3 +25,12 @@ export interface FaqItem {
   question: string;
   answer: string;
 }
+
+export interface Testimonial {
+  id: string;
+  quote: string;
+  name: string;
+  role: string;
+  location: string;
+  photo: string;
+}

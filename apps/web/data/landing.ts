@@ -1,4 +1,4 @@
-import type { CtaLink, FaqItem, HowItWorksStep } from '~/types/landing';
+import type { CtaLink, FaqItem, HowItWorksStep, Testimonial } from '~/types/landing';
 
 export const heroContent = {
   title: 'One link for everyone who wants to support your work.',
@@ -90,5 +90,43 @@ export const faqItems: readonly FaqItem[] = [
     question: 'How do I share my Cheer link?',
     answer:
       'Drop it in your bio, stories, newsletter, or DMs. Set up once, share everywhere, and let fans support you on their own terms.',
+  },
+];
+
+export const testimonialsSection = {
+  id: 'testimonials',
+  eyebrow: 'Creators',
+  title: 'Support that feels personal',
+  description:
+    'African creators share one link — and hear from the people who believe in their work.',
+} as const;
+
+export const testimonials: readonly Testimonial[] = [
+  {
+    id: 'amara',
+    quote:
+      'I used to paste my account number in DMs. Now I drop one link in my bio and support just shows up.',
+    name: 'Amara Okonkwo',
+    role: 'Writer',
+    location: 'Lagos',
+    photo: '/testimonials/amara.jpg',
+  },
+  {
+    id: 'kofi',
+    quote:
+      'My newsletter readers finally had a way to say thanks without the awkward transfer.',
+    name: 'Kofi Mensah',
+    role: 'Designer',
+    location: 'Accra',
+    photo: '/testimonials/kofi.jpg',
+  },
+  {
+    id: 'naledi',
+    quote:
+      'Fans leave the kindest messages with their tips. It feels personal, not like a payment app.',
+    name: 'Naledi Moyo',
+    role: 'Musician',
+    location: 'Johannesburg',
+    photo: '/testimonials/naledi.jpg',
   },
 ];
