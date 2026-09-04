@@ -11,3 +11,9 @@ export const loginLink: NavLink = { label: 'Log in', to: '/login' };
 export const signupLink: NavLink = { label: 'Get started', to: '/signup' };
 
 export const mobileNavLinks: readonly NavLink[] = [...sectionLinks, loginLink];
+
+export const footerLinks: readonly NavLink[] = [
+  { label: 'How it works', to: '/#how-it-works' },
+  { label: 'FAQ', to: '/#faq' },
+  { label: 'Log in', to: '/login' },
+] as const;
