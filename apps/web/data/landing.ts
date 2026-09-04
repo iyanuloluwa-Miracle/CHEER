@@ -1,4 +1,10 @@
-import type { CtaLink, FaqItem, HowItWorksStep, Testimonial } from '~/types/landing';
+import type {
+  CtaLink,
+  FaqItem,
+  HowItWorksStep,
+  StackTool,
+  Testimonial,
+} from '~/types/landing';
 
 export const heroContent = {
   title: 'One link for everyone who wants to support your work.',
@@ -130,3 +136,39 @@ export const testimonials: readonly Testimonial[] = [
     photo: '/testimonials/naledi.jpg',
   },
 ];
+
+export const stackSection = {
+  id: 'stack',
+  eyebrow: 'Built with',
+  title: 'The AIB Ship partners behind Cheer',
+  description:
+    'African infrastructure for payments, messaging, local webhooks, and deployment.',
+} as const;
+
+/** Africa Is Building partner services — front and center for hackathon demos. */
+export const stackPartners: readonly StackTool[] = [
+  {
+    id: 'bachs',
+    name: 'Bachs',
+    role: 'Payments, checkout, and creator payouts',
+    href: 'https://docs.bachs.io',
+  },
+  {
+    id: 'sendbyte',
+    name: 'SendByte',
+    role: 'Email OTP and transactional messages',
+    href: 'https://docs.sendbyte.africa',
+  },
+  {
+    id: 'outray',
+    name: 'OutRay',
+    role: 'Local HTTPS tunnel for Bachs webhooks',
+    href: 'https://outray.dev/docs',
+  },
+  {
+    id: 'pxxl',
+    name: 'Pxxl',
+    role: 'Cloud deployment for web, API, and databases',
+    href: 'https://docs.pxxl.app',
+  },
+] as const;

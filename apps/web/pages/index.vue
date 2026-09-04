@@ -3,6 +3,7 @@
     <LandingHeroSection />
     <LandingHowItWorksSection />
     <LandingTestimonialsSection />
+    <LandingStackSection />
     <LandingFaqSection />
   </div>
 </template>

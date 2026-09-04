@@ -34,3 +34,10 @@ export interface Testimonial {
   location: string;
   photo: string;
 }
+
+export interface StackTool {
+  id: string;
+  name: string;
+  role: string;
+  href?: string;
+}

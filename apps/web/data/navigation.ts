@@ -2,7 +2,7 @@ import type { NavLink } from '~/types/landing';
 
 export const sectionLinks: readonly NavLink[] = [
   { label: 'How it works', to: '/#how-it-works' },
-  { label: 'For Creators', to: '/#for-creators' },
+  { label: 'Stack', to: '/#stack' },
   { label: 'FAQ', to: '/#faq' },
 ] as const;
 
@@ -14,6 +14,6 @@ export const mobileNavLinks: readonly NavLink[] = [...sectionLinks, loginLink];
 
 export const footerLinks: readonly NavLink[] = [
   { label: 'How it works', to: '/#how-it-works' },
+  { label: 'Stack', to: '/#stack' },
   { label: 'FAQ', to: '/#faq' },
-  { label: 'Log in', to: '/login' },
 ] as const;
