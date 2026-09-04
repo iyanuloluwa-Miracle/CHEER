@@ -2,6 +2,7 @@
   <div>
     <LandingHeroSection />
     <LandingHowItWorksSection />
+    <LandingFaqSection />
   </div>
 </template>
 

@@ -1,4 +1,4 @@
-import type { CtaLink, HowItWorksStep } from '~/types/landing';
+import type { CtaLink, FaqItem, HowItWorksStep } from '~/types/landing';
 
 export const heroContent = {
   title: 'One link for everyone who wants to support your work.',
@@ -45,3 +45,50 @@ export const howItWorksSteps: readonly HowItWorksStep[] = [
     illustration: '/Online%20transactions-bro.svg',
   },
 ] as const;
+
+export const faqSection = {
+  id: 'faq',
+  eyebrow: 'FAQ',
+  title: 'Questions, answered',
+  description:
+    'How Cheer works for creators and the people who want to support them.',
+} as const;
+
+export const faqItems: readonly FaqItem[] = [
+  {
+    id: 'what-is-cheer',
+    question: 'What is Cheer?',
+    answer:
+      'Cheer is one link for everyone who wants to support your work. African creators and builders share a personal page — like cheer.cash/you — so fans can send support without ever needing your bank details.',
+  },
+  {
+    id: 'who-is-it-for',
+    question: 'Who is Cheer for?',
+    answer:
+      'Creators, builders, and makers across Africa who want a simple way to receive personal support. If people already ask how to send you money, Cheer is for you.',
+  },
+  {
+    id: 'supporter-account',
+    question: 'Do supporters need an account?',
+    answer:
+      'No. Anyone with your link can choose an amount, leave an optional message, and pay — no signup required.',
+  },
+  {
+    id: 'anonymous',
+    question: 'Can someone support me anonymously?',
+    answer:
+      'Yes. Supporters can send a tip without showing their name, and still leave a kind message if they want.',
+  },
+  {
+    id: 'how-paid',
+    question: 'How do I get paid?',
+    answer:
+      'Payments are processed by Bachs. Cheer is the creator page, messages, and dashboard — Bachs moves the money to you.',
+  },
+  {
+    id: 'share-link',
+    question: 'How do I share my Cheer link?',
+    answer:
+      'Drop it in your bio, stories, newsletter, or DMs. Set up once, share everywhere, and let fans support you on their own terms.',
+  },
+];

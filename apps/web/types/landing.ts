@@ -19,3 +19,9 @@ export interface HowItWorksStep {
   /** When set, render this image directly (no mock browser frame). */
   illustration?: string;
 }
+
+export interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+}
