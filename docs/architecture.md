@@ -1,6 +1,6 @@
-# Cheer Architecture
+# TippyMe Architecture
 
-**Product:** Cheer (`cheer.cash`) — support/tipping for African creators  
+**Product:** TippyMe (`cheer.cash`) — support/tipping for African creators  
 **Status:** Phase 3 persistence layer added (Prisma + PostgreSQL schema)
 
 ---
@@ -23,7 +23,7 @@ Do not replace Vue/Nuxt with React/Next.js. Do not replace NestJS with another b
 ## 2. High-level runtime
 
 ```text
-Nuxt 3 (Cheer UI)
+Nuxt 3 (TippyMe UI)
         │  HTTPS / JSON
         ▼
 NestJS API
@@ -87,12 +87,12 @@ OutRay is **not** in production.
 
 | Concern | System of record |
 |---------|------------------|
-| Creator identity & profile | Cheer Postgres |
-| Tip intent, message, anonymity | Cheer Postgres |
-| Tip paid / failed | Cheer Postgres, updated only after Bachs verification |
+| Creator identity & profile | TippyMe Postgres |
+| Tip intent, message, anonymity | TippyMe Postgres |
+| Tip paid / failed | TippyMe Postgres, updated only after Bachs verification |
 | Money movement | Bachs |
 | Email delivery | SendByte |
-| OTP codes | Cheer Postgres (hashed) + SendByte for transport |
+| OTP codes | TippyMe Postgres (hashed) + SendByte for transport |
 
 ---
 

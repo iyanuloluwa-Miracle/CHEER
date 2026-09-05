@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import type { HealthResponse } from '~/types/api';
 
-useHead({ title: 'Status — Cheer' });
+useHead({ title: 'Status — TippyMe' });
 
 const { getHealth } = useApi();
 

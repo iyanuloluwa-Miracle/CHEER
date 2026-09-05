@@ -1,8 +1,8 @@
 {
   "name": "@cheer/api",
   "version": "0.1.0",
-  "description": "Cheer NestJS API",
-  "author": "Cheer",
+  "description": "TippyMe NestJS API",
+  "author": "TippyMe",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

@@ -1,10 +1,10 @@
-# Cheer — Phase 1: AIB Stack Research & Architecture
+# TippyMe — Phase 1: AIB Stack Research & Architecture
 
 > **Superseded for detail:** Prefer the dedicated docs in this folder — especially [aib-stack.md](./aib-stack.md), [architecture.md](./architecture.md), [bachs-integration.md](./bachs-integration.md), [sendbyte-integration.md](./sendbyte-integration.md), [outray-development.md](./outray-development.md). This file remains as the original Phase 1 summary.
 
 **Status:** Complete (provisional on AIB Stack materials)  
 **Date:** 2026-09-02  
-**Product:** Cheer (`cheer.cash`) — creator support/tipping on Bachs  
+**Product:** TippyMe (`cheer.cash`) — creator support/tipping on Bachs  
 **Constraint:** Mandatory app stack is Vue 3 + Nuxt 3 + NestJS + PostgreSQL + Prisma + Bachs (+ SendByte + OutRay for Ship)
 
 ---
@@ -32,9 +32,9 @@ Searched for public “AIB Ship 2026” / “AIB Stack” requirements (program 
 
 ### 2.3 AIB Stack mapping (provisional)
 
-Until official AIB materials are provided, treat AIB Stack as **unknown / not yet binding**, and lock the mandatory Cheer application stack.
+Until official AIB materials are provided, treat AIB Stack as **unknown / not yet binding**, and lock the mandatory TippyMe application stack.
 
-| Concern | Provisional Cheer choice | AIB override rule |
+| Concern | Provisional TippyMe choice | AIB override rule |
 |---------|--------------------------|-------------------|
 | Frontend | Vue 3 + Nuxt 3 + TypeScript + Tailwind + Pinia | Keep unless AIB **explicitly** mandates another UI framework |
 | Backend | Node.js + NestJS + TypeScript | Keep unless AIB explicitly mandates another API runtime |
@@ -78,7 +78,7 @@ Secrets never leave the NestJS server.
 
 `POST /v1/checkout-sessions`
 
-Cheer tip flow (dynamic amount) should use **raw `pricing`**, not a fixed catalog cart:
+TippyMe tip flow (dynamic amount) should use **raw `pricing`**, not a fixed catalog cart:
 
 ```json
 {
@@ -116,12 +116,12 @@ Optional later: `product_cart` with `custom` pricing for pay-what-you-want on ho
 
 ### 3.6 Marketplace / creator settlement (Connect)
 
-Cheer is a multi-creator support platform. Official Connect guidance:
+TippyMe is a multi-creator support platform. Official Connect guidance:
 
-| Question | Cheer decision |
+| Question | TippyMe decision |
 |----------|----------------|
-| Who does the supporter think they are paying? | The **creator**, via Cheer as experience layer |
-| Merchant-of-record for MVP simplicity? | **Cheer platform collects** (marketplace / destination-charge shape) |
+| Who does the supporter think they are paying? | The **creator**, via TippyMe as experience layer |
+| Merchant-of-record for MVP simplicity? | **TippyMe platform collects** (marketplace / destination-charge shape) |
 | Why? | Shorter creator onboarding (`recipient` persona: `transfers` + `payouts`); platform controls checkout; Bachs docs recommend this for marketplaces |
 
 Flow:
@@ -133,7 +133,7 @@ Flow:
 
 **Prerequisite:** Platform account must have Bachs `connect` capability (“Become a platform”). Sandbox first.
 
-Fallback if Connect not yet enabled for our Bachs account: single-merchant collect into Cheer balance + manual/scheduled transfers — still Bachs-only; document as interim.
+Fallback if Connect not yet enabled for our Bachs account: single-merchant collect into TippyMe balance + manual/scheduled transfers — still Bachs-only; document as interim.
 
 ### 3.7 Sandbox testing
 
@@ -155,7 +155,7 @@ All endpoints/shapes above are from docs.bachs.io. Implementation phases 8–9�
         |                                      |
         v                                      v
 +------------------+                 +------------------+
-| Nuxt 3 (Cheer)   | <-- REST/JSON-->| NestJS API       |
+| Nuxt 3 (TippyMe)   | <-- REST/JSON-->| NestJS API       |
 | Public /username |                 | Auth, tips,      |
 | Dashboard (auth) |                 | Bachs client     |
 +------------------+                 +--------+---------+
@@ -187,7 +187,7 @@ cheer/
 |--------|---------|
 | `User` | Creator account (auth identity) |
 | `CreatorProfile` | username (unique), display name, bio, avatar URL, public flags |
-| `Tip` | Internal Cheer tip ID, amount, currency, message, anonymity, status |
+| `Tip` | Internal TippyMe tip ID, amount, currency, message, anonymity, status |
 | `PaymentAttempt` | Links tip ↔ Bachs `checkout_id` / `charge_id` / `reference` |
 | `WebhookEvent` | `evt_` id unique; processing status for idempotency |
 | `CreatorPayoutAccount` | Bachs Connect `acct_` id, onboarding/capability status |
@@ -197,7 +197,7 @@ Only server + webhook/verification path may transition to `PAID`.
 
 ### 4.4 Naming note
 
-Master brief sometimes says “Tippy” (URL / transaction ID / account). Product name is **Cheer**. Use Cheer IDs (`tip_…` / UUID) and `cheer.cash/username` in product copy and schema naming.
+Master brief sometimes says “Tippy” (URL / transaction ID / account). Product name is **TippyMe**. Use TippyMe IDs (`tip_…` / UUID) and `cheer.cash/username` in product copy and schema naming.
 
 ### 4.5 Auth (Phase 4 plan)
 
@@ -210,7 +210,7 @@ Master brief sometimes says “Tippy” (URL / transaction ID / account). Produc
 
 1. Bachs secrets server-only.  
 2. Amount validated server-side (min/max, currency allowlist).  
-3. Cheer tip ID minted before checkout; sent as Bachs `reference` + `metadata`.  
+3. TippyMe tip ID minted before checkout; sent as Bachs `reference` + `metadata`.  
 4. Store provider refs (`checkout_id`, `charge_id`).  
 5. Idempotent checkout create + webhook handling (`WebhookEvent.evt_id` unique).  
 6. No client-writable payment status / balances.  
@@ -256,7 +256,7 @@ Master brief sometimes says “Tippy” (URL / transaction ID / account). Produc
 | D4 | Bachs hosted checkout + webhooks | Official payment path; no fake processors |
 | D5 | Dynamic tips via checkout `pricing` | Tips are variable amounts |
 | D6 | Platform-collect Connect (destination / split) for creators | Official marketplace guidance; lighter creator KYC |
-| D7 | Cheer naming in code; ignore “Tippy” leftovers | Product is Cheer |
+| D7 | Display brand is TippyMe; keep existing code identifiers | Avoid breaking package names, CSS tokens, and service IDs |
 | D8 | AIB infra TBD | No public AIB stack found; integrate when docs provided |
 
 ---

@@ -44,7 +44,7 @@ async function bootstrap() {
 
   await app.listen(port);
 
-  logger.log(`Cheer API listening on http://localhost:${port}/${apiPrefix}`);
+  logger.log(`TippyMe API listening on http://localhost:${port}/${apiPrefix}`);
   logger.log(`Environment: ${nodeEnv}`);
   logger.log(`CORS origin: ${appUrl}`);
 }

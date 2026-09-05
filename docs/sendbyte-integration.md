@@ -1,11 +1,11 @@
-# SendByte Integration Notes (Cheer)
+# SendByte Integration Notes (TippyMe)
 
 **Sources:** [docs.sendbyte.africa](https://docs.sendbyte.africa), [llms.txt](https://docs.sendbyte.africa/llms.txt)  
 **API base:** `https://api.sendbyte.africa/v1`
 
 ---
 
-## Role in Cheer
+## Role in TippyMe
 
 SendByte delivers **transactional email** for:
 
@@ -76,24 +76,24 @@ Docs: [Send email](https://docs.sendbyte.africa/api-reference/emails/send.md)
 
 ---
 
-## OTP implementation guidance (Cheer + SendByte)
+## OTP implementation guidance (TippyMe + SendByte)
 
 SendByte docs treat OTP as a **use case** of transactional email (and suggest idempotency keys like `otp-attempt-77f3`). There is **no separate SendByte OTP API** in the published reference.
 
-Cheer must implement:
+TippyMe must implement:
 
 | Rule | Implementation owner |
 |------|----------------------|
 | Generate OTP | NestJS (crypto-secure random) |
 | Never store plaintext OTP | Hash (e.g. HMAC/sha256 with server pepper) before DB write |
-| Expiry | Short TTL (e.g. 10 minutes) — Cheer policy |
+| Expiry | Short TTL (e.g. 10 minutes) — TippyMe policy |
 | Attempt limits | NestJS + DB counters |
 | Resend rate limit | NestJS (optionally Redis later) |
 | Never log OTP | Logging middleware redaction |
 | Never return OTP in API JSON | Responses only `{ ok: true }` / errors |
 | Deliver via SendByte | `emails.send` with `idempotency_key` tied to OTP session |
 
-**UNKNOWN — NEEDS VERIFICATION:** Whether SendByte offers a dedicated OTP product beyond email (SMS/WhatsApp are marketed as future/early access on marketing site — not used for Cheer MVP unless docs confirm GA endpoints).
+**UNKNOWN — NEEDS VERIFICATION:** Whether SendByte offers a dedicated OTP product beyond email (SMS/WhatsApp are marketed as future/early access on marketing site — not used for TippyMe MVP unless docs confirm GA endpoints).
 
 ---
 
@@ -130,7 +130,7 @@ Docs: [Idempotency](https://docs.sendbyte.africa/guides/idempotency.md)
 
 ---
 
-## Webhooks (optional for Cheer MVP)
+## Webhooks (optional for TippyMe MVP)
 
 Register: `POST /v1/webhooks` with `url` + optional `events`.
 
@@ -147,7 +147,7 @@ Event types include: `email.sent`, `email.delivered`, `email.opened`, `email.cli
 
 Docs: [Webhooks guide](https://docs.sendbyte.africa/guides/webhooks.md)
 
-Cheer MVP: optional — useful for bounce handling; OTP flow does not require waiting on delivery webhooks.
+TippyMe MVP: optional — useful for bounce handling; OTP flow does not require waiting on delivery webhooks.
 
 ---
 
@@ -193,7 +193,7 @@ Docs: [Domains](https://docs.sendbyte.africa/guides/domains.md)
 |----------|-------------------|---------|
 | `SENDBYTE_API_KEY` | Yes | API bearer key |
 | `SENDBYTE_WEBHOOK_SECRET` | Yes (SDK examples) | Verify inbound webhooks |
-| `SENDBYTE_FROM_EMAIL` | Cheer-chosen | `from` address (e.g. `Cheer <noreply@cheer.cash>`) |
+| `SENDBYTE_FROM_EMAIL` | TippyMe-chosen | `from` address (e.g. `TippyMe <noreply@cheer.cash>`) |
 
 ---
 
@@ -211,4 +211,4 @@ Docs: [Domains](https://docs.sendbyte.africa/guides/domains.md)
 
 - Not an auth provider  
 - Not a payment provider  
-- Not (yet) Cheer’s SMS channel unless future docs confirm GA SMS endpoints
+- Not (yet) TippyMe’s SMS channel unless future docs confirm GA SMS endpoints

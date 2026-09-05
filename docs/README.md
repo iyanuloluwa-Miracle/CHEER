@@ -1,6 +1,6 @@
-# Cheer Docs
+# TippyMe Docs
 
-Research and architecture for **Cheer** (AIB Ship 2026). Application code is not started until Phase 2.
+Research and architecture for **TippyMe** (AIB Ship 2026). Application code is not started until Phase 2.
 
 ## Index
 
@@ -18,4 +18,4 @@ Research and architecture for **Cheer** (AIB Ship 2026). Application code is not
 
 ## Root env template
 
-See [../.env.example](../.env.example) for placeholders verified from provider docs (plus Cheer-chosen names called out as such).
+See [../.env.example](../.env.example) for placeholders verified from provider docs (plus TippyMe-chosen names called out as such).

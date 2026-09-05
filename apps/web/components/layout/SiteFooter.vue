@@ -5,7 +5,7 @@
     >
       <NuxtLink
         to="/"
-        aria-label="Cheer"
+        aria-label="TippyMe"
         class="inline-flex shrink-0 items-center gap-2 rounded-sm transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2"
       >
         <img
@@ -18,7 +18,7 @@
           decoding="async"
         />
         <span class="text-sm font-bold leading-none tracking-tight text-cheer-ink sm:text-base">
-          Cheer
+          TippyMe
         </span>
       </NuxtLink>
 
@@ -37,7 +37,7 @@
       </nav>
 
       <p class="shrink-0 text-xs text-cheer-ink/50">
-        © {{ year }} Cheer
+        © {{ year }} TippyMe
       </p>
     </div>
   </footer>

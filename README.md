@@ -1,4 +1,4 @@
-# Cheer
+# TippyMe
 
 Creator support platform for African builders — **one link** to receive tips via Bachs.
 

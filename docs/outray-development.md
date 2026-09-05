@@ -1,4 +1,4 @@
-# OutRay Development Notes (Cheer)
+# OutRay Development Notes (TippyMe)
 
 **Sources:** [outray.dev/docs](https://outray.dev/docs)  
 **Role:** Development-only HTTPS tunnel so Bachs can reach local NestJS webhooks.
@@ -11,7 +11,7 @@
 
 Open-source tunnel (ngrok-like). OutRay edge receives public HTTPS traffic and forwards it to a local port.
 
-Cheer path:
+TippyMe path:
 
 ```text
 Bachs → https://<subdomain>.tunnel.outray.app/... → OutRay → localhost:<nestjs-port> → /api/webhooks/bachs
@@ -58,7 +58,7 @@ Docs: [Authentication](https://outray.dev/docs/authentication)
 
 ## Starting a tunnel
 
-Expose NestJS (example port **3001** — adjust to Cheer API port):
+Expose NestJS (example port **3001** — adjust to TippyMe API port):
 
 ```bash
 outray 3001
@@ -125,7 +125,7 @@ Custom domains (`--domain`) also documented for stable branded tunnels — optio
 
 ---
 
-## Cheer development workflow (Bachs webhooks)
+## TippyMe development workflow (Bachs webhooks)
 
 1. Start Postgres (Docker) and NestJS API (e.g. port `3001`).  
 2. Authenticate OutRay (`outray login`).  
@@ -146,9 +146,9 @@ Optional: Bachs also documents local testing features in the Developer Portal �
 
 ## Environment variables
 
-OutRay itself is typically CLI-authenticated (local token / `--key`). Cheer does **not** require OutRay secrets in the NestJS app.
+OutRay itself is typically CLI-authenticated (local token / `--key`). TippyMe does **not** require OutRay secrets in the NestJS app.
 
-Optional Cheer docs-only placeholders (not required by OutRay docs):
+Optional TippyMe docs-only placeholders (not required by OutRay docs):
 
 ```env
 # Dev notes only — not loaded by NestJS

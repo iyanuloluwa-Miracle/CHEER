@@ -17,7 +17,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'Cheer',
+      title: 'TippyMe',
       meta: [
         {
           name: 'description',

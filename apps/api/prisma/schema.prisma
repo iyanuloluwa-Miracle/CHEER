@@ -154,7 +154,7 @@ model SocialLink {
 model Tip {
   id                    String    @id @default(cuid())
   creatorId             String
-  /// Cheer-facing amount — Decimal, never float. Matches Bachs decimal-string precision.
+  /// TippyMe-facing amount — Decimal, never float. Matches Bachs decimal-string precision.
   amount                Decimal   @db.Decimal(18, 2)
   currency              String    @db.Char(3)
   message               String?   @db.Text
@@ -177,7 +177,7 @@ model Tip {
 
 model PaymentTransaction {
   id                String          @id @default(cuid())
-  /// Stable Cheer reference sent to Bachs as `reference` / metadata
+  /// Stable TippyMe reference sent to Bachs as `reference` / metadata
   internalReference String          @unique
   provider          PaymentProvider
   /// Provider checkout / charge id (e.g. Bachs chk_ / ch_) — unique when present

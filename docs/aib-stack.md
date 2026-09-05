@@ -36,7 +36,7 @@ No publicly indexed official “Africa Is Building Ship 2026” requirements doc
 
 ### Inferred from project brief (not official AIB docs)
 
-The Cheer master build instruction locks:
+The TippyMe master build instruction locks:
 
 - Frontend: Vue 3 + Nuxt 3 + TypeScript + Tailwind (+ Pinia when needed)
 - Backend: Node.js + NestJS + TypeScript
@@ -51,7 +51,7 @@ These are treated as **project-locked requirements**. They are **not** confirmed
 
 ## 3. Relevant AIB Stack services (as named for this project)
 
-Until an official AIB catalog is provided, Cheer treats the following as the **external service stack for Ship**:
+Until an official AIB catalog is provided, TippyMe treats the following as the **external service stack for Ship**:
 
 | Service | Role | Official docs |
 |---------|------|----------------|
@@ -61,15 +61,15 @@ Until an official AIB catalog is provided, Cheer treats the following as the **e
 
 Adjacent ecosystem products (Pxxl, Cencori, etc.) appear in public builder discussions alongside Bachs/SendByte but are **not** adopted here unless confirmed by official AIB materials.
 
-| Adjacent mention | Cheer decision |
+| Adjacent mention | TippyMe decision |
 |------------------|----------------|
 | Pxxl (hosting) | UNKNOWN — NEEDS VERIFICATION whether AIB requires it |
-| Cencori (AI infra) | Not required for Cheer MVP tipping product |
+| Cencori (AI infra) | Not required for TippyMe MVP tipping product |
 | Redis | Optional; only if clear benefit — not AIB-mandated from public docs |
 
 ---
 
-## 4. Services Cheer is using
+## 4. Services TippyMe is using
 
 | Service | Using? | Why |
 |---------|--------|-----|
@@ -88,7 +88,7 @@ Adjacent ecosystem products (Pxxl, Cencori, etc.) appear in public builder discu
 - Bachs sandbox/live API keys and webhook signing secret
 - SendByte `sk_test_` / `sk_live_` API keys; optional webhook secret
 - OutRay CLI auth (`outray login` or `--key`)
-- Cheer `DATABASE_URL`, `APP_URL`, `API_URL`, JWT/auth secrets
+- TippyMe `DATABASE_URL`, `APP_URL`, `API_URL`, JWT/auth secrets
 
 ### Unknown (AIB-specific)
 
@@ -103,17 +103,17 @@ Adjacent ecosystem products (Pxxl, Cencori, etc.) appear in public builder discu
 
 ---
 
-## 6. Environment variables (Cheer-owned names)
+## 6. Environment variables (TippyMe-owned names)
 
 Official providers document:
 
 - Bachs examples: `BACHS_API_KEY`
 - SendByte examples: `SENDBYTE_API_KEY`, `SENDBYTE_WEBHOOK_SECRET`
 
-Cheer-chosen names for secrets that providers document as “signing secret from dashboard” but do not prescribe a global env name:
+TippyMe-chosen names for secrets that providers document as “signing secret from dashboard” but do not prescribe a global env name:
 
-- `BACHS_WEBHOOK_SECRET` — Cheer name for Bachs endpoint signing secret
-- `BACHS_API_BASE_URL` — Cheer name for sandbox vs production base URL selection
+- `BACHS_WEBHOOK_SECRET` — TippyMe name for Bachs endpoint signing secret
+- `BACHS_API_BASE_URL` — TippyMe name for sandbox vs production base URL selection
 
 See root `.env.example`.
 

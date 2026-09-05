@@ -9,7 +9,7 @@ import type {
 export const heroContent = {
   title: 'One link for everyone who wants to support your work.',
   description:
-    'Cheer helps African creators and builders receive personal support — without sending a bank account to every fan.',
+    'TippyMe helps African creators and builders receive personal support — without sending a bank account to every fan.',
   primaryCta: { label: 'Get started', to: '/signup' } satisfies CtaLink,
   secondaryCta: { label: 'How it works', to: '/#how-it-works' } satisfies CtaLink,
 } as const;
@@ -24,11 +24,11 @@ export const howItWorksSection = {
 
 export const howItWorksSteps: readonly HowItWorksStep[] = [
   {
-    title: 'Create your Cheer link',
+    title: 'Create your TippyMe link',
     description:
       'Sign up, add your name and photo, and get a personal link like cheer.cash/you — ready in minutes.',
     visual: 'create',
-    visualCaption: 'Preview of creating a Cheer profile and personal link',
+    visualCaption: 'Preview of creating a TippyMe profile and personal link',
     visualTheme: 'light',
     illustration: '/cheer-step-one.svg',
   },
@@ -37,7 +37,7 @@ export const howItWorksSteps: readonly HowItWorksStep[] = [
     description:
       'Drop it in your bio, stories, newsletter, or DMs. Fans support you without ever needing your bank details.',
     visual: 'share',
-    visualCaption: 'Preview of sharing a Cheer link across social platforms',
+    visualCaption: 'Preview of sharing a TippyMe link across social platforms',
     visualTheme: 'light',
     illustration: '/Social%20media-bro.svg',
   },
@@ -46,7 +46,7 @@ export const howItWorksSteps: readonly HowItWorksStep[] = [
     description:
       'Fans pick an amount, leave a kind message, and you get paid. Simple, personal, and built for creators.',
     visual: 'receive',
-    visualCaption: 'Preview of a fan sending a tip through Cheer',
+    visualCaption: 'Preview of a fan sending a tip through TippyMe',
     visualTheme: 'light',
     illustration: '/Online%20transactions-bro.svg',
   },
@@ -57,21 +57,21 @@ export const faqSection = {
   eyebrow: 'FAQ',
   title: 'Questions, answered',
   description:
-    'How Cheer works for creators and the people who want to support them.',
+    'How TippyMe works for creators and the people who want to support them.',
 } as const;
 
 export const faqItems: readonly FaqItem[] = [
   {
-    id: 'what-is-cheer',
-    question: 'What is Cheer?',
+    id: 'what-is-tippyme',
+    question: 'What is TippyMe?',
     answer:
-      'Cheer is one link for everyone who wants to support your work. African creators and builders share a personal page — like cheer.cash/you — so fans can send support without ever needing your bank details.',
+      'TippyMe is one link for everyone who wants to support your work. African creators and builders share a personal page — like cheer.cash/you — so fans can send support without ever needing your bank details.',
   },
   {
     id: 'who-is-it-for',
-    question: 'Who is Cheer for?',
+    question: 'Who is TippyMe for?',
     answer:
-      'Creators, builders, and makers across Africa who want a simple way to receive personal support. If people already ask how to send you money, Cheer is for you.',
+      'Creators, builders, and makers across Africa who want a simple way to receive personal support. If people already ask how to send you money, TippyMe is for you.',
   },
   {
     id: 'supporter-account',
@@ -89,11 +89,11 @@ export const faqItems: readonly FaqItem[] = [
     id: 'how-paid',
     question: 'How do I get paid?',
     answer:
-      'Payments are processed by Bachs. Cheer is the creator page, messages, and dashboard — Bachs moves the money to you.',
+      'Payments are processed by Bachs. TippyMe is the creator page, messages, and dashboard — Bachs moves the money to you.',
   },
   {
     id: 'share-link',
-    question: 'How do I share my Cheer link?',
+    question: 'How do I share my TippyMe link?',
     answer:
       'Drop it in your bio, stories, newsletter, or DMs. Set up once, share everywhere, and let fans support you on their own terms.',
   },
@@ -140,7 +140,7 @@ export const testimonials: readonly Testimonial[] = [
 export const stackSection = {
   id: 'stack',
   eyebrow: 'Built with',
-  title: 'The AIB Ship partners behind Cheer',
+  title: 'The AIB Ship partners behind TippyMe',
   description:
     'African infrastructure for payments, messaging, local webhooks, and deployment.',
 } as const;

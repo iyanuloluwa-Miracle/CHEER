@@ -1,13 +1,13 @@
-# Bachs Integration Notes (Cheer)
+# Bachs Integration Notes (TippyMe)
 
 **Sources:** [docs.bachs.io](https://docs.bachs.io), [llms.txt index](https://docs.bachs.io/llms.txt)  
 **Rule:** Anything not confirmed below is marked UNKNOWN — NEEDS VERIFICATION. Do not invent endpoints or fields at implementation time — re-read the linked API pages.
 
 ---
 
-## Role in Cheer
+## Role in TippyMe
 
-Bachs is the **payment infrastructure**. Cheer owns creator profiles, tip UX, messages, anonymity, and Cheer-side transaction records. Cheer is not a payment processor.
+Bachs is the **payment infrastructure**. TippyMe owns creator profiles, tip UX, messages, anonymity, and TippyMe-side transaction records. TippyMe is not a payment processor.
 
 ---
 
@@ -54,7 +54,7 @@ Docs: [Sandbox](https://docs.bachs.io/integrate/sandbox.md), [Go live](https://d
 
 **Endpoint:** `POST /v1/checkout-sessions`
 
-Cheer tips should use **dynamic pricing** (no catalog product required):
+TippyMe tips should use **dynamic pricing** (no catalog product required):
 
 ```json
 {
@@ -77,10 +77,10 @@ Docs: [Accept a payment with Checkout](https://docs.bachs.io/guides/checkout/che
 
 ---
 
-## Checkout / payment flow (Cheer)
+## Checkout / payment flow (TippyMe)
 
-1. NestJS creates Cheer tip row (`CREATED`) with server-validated amount/currency.
-2. NestJS calls Bachs `POST /v1/checkout-sessions` with `Idempotency-Key` + Cheer `reference`.
+1. NestJS creates TippyMe tip row (`CREATED`) with server-validated amount/currency.
+2. NestJS calls Bachs `POST /v1/checkout-sessions` with `Idempotency-Key` + TippyMe `reference`.
 3. Store `checkout_id`; return `checkout_url` to Nuxt.
 4. Supporter pays on Bachs hosted checkout.
 5. Bachs redirects to `success_url?checkout_id=...` — **UX only, not proof**.
@@ -135,7 +135,7 @@ Envelope shape:
 
 Docs: [Setting Up Webhooks](https://docs.bachs.io/guides/webhooks/overview.md)
 
-### Relevant event types (subscribe for Cheer)
+### Relevant event types (subscribe for TippyMe)
 
 | Category | Events |
 |----------|--------|
@@ -153,7 +153,7 @@ Docs: [Setting Up Webhooks](https://docs.bachs.io/guides/webhooks/overview.md)
 
 Verify against endpoint signing secret; reject stale timestamps (docs example tolerance: 300s). Use **raw body** before JSON parse.
 
-Cheer env placeholder name: `BACHS_WEBHOOK_SECRET` (Cheer-chosen; not a Bachs-prescribed global name).
+TippyMe env placeholder name: `BACHS_WEBHOOK_SECRET` (TippyMe-chosen; not a Bachs-prescribed global name).
 
 ---
 
@@ -166,7 +166,7 @@ Cheer env placeholder name: `BACHS_WEBHOOK_SECRET` (Cheer-chosen; not a Bachs-pr
 | Event | `evt_...` |
 | Customer | `cust_...` |
 | Account (Connect) | `acct_...` |
-| Cheer tip | Cheer UUID / internal ID — send as Bachs `reference` (unique per org, max 128 chars) and `metadata` |
+| TippyMe tip | TippyMe UUID / internal ID — send as Bachs `reference` (unique per org, max 128 chars) and `metadata` |
 
 ---
 
@@ -179,7 +179,7 @@ Cheer env placeholder name: `BACHS_WEBHOOK_SECRET` (Cheer-chosen; not a Bachs-pr
 - Balance currencies documented: USD, NGN (others may need enabling).
 - Withdrawals (fiat): NGN bank transfer documented; crypto USDT networks listed.
 
-Cheer MVP tip currency: prefer `NGN` (and optionally `USD`) — confirm account enabled methods via `GET /v1/accounts/checkout/settings` before offering corridors.
+TippyMe MVP tip currency: prefer `NGN` (and optionally `USD`) — confirm account enabled methods via `GET /v1/accounts/checkout/settings` before offering corridors.
 
 ---
 
@@ -195,13 +195,13 @@ Docs: [Payment method support](https://docs.bachs.io/guides/payments/payment-met
 
 ## Settlement / payout / Connect
 
-For multi-creator Cheer:
+For multi-creator TippyMe:
 
 - Prefer **platform collects** (marketplace) with destination/split to Connect accounts (`transfer_data.destination`, `platform_fee`) — see [Accept a payment for a seller](https://docs.bachs.io/connect/marketplaces/accept-a-payment.md).
 - Creators as **recipients**: request `transfers` + `payouts` under recipient persona — [Creator payouts](https://docs.bachs.io/connect/payout-networks.md).
 - Platform needs `connect` capability — [Become a platform](https://docs.bachs.io/connect/become-a-platform.md).
 
-**UNKNOWN — NEEDS VERIFICATION:** Whether the Cheer Bachs sandbox org already has `connect` enabled.
+**UNKNOWN — NEEDS VERIFICATION:** Whether the TippyMe Bachs sandbox org already has `connect` enabled.
 
 ---
 
@@ -235,13 +235,13 @@ Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Ret
 
 ---
 
-## Required environment variables (Cheer)
+## Required environment variables (TippyMe)
 
 | Variable | Official? | Purpose |
 |----------|-----------|---------|
 | `BACHS_API_KEY` | Yes (docs examples) | Secret API key |
-| `BACHS_API_BASE_URL` | Cheer-chosen | `https://sandbox-api.bachs.io` or `https://api.bachs.io` |
-| `BACHS_WEBHOOK_SECRET` | Cheer-chosen name for dashboard signing secret | Verify `X-Bachs-Signature` |
+| `BACHS_API_BASE_URL` | TippyMe-chosen | `https://sandbox-api.bachs.io` or `https://api.bachs.io` |
+| `BACHS_WEBHOOK_SECRET` | TippyMe-chosen name for dashboard signing secret | Verify `X-Bachs-Signature` |
 
 There is no verified official env named `BACHS_SECRET` distinct from the API key — **do not invent a second secret type**.
 
@@ -254,11 +254,11 @@ There is no verified official env named `BACHS_SECRET` distinct from the API key
 | Official first-party Node SDK | **UNKNOWN — NEEDS VERIFICATION** (community SDKs listed; treat REST docs as source of truth) |
 | Community Node | `bachs-sdk` listed on [Community Projects](https://docs.bachs.io/community/projects.md) — examples may diverge from official field names (e.g. `line_items` vs `product_cart`). Prefer official REST shapes if using community SDK. |
 
-Cheer NestJS recommendation: thin HTTP client wrapping official REST until an official SDK is confirmed.
+TippyMe NestJS recommendation: thin HTTP client wrapping official REST until an official SDK is confirmed.
 
 ---
 
-## Cheer NestJS ownership
+## TippyMe NestJS ownership
 
 NestJS owns:
 

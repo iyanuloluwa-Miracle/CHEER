@@ -18,7 +18,7 @@
         >
           <NuxtLink
             to="/"
-            aria-label="Cheer"
+            aria-label="TippyMe"
             class="inline-flex shrink-0 items-center gap-2 rounded-sm transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-white/80"
             @click="closeMenu"
           >
@@ -32,7 +32,7 @@
               decoding="async"
             />
             <span class="text-base font-bold leading-none tracking-tight text-cheer-ink">
-              Cheer
+              TippyMe
             </span>
           </NuxtLink>
 

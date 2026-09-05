@@ -2,7 +2,7 @@
   "name": "cheer",
   "version": "0.1.0",
   "private": true,
-  "description": "Cheer — creator support platform for African builders",
+  "description": "TippyMe — creator support platform for African builders",
   "workspaces": [
     "apps/*",
     "packages/*"

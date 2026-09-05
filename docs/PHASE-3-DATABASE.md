@@ -7,7 +7,7 @@
 
 | Model | Purpose |
 |-------|---------|
-| `User` | Cheer creator account (email unique; optional `passwordHash`) |
+| `User` | TippyMe creator account (email unique; optional `passwordHash`) |
 | `CreatorProfile` | Public identity; unique `username`; default currency |
 | `SocialLink` | Variable social/website links per creator |
 | `Tip` | Business tip record (`Decimal(18,2)` amounts) |

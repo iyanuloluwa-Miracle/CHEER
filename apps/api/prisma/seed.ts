@@ -27,8 +27,8 @@ async function main() {
         create: {
           username: 'dina',
           displayName: 'Dina Okonkwo',
-          bio: 'Building tools for African creators. Demo profile for local Cheer development.',
-          supportMessage: 'Thanks for supporting my work — every cheer helps.',
+          bio: 'Building tools for African creators. Demo profile for local TippyMe development.',
+          supportMessage: 'Thanks for supporting my work — every tip helps.',
           currency: 'NGN',
           isActive: true,
           socialLinks: {
