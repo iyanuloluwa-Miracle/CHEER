@@ -1,0 +1,245 @@
+<template>
+  <form
+    class="motion-animate w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 shadow-md shadow-black/5 sm:p-8"
+    @submit.prevent="onSubmit"
+  >
+    <header class="text-center">
+      <h1 class="text-2xl font-bold tracking-tight text-cheer-ink sm:text-3xl">
+        {{ step === 'email' ? 'Welcome to TippyMe' : 'Enter your code' }}
+      </h1>
+      <p class="mt-2 text-sm leading-relaxed text-cheer-ink/65 sm:text-base">
+        <template v-if="step === 'email'">
+          Creators sign in with a one-time code sent to your email. Supporters never need an account.
+        </template>
+        <template v-else>
+          We sent a 6-digit code to
+          <span class="font-semibold text-cheer-ink">{{ email }}</span>.
+        </template>
+      </p>
+    </header>
+
+    <div class="mt-8 space-y-4">
+      <div v-if="step === 'email'">
+        <label for="auth-email" class="block text-sm text-cheer-ink">
+          Email
+        </label>
+        <input
+          id="auth-email"
+          v-model="email"
+          type="email"
+          name="email"
+          autocomplete="email"
+          required
+          placeholder="you@example.com"
+          :disabled="pending"
+          class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base text-cheer-ink placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
+        />
+      </div>
+
+      <div v-else>
+        <label for="auth-otp" class="block text-sm text-cheer-ink">
+          Verification code
+        </label>
+        <input
+          id="auth-otp"
+          v-model="code"
+          type="text"
+          name="otp"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          pattern="[0-9]*"
+          maxlength="6"
+          required
+          placeholder="••••••"
+          :disabled="pending"
+          class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-center text-2xl tracking-[0.35em] text-cheer-ink placeholder:tracking-[0.35em] placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
+        />
+
+        <div class="mt-3 flex items-center justify-between gap-3 text-sm">
+          <button
+            type="button"
+            class="font-semibold text-cheer-leaf transition-colors hover:text-cheer-ink disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="pending || resendSeconds > 0"
+            @click="resendOtp"
+          >
+            <template v-if="resendSeconds > 0">
+              Resend in {{ resendSeconds }}s
+            </template>
+            <template v-else>
+              Resend code
+            </template>
+          </button>
+          <button
+            type="button"
+            class="text-cheer-ink/55 transition-colors hover:text-cheer-ink"
+            :disabled="pending"
+            @click="backToEmail"
+          >
+            Change email
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <p
+      v-if="successMessage"
+      class="mt-4 text-sm text-cheer-leaf"
+      role="status"
+    >
+      {{ successMessage }}
+    </p>
+    <p v-else-if="error" class="mt-4 text-sm text-red-700" role="alert">
+      {{ error }}
+    </p>
+
+    <button
+      type="submit"
+      class="motion-cta motion-cta-primary mt-6 inline-flex w-full items-center justify-center rounded-full bg-cheer-leaf px-6 py-2.5 text-sm font-semibold text-white transition duration-200 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+      :disabled="pending"
+    >
+      <template v-if="pending">
+        {{ step === 'email' ? 'Sending code…' : 'Verifying…' }}
+      </template>
+      <template v-else>
+        {{ step === 'email' ? 'Continue with email' : 'Verify and continue' }}
+      </template>
+    </button>
+  </form>
+</template>
+
+<script setup lang="ts">
+import { ApiClientError } from '~/services/api';
+
+const emit = defineEmits<{
+  verified: [];
+}>();
+
+const api = useApi();
+const auth = useAuthStore();
+
+const step = ref<'email' | 'otp'>('email');
+const email = ref('');
+const code = ref('');
+const pending = ref(false);
+const error = ref<string | null>(null);
+const successMessage = ref<string | null>(null);
+const resendSeconds = ref(0);
+
+let resendTimer: ReturnType<typeof setInterval> | null = null;
+
+onBeforeUnmount(() => {
+  clearResendTimer();
+});
+
+function clearResendTimer() {
+  if (resendTimer) {
+    clearInterval(resendTimer);
+    resendTimer = null;
+  }
+}
+
+function startResendCountdown(seconds: number) {
+  clearResendTimer();
+  resendSeconds.value = Math.max(0, seconds);
+  if (resendSeconds.value <= 0) return;
+  resendTimer = setInterval(() => {
+    resendSeconds.value -= 1;
+    if (resendSeconds.value <= 0) {
+      clearResendTimer();
+      resendSeconds.value = 0;
+    }
+  }, 1000);
+}
+
+function mapError(err: unknown): string {
+  if (!(err instanceof ApiClientError)) {
+    return 'Something went wrong. Please try again.';
+  }
+
+  switch (err.errorCode) {
+    case 'INVALID_OTP':
+      return 'That code is incorrect. Please try again.';
+    case 'EXPIRED_OTP':
+      return 'That code has expired. Request a new one.';
+    case 'OTP_CONSUMED':
+      return 'That code was already used. Request a new one.';
+    case 'TOO_MANY_ATTEMPTS':
+      return 'Too many incorrect attempts. Request a new code.';
+    case 'RESEND_COOLDOWN':
+      return err.retryAfterSeconds
+        ? `Please wait ${err.retryAfterSeconds}s before requesting another code.`
+        : 'Please wait before requesting another code.';
+    case 'RATE_LIMITED':
+      return 'Too many requests. Please wait a minute and try again.';
+    case 'Service Unavailable':
+    case 'EMAIL_DELIVERY_FAILED':
+      return 'We could not send the email right now. Please try again shortly.';
+    default:
+      if (err.statusCode === 429) {
+        return 'Too many requests. Please wait a minute and try again.';
+      }
+      if (err.statusCode >= 500) {
+        return 'Something went wrong. Please try again.';
+      }
+      return 'Unable to continue. Please check your details and try again.';
+  }
+}
+
+async function requestCode() {
+  pending.value = true;
+  error.value = null;
+  successMessage.value = null;
+  try {
+    const result = await api.requestOtp(email.value.trim());
+    step.value = 'otp';
+    code.value = '';
+    startResendCountdown(result.resendAvailableInSeconds);
+    successMessage.value = 'Code sent. Check your inbox.';
+  } catch (err) {
+    if (err instanceof ApiClientError && err.errorCode === 'RESEND_COOLDOWN') {
+      startResendCountdown(err.retryAfterSeconds ?? 60);
+    }
+    error.value = mapError(err);
+  } finally {
+    pending.value = false;
+  }
+}
+
+async function verifyCode() {
+  pending.value = true;
+  error.value = null;
+  successMessage.value = null;
+  try {
+    const result = await api.verifyOtp(email.value.trim(), code.value.trim());
+    auth.setUser(result.user);
+    successMessage.value = 'Verified — signing you in…';
+    emit('verified');
+  } catch (err) {
+    error.value = mapError(err);
+  } finally {
+    pending.value = false;
+  }
+}
+
+async function onSubmit() {
+  if (step.value === 'email') {
+    await requestCode();
+  } else {
+    await verifyCode();
+  }
+}
+
+async function resendOtp() {
+  if (resendSeconds.value > 0) return;
+  await requestCode();
+}
+
+function backToEmail() {
+  step.value = 'email';
+  code.value = '';
+  error.value = null;
+  successMessage.value = null;
+  clearResendTimer();
+  resendSeconds.value = 0;
+}
+</script>

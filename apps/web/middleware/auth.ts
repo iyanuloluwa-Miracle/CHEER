@@ -1,7 +1,26 @@
 /**
- * Placeholder auth middleware for Phase 4.
- * Currently a no-op so routes can opt-in later with `definePageMeta({ middleware: 'auth' })`.
+ * Protects creator routes. Redirects anonymous users to /login.
+ * Creators without a profile are sent to onboarding (except when already there).
  */
-export default defineNuxtRouteMiddleware(() => {
-  // Phase 4: redirect unauthenticated creators to /login
+export default defineNuxtRouteMiddleware(async (to) => {
+  const auth = useAuthStore();
+
+  if (auth.status === 'idle' || auth.status === 'loading') {
+    await auth.fetchMe();
+  }
+
+  if (!auth.isAuthenticated) {
+    return navigateTo({
+      path: '/login',
+      query: { next: to.fullPath },
+    });
+  }
+
+  if (
+    !auth.user?.hasCreatorProfile &&
+    to.path !== '/onboarding' &&
+    !to.path.startsWith('/onboarding/')
+  ) {
+    return navigateTo('/onboarding');
+  }
 });

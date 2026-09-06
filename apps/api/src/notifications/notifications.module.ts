@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
+import { SendByteService } from './sendbyte.service';
 
-/** Phase 4+ — SendByte transactional email / OTP delivery. */
-@Module({})
+@Module({
+  providers: [SendByteService],
+  exports: [SendByteService],
+})
 export class NotificationsModule {}

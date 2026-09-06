@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { ThrottlerException } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 
 interface ErrorBody {
@@ -14,6 +15,7 @@ interface ErrorBody {
   error: string;
   path: string;
   timestamp: string;
+  retryAfterSeconds?: number;
 }
 
 @Catch()
@@ -28,8 +30,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | string[] = 'Internal server error';
     let error = 'Internal Server Error';
+    let retryAfterSeconds: number | undefined;
 
-    if (exception instanceof HttpException) {
+    if (exception instanceof ThrottlerException) {
+      status = HttpStatus.TOO_MANY_REQUESTS;
+      error = 'RATE_LIMITED';
+      message = 'Too many requests. Please try again shortly.';
+      retryAfterSeconds = 60;
+      response.setHeader('Retry-After', String(retryAfterSeconds));
+    } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
@@ -39,6 +48,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const body = exceptionResponse as Record<string, unknown>;
         message = (body.message as string | string[]) ?? message;
         error = (body.error as string) ?? exception.name;
+        if (typeof body.retryAfterSeconds === 'number') {
+          retryAfterSeconds = body.retryAfterSeconds;
+          response.setHeader('Retry-After', String(retryAfterSeconds));
+        }
       }
     } else if (exception instanceof Error) {
       this.logger.error(exception.message, exception.stack);
@@ -52,6 +65,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       error,
       path: request.url,
       timestamp: new Date().toISOString(),
+      ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}),
     };
 
     response.status(status).json(payload);

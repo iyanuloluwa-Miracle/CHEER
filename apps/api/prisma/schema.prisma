@@ -117,6 +117,8 @@ model CreatorProfile {
   supportMessage String?  @db.Text
   /// ISO 4217 default tip currency (Bachs amounts are decimal strings)
   currency       String   @default("NGN") @db.Char(3)
+  /// Suggested tip amounts as decimal strings, e.g. ["1000.00","2500.00","5000.00"]
+  suggestedTipAmounts Json?
   isActive       Boolean  @default(true)
   /// Bachs Connect account id when onboarded (Phase 11)
   bachsAccountId String?  @unique

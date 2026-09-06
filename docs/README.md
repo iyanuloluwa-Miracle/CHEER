@@ -15,6 +15,8 @@ Research and architecture for **TippyMe** (AIB Ship 2026). Application code is n
 | [PHASE-1-ARCHITECTURE.md](./PHASE-1-ARCHITECTURE.md) | Earlier Phase 1 notes (superseded in part by the files above) |
 | [PHASE-2-FOUNDATION.md](./PHASE-2-FOUNDATION.md) | Phase 2 monorepo foundation summary |
 | [PHASE-3-DATABASE.md](./PHASE-3-DATABASE.md) | Phase 3 PostgreSQL + Prisma |
+| [PHASE-4-AUTHENTICATION.md](./PHASE-4-AUTHENTICATION.md) | Phase 4 creator OTP auth + SendByte |
+| [PHASE-5-ONBOARDING.md](./PHASE-5-ONBOARDING.md) | Phase 5 creator onboarding + Tippy page |
 
 ## Root env template
 

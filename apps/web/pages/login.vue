@@ -1,19 +1,5 @@
 <template>
-  <AuthForm
-    v-model:email="email"
-    v-model:password="password"
-    title="Welcome back"
-    description="Log in to manage your TippyMe link and tips."
-    submit-label="Log in"
-    pending-label="Logging in…"
-    :pending="pending"
-    :error="error"
-    switch-prompt="New to TippyMe?"
-    switch-label="Sign up"
-    switch-to="/signup"
-    password-autocomplete="current-password"
-    @submit="onSubmit"
-  />
+  <OtpAuthForm @verified="onVerified" />
 </template>
 
 <script setup lang="ts">
@@ -25,18 +11,16 @@ useHead({
   title: 'Log in — TippyMe',
 });
 
-const email = ref('');
-const password = ref('');
-const pending = ref(false);
-const error = ref<string | null>(null);
+const route = useRoute();
+const auth = useAuthStore();
 
-async function onSubmit() {
-  pending.value = true;
-  error.value = null;
-
-  // Auth API lands in a later phase — keep the form interactive for UI.
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  error.value = 'Sign-in is coming soon. Check back after auth ships.';
-  pending.value = false;
+function onVerified() {
+  if (typeof route.query.next === 'string') {
+    return navigateTo(route.query.next);
+  }
+  if (auth.user?.hasCreatorProfile) {
+    return navigateTo('/dashboard');
+  }
+  return navigateTo('/onboarding');
 }
 </script>

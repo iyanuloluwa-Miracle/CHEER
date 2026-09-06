@@ -12,6 +12,11 @@ describe('Health (e2e)', () => {
   beforeEach(async () => {
     process.env.DATABASE_URL ??=
       'postgresql://cheer:cheer@localhost:5432/cheer?schema=public&connect_timeout=5';
+    process.env.AUTH_SECRET ??= 'dev-only-change-me';
+    process.env.OTP_HASH_PEPPER ??= 'dev-only-change-me';
+    if (!process.env.PORT || Number.isNaN(Number(process.env.PORT))) {
+      process.env.PORT = '3001';
+    }
 
     const prismaMock: Pick<
       PrismaService,
