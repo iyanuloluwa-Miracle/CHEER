@@ -7,8 +7,12 @@ import {
   AuditAction,
   Prisma,
 } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+
+/** Demo password for local login */
+const DEMO_PASSWORD = 'password123';
 
 /**
  * Development seed only.
@@ -16,13 +20,18 @@ const prisma = new PrismaClient();
  */
 async function main() {
   const email = 'dina@demo.cheer.local';
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
 
   const user = await prisma.user.upsert({
     where: { email },
-    update: {},
+    update: {
+      emailVerifiedAt: new Date(),
+      passwordHash,
+    },
     create: {
       email,
       emailVerifiedAt: new Date(),
+      passwordHash,
       creatorProfile: {
         create: {
           username: 'dina',
@@ -61,7 +70,6 @@ async function main() {
 
   const creatorId = user.creatorProfile!.id;
 
-  // Clear prior seed tips for this creator (idempotent re-seed)
   await prisma.tip.deleteMany({
     where: {
       creatorId,
@@ -130,6 +138,7 @@ async function main() {
   console.log('Seed complete:');
   console.log(`  creator: cheer.cash/${user.creatorProfile!.username}`);
   console.log(`  email:   ${email}`);
+  console.log(`  password: ${DEMO_PASSWORD}`);
   console.log('  tips:    2 CREATED fixtures (DEV_SEED — not Bachs PAID)');
 }
 

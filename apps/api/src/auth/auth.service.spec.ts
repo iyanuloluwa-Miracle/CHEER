@@ -123,6 +123,7 @@ describe('AuthService', () => {
     });
 
     it('enforces resend cooldown', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
       prisma.otpChallenge.findFirst.mockResolvedValue({
         id: 'chal_recent',
         createdAt: new Date(),
@@ -131,6 +132,22 @@ describe('AuthService', () => {
       await expect(service.requestOtp(email)).rejects.toBeInstanceOf(
         HttpException,
       );
+      expect(sendByte.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('rejects OTP request when account already exists', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user_1',
+        email,
+        emailVerifiedAt: new Date(),
+        passwordHash: 'hashed',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await expect(service.requestOtp(email)).rejects.toMatchObject({
+        status: 409,
+      });
       expect(sendByte.sendEmail).not.toHaveBeenCalled();
     });
 
@@ -149,7 +166,7 @@ describe('AuthService', () => {
         id: 'chal_fail',
         email,
         codeHash: 'abc',
-        purpose: OtpPurpose.LOGIN,
+        purpose: OtpPurpose.EMAIL_VERIFICATION,
         expiresAt: new Date(Date.now() + OTP_TTL_MS),
         attemptCount: 0,
         maxAttempts: OTP_MAX_ATTEMPTS,
@@ -184,7 +201,7 @@ describe('AuthService', () => {
         id: 'chal_1',
         email,
         codeHash,
-        purpose: OtpPurpose.LOGIN,
+        purpose: OtpPurpose.EMAIL_VERIFICATION,
         expiresAt: new Date(Date.now() + OTP_TTL_MS),
         attemptCount: 0,
         maxAttempts: OTP_MAX_ATTEMPTS,
@@ -227,7 +244,7 @@ describe('AuthService', () => {
         },
       );
 
-      const result = await service.verifyOtp(email, code);
+      const result = await service.verifyOtp(email, code, 'password123');
 
       expect(result.response.ok).toBe(true);
       expect(result.response.user.email).toBe(email);
@@ -244,9 +261,9 @@ describe('AuthService', () => {
       });
       prisma.auditLog.create.mockResolvedValue({});
 
-      await expect(service.verifyOtp(email, '000000')).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        service.verifyOtp(email, '000000', 'password123'),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(prisma.otpChallenge.update).toHaveBeenCalledWith({
         where: { id: 'chal_1' },
         data: { attemptCount: { increment: 1 } },
@@ -260,7 +277,7 @@ describe('AuthService', () => {
       prisma.auditLog.create.mockResolvedValue({});
 
       const err: unknown = await service
-        .verifyOtp(email, code)
+        .verifyOtp(email, code, 'password123')
         .catch((e: unknown) => e);
       expect(err).toBeInstanceOf(BadRequestException);
       expect((err as BadRequestException).getResponse()).toMatchObject({
@@ -275,7 +292,7 @@ describe('AuthService', () => {
       prisma.auditLog.create.mockResolvedValue({});
 
       const err: unknown = await service
-        .verifyOtp(email, code)
+        .verifyOtp(email, code, 'password123')
         .catch((e: unknown) => e);
       expect(err).toBeInstanceOf(BadRequestException);
       expect((err as BadRequestException).getResponse()).toMatchObject({
@@ -289,9 +306,9 @@ describe('AuthService', () => {
       );
       prisma.auditLog.create.mockResolvedValue({});
 
-      await expect(service.verifyOtp(email, code)).rejects.toBeInstanceOf(
-        HttpException,
-      );
+      await expect(
+        service.verifyOtp(email, code, 'password123'),
+      ).rejects.toBeInstanceOf(HttpException);
     });
   });
 

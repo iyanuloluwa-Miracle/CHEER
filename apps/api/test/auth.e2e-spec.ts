@@ -106,7 +106,7 @@ describe('Auth (e2e)', () => {
       id: 'chal_e2e',
       email,
       codeHash: 'hash',
-      purpose: OtpPurpose.LOGIN,
+      purpose: OtpPurpose.EMAIL_VERIFICATION,
       expiresAt: new Date(Date.now() + 600_000),
       attemptCount: 0,
       maxAttempts: 5,
@@ -135,7 +135,7 @@ describe('Auth (e2e)', () => {
       id: 'chal_e2e',
       email,
       codeHash: hashOtp(code, pepper),
-      purpose: OtpPurpose.LOGIN,
+      purpose: OtpPurpose.EMAIL_VERIFICATION,
       expiresAt: new Date(Date.now() + 600_000),
       attemptCount: 0,
       maxAttempts: 5,
@@ -173,7 +173,7 @@ describe('Auth (e2e)', () => {
 
     const res = await request(app.getHttpServer())
       .post('/api/auth/verify-otp')
-      .send({ email, code })
+      .send({ email, code, password: 'password123' })
       .expect(200);
 
     const body = res.body as { ok?: boolean; user?: { email?: string } };

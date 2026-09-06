@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -16,6 +17,7 @@ import {
   OtpPurpose,
   type User,
 } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { SendByteService } from '../notifications/sendbyte.service';
 import type {
@@ -37,6 +39,8 @@ import {
   verifyOtpHash,
 } from './otp.crypto';
 
+const BCRYPT_ROUNDS = 12;
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -48,14 +52,26 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
+  /**
+   * Signup only — always EMAIL_VERIFICATION.
+   * Returning users with a password must use POST /auth/login.
+   */
   async requestOtp(
     emailRaw: string,
-    purposeRaw: string = 'LOGIN',
     meta?: { ipAddress?: string; userAgent?: string },
   ): Promise<RequestOtpResponse> {
     const email = normalizeEmail(emailRaw);
-    const purpose = this.resolvePurpose(purposeRaw);
+    const purpose = OtpPurpose.EMAIL_VERIFICATION;
     const pepper = this.requirePepper();
+
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing?.emailVerifiedAt && existing.passwordHash) {
+      throw new ConflictException({
+        statusCode: 409,
+        error: 'ACCOUNT_EXISTS',
+        message: 'An account with this email already exists. Please log in.',
+      });
+    }
 
     const recent = await this.prisma.otpChallenge.findFirst({
       where: { email, purpose },
@@ -80,7 +96,7 @@ export class AuthService {
       }
     }
 
-    let user = await this.prisma.user.findUnique({ where: { email } });
+    let user = existing;
     if (!user) {
       user = await this.prisma.user.create({ data: { email } });
       await this.prisma.auditLog.create({
@@ -89,14 +105,13 @@ export class AuthService {
           action: AuditAction.USER_CREATED,
           entityType: 'User',
           entityId: user.id,
-          metadata: { source: 'otp_request' },
+          metadata: { source: 'signup_otp_request' },
           ipAddress: meta?.ipAddress,
           userAgent: meta?.userAgent,
         },
       });
     }
 
-    // Invalidate prior unused challenges for this email + purpose
     await this.prisma.otpChallenge.updateMany({
       where: {
         email,
@@ -127,7 +142,7 @@ export class AuthService {
     try {
       const sendResult = await this.sendByte.sendEmail({
         to: email,
-        subject: 'Your TippyMe verification code',
+        subject: 'Verify your TippyMe email',
         html,
         text,
         idempotencyKey: `otp-${challenge.id}`,
@@ -147,13 +162,10 @@ export class AuthService {
           metadata: {
             purpose,
             challengeId: challenge.id,
-            // Never store the OTP code in notification metadata
           },
         },
       });
     } catch (err) {
-      // Challenge remains but cannot be used usefully without delivery —
-      // mark consumed so it cannot be brute-forced from a failed send.
       await this.prisma.otpChallenge.update({
         where: { id: challenge.id },
         data: { consumedAt: new Date() },
@@ -163,8 +175,6 @@ export class AuthService {
       );
       throw err;
     }
-
-    // Intentionally never log or return `code`.
 
     return {
       ok: true,
@@ -176,13 +186,21 @@ export class AuthService {
   async verifyOtp(
     emailRaw: string,
     codeRaw: string,
-    purposeRaw: string = 'LOGIN',
+    password: string,
     meta?: { ipAddress?: string; userAgent?: string },
   ): Promise<{ response: VerifyOtpResponse; accessToken: string }> {
     const email = normalizeEmail(emailRaw);
     const code = normalizeOtp(codeRaw);
-    const purpose = this.resolvePurpose(purposeRaw);
+    const purpose = OtpPurpose.EMAIL_VERIFICATION;
     const pepper = this.requirePepper();
+
+    if (!password || password.length < 8) {
+      throw new BadRequestException({
+        statusCode: 400,
+        error: 'INVALID_PASSWORD',
+        message: 'Password must be at least 8 characters.',
+      });
+    }
 
     const challenge = await this.prisma.otpChallenge.findFirst({
       where: { email, purpose },
@@ -269,6 +287,7 @@ export class AuthService {
     }
 
     const now = new Date();
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     const user = await this.prisma.$transaction(async (tx) => {
       await tx.otpChallenge.update({
@@ -280,6 +299,7 @@ export class AuthService {
         where: challenge.userId ? { id: challenge.userId } : { email },
         data: {
           emailVerifiedAt: now,
+          passwordHash,
         },
         include: { creatorProfile: { select: { id: true } } },
       });
@@ -302,13 +322,77 @@ export class AuthService {
           action: AuditAction.LOGIN_SUCCESS,
           entityType: 'User',
           entityId: verified.id,
-          metadata: { purpose },
+          metadata: { method: 'signup_otp' },
           ipAddress: meta?.ipAddress,
           userAgent: meta?.userAgent,
         },
       });
 
       return verified;
+    });
+
+    const accessToken = await this.signAccessToken(user);
+
+    return {
+      accessToken,
+      response: {
+        ok: true,
+        user: this.toPublicUser(user),
+      },
+    };
+  }
+
+  /** Password login for returning creators — no OTP. */
+  async loginWithPassword(
+    emailRaw: string,
+    password: string,
+    meta?: { ipAddress?: string; userAgent?: string },
+  ): Promise<{ response: VerifyOtpResponse; accessToken: string }> {
+    const email = normalizeEmail(emailRaw);
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      include: { creatorProfile: { select: { id: true } } },
+    });
+
+    if (!user?.passwordHash || !user.emailVerifiedAt) {
+      await this.recordLoginFailure(
+        user?.id,
+        email,
+        'INVALID_CREDENTIALS',
+        meta,
+      );
+      throw new UnauthorizedException({
+        statusCode: 401,
+        error: 'INVALID_CREDENTIALS',
+        message: 'Invalid email or password.',
+      });
+    }
+
+    const match = await bcrypt.compare(password, user.passwordHash);
+    if (!match) {
+      await this.recordLoginFailure(
+        user.id,
+        email,
+        'INVALID_CREDENTIALS',
+        meta,
+      );
+      throw new UnauthorizedException({
+        statusCode: 401,
+        error: 'INVALID_CREDENTIALS',
+        message: 'Invalid email or password.',
+      });
+    }
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorUserId: user.id,
+        action: AuditAction.LOGIN_SUCCESS,
+        entityType: 'User',
+        entityId: user.id,
+        metadata: { method: 'password' },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      },
     });
 
     const accessToken = await this.signAccessToken(user);
@@ -364,13 +448,6 @@ export class AuthService {
     };
   }
 
-  private resolvePurpose(purposeRaw: string): OtpPurpose {
-    if (purposeRaw === 'EMAIL_VERIFICATION') {
-      return OtpPurpose.EMAIL_VERIFICATION;
-    }
-    return OtpPurpose.LOGIN;
-  }
-
   private requirePepper(): string {
     const pepper = this.config.get<string>('OTP_HASH_PEPPER');
     if (!pepper) {
@@ -380,7 +457,6 @@ export class AuthService {
   }
 
   private buildOtpEmailHtml(code: string): string {
-    // Code is only embedded in the outbound email body, never logged.
     return `
 <!DOCTYPE html>
 <html>

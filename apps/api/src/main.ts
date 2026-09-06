@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { RequestLoggingInterceptor } from './common/interceptors/request-logging.interceptor';
+import { setupSwagger } from './common/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -22,7 +23,12 @@ async function bootstrap() {
 
   app.setGlobalPrefix(apiPrefix);
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      // Allow Swagger UI assets in non-production
+      contentSecurityPolicy: nodeEnv === 'production' ? undefined : false,
+    }),
+  );
   app.use(cookieParser());
 
   app.enableCors({
@@ -44,9 +50,16 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new RequestLoggingInterceptor());
 
+  if (nodeEnv !== 'production') {
+    setupSwagger(app, apiPrefix);
+  }
+
   await app.listen(port);
 
   logger.log(`TippyMe API listening on http://localhost:${port}/${apiPrefix}`);
+  if (nodeEnv !== 'production') {
+    logger.log(`Swagger docs: http://localhost:${port}/${apiPrefix}/docs`);
+  }
   logger.log(`Environment: ${nodeEnv}`);
   logger.log(`CORS origin: ${appUrl}`);
 }
