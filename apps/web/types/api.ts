@@ -52,6 +52,120 @@ export interface UsernameAvailability {
   reason?: 'INVALID_FORMAT' | 'RESERVED' | 'TOO_SHORT' | 'TOO_LONG' | 'TAKEN';
 }
 
+export type TipStatus =
+  | 'CREATED'
+  | 'CHECKOUT_PENDING'
+  | 'PAID'
+  | 'FAILED'
+  | 'EXPIRED';
+
+export interface PublicTip {
+  id: string;
+  status: TipStatus;
+  amount: string;
+  currency: string;
+  message: string | null;
+  isAnonymous: boolean;
+  supporterName: string | null;
+  creator: {
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
+  createdAt: string;
+}
+
+export interface CreateTipResponse {
+  tip: PublicTip;
+  checkoutUrl: string;
+}
+
+export interface PaymentStatus {
+  id: string;
+  paymentId: string;
+  tipId: string;
+  tipStatus: TipStatus;
+  paymentStatus:
+    | 'PENDING'
+    | 'PROCESSING'
+    | 'SUCCEEDED'
+    | 'FAILED'
+    | 'CANCELLED'
+    | 'EXPIRED';
+  amount: string;
+  currency: string;
+  paid: boolean;
+}
+
+export type PaymentTxnStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'SUCCEEDED'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
+/** Creator-private tip row from dashboard APIs. */
+export interface CreatorTip {
+  id: string;
+  amount: string;
+  currency: string;
+  message: string | null;
+  isAnonymous: boolean;
+  supporterName: string | null;
+  status: TipStatus;
+  paymentStatus: PaymentTxnStatus | null;
+  createdAt: string;
+}
+
+export interface CreatorDashboardTotals {
+  successfulSupport: string;
+  successfulTipCount: number;
+  periodSupport: string;
+  periodTipCount: number;
+  periodKey: string;
+  periodLabel: string;
+}
+
+export interface CreatorDashboard {
+  currency: string;
+  username: string;
+  displayName: string;
+  publicPath: string;
+  publicUrl: string;
+  totals: CreatorDashboardTotals;
+  recentTips: CreatorTip[];
+  recentMessages: CreatorTip[];
+  settlement: CreatorSettlementStatus;
+}
+
+export interface CreatorSettlementStatus {
+  readiness: 'NOT_CONFIGURED' | 'CONNECTED';
+  bachsConnectAccountId: string | null;
+  tippyHoldsWithdrawableBalance: false;
+  tippyInitiatedPayoutAvailable: false;
+  automatedFridayPayout: 'FUTURE_CAPABILITY';
+  message: string;
+}
+
+export interface CreatorTipsPage {
+  tips: CreatorTip[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ListMyTipsQuery {
+  status?: TipStatus;
+  from?: string;
+  to?: string;
+  minAmount?: string;
+  maxAmount?: string;
+  page?: number;
+  pageSize?: number;
+}
+
 export interface ApiErrorBody {
   statusCode: number;
   message: string | string[];

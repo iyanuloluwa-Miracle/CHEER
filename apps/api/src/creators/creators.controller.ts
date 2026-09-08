@@ -41,6 +41,11 @@ import {
   CreatorProfileEnvelopeDto,
   UsernameAvailabilityResponseDto,
 } from './dto/creator-response.dto';
+import {
+  CreatorDashboardEnvelopeDto,
+  CreatorTipsPageResponseDto,
+} from './dto/dashboard-response.dto';
+import { ListTipsQueryDto } from './dto/list-tips-query.dto';
 
 @ApiTags('Creators')
 @Controller('creators')
@@ -157,6 +162,41 @@ export class CreatorsController {
   ) {
     const profile = await this.creators.replaceSocialLinks(user.sub, body);
     return { profile };
+  }
+
+  @Get('me/dashboard')
+  @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth(AUTH_COOKIE_NAME)
+  @ApiOperation({
+    summary: 'Creator dashboard summary',
+    description:
+      'Successful totals (PAID only), current UTC month support, recent tips and messages. Scoped to the session creator.',
+  })
+  @ApiOkResponse({ type: CreatorDashboardEnvelopeDto })
+  @ApiUnauthorizedResponse({ type: ApiErrorResponseDto })
+  @ApiNotFoundResponse({ type: ApiErrorResponseDto })
+  async dashboard(@CurrentUser() user: AuthUserPayload) {
+    const dashboard = await this.creators.getDashboard(user.sub);
+    return { dashboard };
+  }
+
+  @Get('me/tips')
+  @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth(AUTH_COOKIE_NAME)
+  @ApiOperation({
+    summary: 'List own tips (paginated)',
+    description:
+      'MVP filters: status, date range, amount, pagination. Always scoped to the authenticated creator.',
+  })
+  @ApiOkResponse({ type: CreatorTipsPageResponseDto })
+  @ApiUnauthorizedResponse({ type: ApiErrorResponseDto })
+  @ApiNotFoundResponse({ type: ApiErrorResponseDto })
+  @ApiBadRequestResponse({ type: ApiErrorResponseDto })
+  async listMyTips(
+    @CurrentUser() user: AuthUserPayload,
+    @Query() query: ListTipsQueryDto,
+  ) {
+    return this.creators.listMyTips(user.sub, query);
   }
 
   @Get(':username')

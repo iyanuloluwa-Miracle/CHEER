@@ -5,6 +5,12 @@ import type {
   CreatorProfile,
   UsernameAvailability,
   CreatorSocialLink,
+  CreateTipResponse,
+  PublicTip,
+  PaymentStatus,
+  CreatorDashboard,
+  CreatorTipsPage,
+  ListMyTipsQuery,
 } from '~/types/api';
 
 export class ApiClientError extends Error {
@@ -92,13 +98,23 @@ export function createApiClient(apiBaseUrl: string) {
         resendAvailableInSeconds: number;
       }>('/api/auth/request-otp', {
         method: 'POST',
-        body: JSON.stringify({ email, purpose: 'LOGIN' }),
+        body: JSON.stringify({ email }),
       }),
 
-    verifyOtp: (email: string, code: string) =>
+    verifyOtp: (email: string, code: string, password: string) =>
       request<{ ok: true; user: PublicUser }>('/api/auth/verify-otp', {
         method: 'POST',
-        body: JSON.stringify({ email, code, purpose: 'LOGIN' }),
+        body: JSON.stringify({
+          email,
+          code,
+          password,
+        }),
+      }),
+
+    login: (email: string, password: string) =>
+      request<{ ok: true; user: PublicUser }>('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
       }),
 
     getMe: () => request<{ user: PublicUser | null }>('/api/auth/me'),
@@ -115,6 +131,24 @@ export function createApiClient(apiBaseUrl: string) {
 
     getMyCreator: () =>
       request<{ profile: CreatorProfile | null }>('/api/creators/me'),
+
+    getMyDashboard: () =>
+      request<{ dashboard: CreatorDashboard }>('/api/creators/me/dashboard'),
+
+    listMyTips: (query?: ListMyTipsQuery) => {
+      const params = new URLSearchParams();
+      if (query?.status) params.set('status', query.status);
+      if (query?.from) params.set('from', query.from);
+      if (query?.to) params.set('to', query.to);
+      if (query?.minAmount) params.set('minAmount', query.minAmount);
+      if (query?.maxAmount) params.set('maxAmount', query.maxAmount);
+      if (query?.page) params.set('page', String(query.page));
+      if (query?.pageSize) params.set('pageSize', String(query.pageSize));
+      const qs = params.toString();
+      return request<CreatorTipsPage>(
+        `/api/creators/me/tips${qs ? `?${qs}` : ''}`,
+      );
+    },
 
     createCreator: (payload: {
       username: string;
@@ -161,6 +195,37 @@ export function createApiClient(apiBaseUrl: string) {
     getCreatorByUsername: (username: string) =>
       request<{ profile: CreatorProfile }>(
         `/api/creators/${encodeURIComponent(username)}`,
+      ),
+
+    createTip: (
+      payload: {
+        username: string;
+        amount: string;
+        currency?: string;
+        message?: string;
+        isAnonymous?: boolean;
+        supporterName?: string;
+        supporterEmail: string;
+        idempotencyKey?: string;
+      },
+      opts?: { idempotencyKey?: string },
+    ) =>
+      request<CreateTipResponse>('/api/tips', {
+        method: 'POST',
+        headers: opts?.idempotencyKey
+          ? { 'Idempotency-Key': opts.idempotencyKey }
+          : undefined,
+        body: JSON.stringify(payload),
+      }),
+
+    getPublicTip: (tipId: string) =>
+      request<{ tip: PublicTip }>(
+        `/api/tips/${encodeURIComponent(tipId)}/public`,
+      ),
+
+    getPaymentStatus: (id: string) =>
+      request<PaymentStatus>(
+        `/api/payments/${encodeURIComponent(id)}/status`,
       ),
   };
 }

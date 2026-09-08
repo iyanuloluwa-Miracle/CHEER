@@ -103,7 +103,7 @@ export class SendByteService {
         this.logger.error('SendByte send failed');
       }
       throw new ServiceUnavailableException(
-        'Unable to send verification email. Please try again shortly.',
+        'Unable to send email. Please try again shortly.',
       );
     }
   }

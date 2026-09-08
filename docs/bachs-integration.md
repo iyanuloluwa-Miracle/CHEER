@@ -195,11 +195,26 @@ Docs: [Payment method support](https://docs.bachs.io/guides/payments/payment-met
 
 ## Settlement / payout / Connect
 
-For multi-creator TippyMe:
+### Verified Bachs capabilities (do not invent TippyMe wallets)
 
-- Prefer **platform collects** (marketplace) with destination/split to Connect accounts (`transfer_data.destination`, `platform_fee`) — see [Accept a payment for a seller](https://docs.bachs.io/connect/marketplaces/accept-a-payment.md).
-- Creators as **recipients**: request `transfers` + `payouts` under recipient persona — [Creator payouts](https://docs.bachs.io/connect/payout-networks.md).
-- Platform needs `connect` capability — [Become a platform](https://docs.bachs.io/connect/become-a-platform.md).
+| Capability | Documented mechanism |
+|------------|----------------------|
+| Creator settlement | Connect destination charges (`transfer_data.destination`, `platform_fee`) **or** platform collect + `POST /v1/transfers` to recipient accounts — [Accept a payment for a seller](https://docs.bachs.io/connect/marketplaces/accept-a-payment.md), [Creator payouts](https://docs.bachs.io/connect/payout-networks.md) |
+| Bank / destination accounts | Payout destinations API (bank, MoMo, crypto); list/resolve banks before create |
+| Balances | Retrieve balances (`available` / pending / locked); transfers use available only — [Balances](https://docs.bachs.io/connect/balances.md) |
+| Payouts / withdrawals | Create / get / list payout; quote & estimate; webhooks `payout.*` — [Payouts](https://docs.bachs.io/guides/payouts/overview.md) |
+| Transfers | `POST /v1/transfers` platform ↔ connected account — [Transfers](https://docs.bachs.io/connect/transfers.md) |
+| Scheduled / automated payouts | `balance_settings` intervals: `manual`, `instant`, `daily`, `weekly` (weekday list, e.g. friday), `monthly` — [Payout Schedules](https://docs.bachs.io/guides/payouts/payout-schedules.md) |
+
+Platform must have active `connect` ([Become a platform](https://docs.bachs.io/connect/become-a-platform.md)). Creators as recipients request `transfers` + `payouts` under the recipient persona.
+
+### TippyMe MVP status (Phase 10)
+
+- Tip checkout does **not** yet use `transfer_data.destination` or Connect transfers.
+- TippyMe does **not** expose a withdrawable wallet or Tippy-initiated payout API.
+- Dashboard tip totals are TippyMe records only.
+- **Automatic scheduled payout — future capability.**
+- Details: `docs/PHASE-10-PAYOUT.md`.
 
 **UNKNOWN — NEEDS VERIFICATION:** Whether the TippyMe Bachs sandbox org already has `connect` enabled.
 
@@ -244,6 +259,31 @@ Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Ret
 | `BACHS_WEBHOOK_SECRET` | TippyMe-chosen name for dashboard signing secret | Verify `X-Bachs-Signature` |
 
 There is no verified official env named `BACHS_SECRET` distinct from the API key — **do not invent a second secret type**.
+
+---
+
+## Phase 7 sandbox setup (TippyMe)
+
+Local development must use **sandbox only** (`sk_sandbox_…` + `https://sandbox-api.bachs.io`). Never put live keys in `apps/api/.env`.
+
+1. Create / open a Bachs sandbox organization in the Developer Portal.
+2. Copy a sandbox secret key (`sk_sandbox_…`) into `BACHS_API_KEY`.
+3. Set `BACHS_API_BASE_URL=https://sandbox-api.bachs.io`.
+4. Create a webhook destination pointing at your public HTTPS URL (OutRay tunnel in dev):
+   - Path: `POST {API_URL}/api/webhooks/bachs`
+   - Subscribe at minimum: `collection.succeeded`, `collection.failed`, `checkout.completed`, `checkout.expired`
+5. Copy the endpoint signing secret into `BACHS_WEBHOOK_SECRET`.
+6. Restart the API. With `BACHS_API_KEY` set, tip checkout redirects to Bachs hosted `checkout_url`. Without it, TippyMe keeps the Phase 6 local stub provider.
+
+Checkout create uses verified fields only:
+
+- `pricing.currency` / `pricing.amount` (decimal strings)
+- `customer.email` + `customer.name` (required by OpenAPI `NewCustomerRequest`)
+- `success_url` / `cancel_url`
+- `reference` = TippyMe tip id (≤128)
+- `Idempotency-Key` = TippyMe `PaymentTransaction.internalReference`
+
+Retrieve / reconcile: `GET /v1/checkout-sessions/{checkout_id}`.
 
 ---
 

@@ -86,7 +86,7 @@
         v-if="showTipCta"
         class="mt-6 text-center text-sm text-cheer-ink/50"
       >
-        Tip checkout arrives in a later phase.
+        Open the public page to send a tip.
       </p>
     </div>
   </article>

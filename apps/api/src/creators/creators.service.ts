@@ -5,8 +5,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AuditAction, Prisma, SocialPlatform } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { AuditAction, Prisma, SocialPlatform, TipStatus } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { decimalToAmountString } from '../tips/tips.types';
 import type {
   CreateCreatorDto,
   ReplaceSocialLinksDto,
@@ -14,6 +16,14 @@ import type {
   UpdateCreatorProfileDto,
   UpdateCreatorSettingsDto,
 } from './dto/creators.dto';
+import type { ListTipsQueryDto } from './dto/list-tips-query.dto';
+import {
+  toCreatorTipDto,
+  utcMonthBounds,
+  type CreatorDashboardDto,
+  type CreatorTipsPageDto,
+} from './dashboard.types';
+import { buildSettlementStatus } from './settlement.types';
 import {
   toCreatorProfileDto,
   type CreatorProfileDto,
@@ -29,9 +39,19 @@ const profileInclude = {
   socialLinks: { orderBy: { sortOrder: 'asc' as const } },
 } satisfies Prisma.CreatorProfileInclude;
 
+const tipWithPaymentInclude = {
+  paymentTransaction: { select: { status: true } },
+} satisfies Prisma.TipInclude;
+
+const RECENT_TIPS_LIMIT = 8;
+const RECENT_MESSAGES_LIMIT = 8;
+
 @Injectable()
 export class CreatorsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   async checkUsernameAvailability(
     raw: string,
@@ -296,6 +316,167 @@ export class CreatorsService {
     });
 
     return toCreatorProfileDto(updated);
+  }
+
+  /**
+   * Creator dashboard aggregates + recent activity.
+   * Scoped exclusively to the session user's owned profile (IDOR-safe).
+   * Successful totals count TipStatus.PAID only.
+   */
+  async getDashboard(userId: string): Promise<CreatorDashboardDto> {
+    const profile = await this.prisma.creatorProfile.findUnique({
+      where: { userId },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        currency: true,
+        bachsAccountId: true,
+      },
+    });
+    if (!profile) {
+      throw new NotFoundException({
+        statusCode: 404,
+        error: 'PROFILE_NOT_FOUND',
+        message: 'Create a creator profile first.',
+      });
+    }
+
+    const creatorId = profile.id;
+    const { start, end, periodKey, periodLabel } = utcMonthBounds();
+    const appUrl = (
+      this.config.get<string>('APP_URL') ?? 'http://localhost:3000'
+    ).replace(/\/$/, '');
+
+    const [lifetimeAgg, periodAgg, recentTips, recentMessages] =
+      await Promise.all([
+        this.prisma.tip.aggregate({
+          where: { creatorId, status: TipStatus.PAID },
+          _sum: { amount: true },
+          _count: { _all: true },
+        }),
+        this.prisma.tip.aggregate({
+          where: {
+            creatorId,
+            status: TipStatus.PAID,
+            createdAt: { gte: start, lt: end },
+          },
+          _sum: { amount: true },
+          _count: { _all: true },
+        }),
+        this.prisma.tip.findMany({
+          where: { creatorId },
+          include: tipWithPaymentInclude,
+          orderBy: { createdAt: 'desc' },
+          take: RECENT_TIPS_LIMIT,
+        }),
+        this.prisma.tip.findMany({
+          where: {
+            creatorId,
+            status: TipStatus.PAID,
+            message: { not: null },
+          },
+          include: tipWithPaymentInclude,
+          orderBy: { createdAt: 'desc' },
+          take: RECENT_MESSAGES_LIMIT,
+        }),
+      ]);
+
+    return {
+      currency: profile.currency,
+      username: profile.username,
+      displayName: profile.displayName,
+      publicPath: `/${profile.username}`,
+      publicUrl: `${appUrl}/${profile.username}`,
+      totals: {
+        successfulSupport: decimalToAmountString(
+          lifetimeAgg._sum.amount ?? new Prisma.Decimal(0),
+        ),
+        successfulTipCount: lifetimeAgg._count._all,
+        periodSupport: decimalToAmountString(
+          periodAgg._sum.amount ?? new Prisma.Decimal(0),
+        ),
+        periodTipCount: periodAgg._count._all,
+        periodKey,
+        periodLabel,
+      },
+      recentTips: recentTips.map(toCreatorTipDto),
+      recentMessages: recentMessages
+        .filter((t) => Boolean(t.message?.trim()))
+        .map(toCreatorTipDto),
+      settlement: buildSettlementStatus(profile.bachsAccountId),
+    };
+  }
+
+  /**
+   * Paginated tip list for the authenticated creator.
+   * Always filters by owned creatorId — never trusts client creator/tip ids.
+   */
+  async listMyTips(
+    userId: string,
+    query: ListTipsQueryDto,
+  ): Promise<CreatorTipsPageDto> {
+    const profile = await this.requireOwnedProfile(userId);
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+    const where = this.buildTipListWhere(profile.id, query);
+
+    const [total, tips] = await Promise.all([
+      this.prisma.tip.count({ where }),
+      this.prisma.tip.findMany({
+        where,
+        include: tipWithPaymentInclude,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    return {
+      tips: tips.map(toCreatorTipDto),
+      page,
+      pageSize,
+      total,
+      totalPages: total === 0 ? 0 : Math.ceil(total / pageSize),
+    };
+  }
+
+  private buildTipListWhere(
+    creatorId: string,
+    query: ListTipsQueryDto,
+  ): Prisma.TipWhereInput {
+    const where: Prisma.TipWhereInput = { creatorId };
+
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    if (query.from || query.to) {
+      where.createdAt = {};
+      if (query.from) {
+        where.createdAt.gte = new Date(query.from);
+      }
+      if (query.to) {
+        const to = new Date(query.to);
+        // If date-only (YYYY-MM-DD), include the full end day in UTC.
+        if (/^\d{4}-\d{2}-\d{2}$/.test(query.to)) {
+          to.setUTCHours(23, 59, 59, 999);
+        }
+        where.createdAt.lte = to;
+      }
+    }
+
+    if (query.minAmount || query.maxAmount) {
+      where.amount = {};
+      if (query.minAmount) {
+        where.amount.gte = new Prisma.Decimal(query.minAmount);
+      }
+      if (query.maxAmount) {
+        where.amount.lte = new Prisma.Decimal(query.maxAmount);
+      }
+    }
+
+    return where;
   }
 
   /**

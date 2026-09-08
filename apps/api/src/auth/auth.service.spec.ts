@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { OtpPurpose } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { SendByteService } from '../notifications/sendbyte.service';
+import { TransactionalNotificationsService } from '../notifications/transactional-notifications.service';
 import { AuthService } from './auth.service';
 import { hashOtp } from './otp.crypto';
 import { OTP_MAX_ATTEMPTS, OTP_TTL_MS } from './otp.constants';
@@ -27,7 +27,11 @@ describe('AuthService', () => {
     auditLog: { create: jest.Mock };
     $transaction: jest.Mock;
   };
-  let sendByte: { sendEmail: jest.Mock };
+  let notifications: {
+    notifyOtp: jest.Mock;
+    notifyAccountVerified: jest.Mock;
+    notifySecurityLogin: jest.Mock;
+  };
   let jwt: { signAsync: jest.Mock; verifyAsync: jest.Mock };
 
   const pepper = 'unit-test-pepper';
@@ -47,15 +51,14 @@ describe('AuthService', () => {
         updateMany: jest.fn(),
       },
       notification: { create: jest.fn() },
-      auditLog: { create: jest.fn() },
+      auditLog: { create: jest.fn().mockResolvedValue({ id: 'audit_1' }) },
       $transaction: jest.fn(),
     };
 
-    sendByte = {
-      sendEmail: jest.fn().mockResolvedValue({
-        id: 'em_test',
-        provider: 'SENDBYTE',
-      }),
+    notifications = {
+      notifyOtp: jest.fn().mockResolvedValue({ status: 'sent' }),
+      notifyAccountVerified: jest.fn().mockResolvedValue({ status: 'sent' }),
+      notifySecurityLogin: jest.fn().mockResolvedValue({ status: 'sent' }),
     };
 
     jwt = {
@@ -67,7 +70,7 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: PrismaService, useValue: prisma },
-        { provide: SendByteService, useValue: sendByte },
+        { provide: TransactionalNotificationsService, useValue: notifications },
         { provide: JwtService, useValue: jwt },
         {
           provide: ConfigService,
@@ -112,7 +115,7 @@ describe('AuthService', () => {
       const result = await service.requestOtp(email);
 
       expect(result.ok).toBe(true);
-      expect(sendByte.sendEmail).toHaveBeenCalled();
+      expect(notifications.notifyOtp).toHaveBeenCalled();
       const createCalls = prisma.otpChallenge.create.mock.calls as Array<
         [{ data: { codeHash: string } }]
       >;
@@ -132,7 +135,7 @@ describe('AuthService', () => {
       await expect(service.requestOtp(email)).rejects.toBeInstanceOf(
         HttpException,
       );
-      expect(sendByte.sendEmail).not.toHaveBeenCalled();
+      expect(notifications.notifyOtp).not.toHaveBeenCalled();
     });
 
     it('rejects OTP request when account already exists', async () => {
@@ -148,7 +151,7 @@ describe('AuthService', () => {
       await expect(service.requestOtp(email)).rejects.toMatchObject({
         status: 409,
       });
-      expect(sendByte.sendEmail).not.toHaveBeenCalled();
+      expect(notifications.notifyOtp).not.toHaveBeenCalled();
     });
 
     it('consumes challenge when SendByte fails', async () => {
@@ -174,8 +177,8 @@ describe('AuthService', () => {
         userId: 'user_1',
         createdAt: new Date(),
       });
-      sendByte.sendEmail.mockRejectedValue(
-        new Error('Unable to send verification email'),
+      notifications.notifyOtp.mockRejectedValue(
+        new Error('Unable to send email'),
       );
       prisma.otpChallenge.update.mockResolvedValue({});
 

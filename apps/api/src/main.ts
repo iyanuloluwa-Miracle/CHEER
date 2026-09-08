@@ -11,6 +11,7 @@ import { setupSwagger } from './common/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
+    rawBody: true,
   });
 
   const config = app.get(ConfigService);
@@ -31,11 +32,26 @@ async function bootstrap() {
   );
   app.use(cookieParser());
 
+  const corsOrigins =
+    nodeEnv === 'production'
+      ? [appUrl]
+      : [
+          appUrl,
+          'http://localhost:3000',
+          'http://127.0.0.1:3000',
+          'http://[::1]:3000',
+        ];
+
   app.enableCors({
-    origin: appUrl,
+    origin: [...new Set(corsOrigins)],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Idempotency-Key',
+    ],
   });
 
   app.useGlobalPipes(

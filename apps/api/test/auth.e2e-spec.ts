@@ -37,8 +37,13 @@ describe('Auth (e2e)', () => {
       update: jest.fn(),
       updateMany: jest.fn(),
     },
-    notification: { create: jest.fn() },
-    auditLog: { create: jest.fn() },
+    notification: {
+      findFirst: jest.fn().mockResolvedValue(null),
+      findUnique: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({ id: 'n_e2e' }),
+      update: jest.fn().mockResolvedValue({ id: 'n_e2e' }),
+    },
+    auditLog: { create: jest.fn().mockResolvedValue({ id: 'audit_e2e' }) },
     $transaction: jest.fn(),
   };
 

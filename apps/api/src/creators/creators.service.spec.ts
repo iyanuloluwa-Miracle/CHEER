@@ -4,8 +4,9 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Prisma, SocialPlatform } from '@prisma/client';
+import { Prisma, SocialPlatform, TipStatus } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { CreatorsService } from './creators.service';
 
@@ -17,6 +18,11 @@ describe('CreatorsService', () => {
       create: jest.Mock;
       update: jest.Mock;
       findUniqueOrThrow: jest.Mock;
+    };
+    tip: {
+      aggregate: jest.Mock;
+      findMany: jest.Mock;
+      count: jest.Mock;
     };
     socialLink: {
       deleteMany: jest.Mock;
@@ -37,6 +43,11 @@ describe('CreatorsService', () => {
         update: jest.fn(),
         findUniqueOrThrow: jest.fn(),
       },
+      tip: {
+        aggregate: jest.fn(),
+        findMany: jest.fn(),
+        count: jest.fn(),
+      },
       socialLink: {
         deleteMany: jest.fn(),
         createMany: jest.fn(),
@@ -49,6 +60,13 @@ describe('CreatorsService', () => {
       providers: [
         CreatorsService,
         { provide: PrismaService, useValue: prisma },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: (key: string) =>
+              key === 'APP_URL' ? 'http://localhost:3000' : undefined,
+          },
+        },
       ],
     }).compile();
 
@@ -303,6 +321,154 @@ describe('CreatorsService', () => {
       });
       await expect(service.getPublicByUsername('dina')).rejects.toBeInstanceOf(
         NotFoundException,
+      );
+    });
+  });
+
+  describe('getDashboard', () => {
+    it('requires an owned creator profile', async () => {
+      prisma.creatorProfile.findUnique.mockResolvedValue(null);
+      await expect(service.getDashboard(userA)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('sums only PAID tips and keeps anonymous names null', async () => {
+      prisma.creatorProfile.findUnique.mockResolvedValue({
+        id: 'creator_a',
+        username: 'dina',
+        displayName: 'Dina',
+        currency: 'NGN',
+        bachsAccountId: null,
+      });
+      prisma.tip.aggregate
+        .mockResolvedValueOnce({
+          _sum: { amount: new Prisma.Decimal('5000.00') },
+          _count: { _all: 2 },
+        })
+        .mockResolvedValueOnce({
+          _sum: { amount: new Prisma.Decimal('2500.00') },
+          _count: { _all: 1 },
+        });
+      prisma.tip.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'tip_anon',
+            creatorId: 'creator_a',
+            amount: new Prisma.Decimal('2500.00'),
+            currency: 'NGN',
+            message: 'Nice',
+            isAnonymous: true,
+            supporterName: 'ShouldHide',
+            supporterEmail: 'x@y.com',
+            status: TipStatus.PAID,
+            paymentTransactionId: 'pay_1',
+            createdAt: new Date('2026-09-01T00:00:00.000Z'),
+            updatedAt: new Date(),
+            paymentTransaction: { status: 'SUCCEEDED' },
+          },
+          {
+            id: 'tip_fail',
+            creatorId: 'creator_a',
+            amount: new Prisma.Decimal('999.00'),
+            currency: 'NGN',
+            message: null,
+            isAnonymous: false,
+            supporterName: 'Failed',
+            supporterEmail: null,
+            status: TipStatus.FAILED,
+            paymentTransactionId: null,
+            createdAt: new Date('2026-08-01T00:00:00.000Z'),
+            updatedAt: new Date(),
+            paymentTransaction: null,
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            id: 'tip_anon',
+            creatorId: 'creator_a',
+            amount: new Prisma.Decimal('2500.00'),
+            currency: 'NGN',
+            message: 'Nice',
+            isAnonymous: true,
+            supporterName: null,
+            supporterEmail: 'x@y.com',
+            status: TipStatus.PAID,
+            paymentTransactionId: 'pay_1',
+            createdAt: new Date('2026-09-01T00:00:00.000Z'),
+            updatedAt: new Date(),
+            paymentTransaction: { status: 'SUCCEEDED' },
+          },
+        ]);
+
+      const dashboard = await service.getDashboard(userA);
+
+      expect(dashboard.totals.successfulSupport).toBe('5000.00');
+      expect(dashboard.totals.successfulTipCount).toBe(2);
+      expect(dashboard.totals.periodSupport).toBe('2500.00');
+      expect(dashboard.publicUrl).toBe('http://localhost:3000/dina');
+      expect(dashboard.recentTips[0].supporterName).toBeNull();
+      expect(dashboard.recentTips[0].isAnonymous).toBe(true);
+      expect(dashboard.settlement.readiness).toBe('NOT_CONFIGURED');
+      expect(dashboard.settlement.tippyHoldsWithdrawableBalance).toBe(false);
+      expect(dashboard.settlement.tippyInitiatedPayoutAvailable).toBe(false);
+      expect(dashboard.settlement.automatedFridayPayout).toBe(
+        'FUTURE_CAPABILITY',
+      );
+      expect(prisma.tip.aggregate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            creatorId: 'creator_a',
+            status: TipStatus.PAID,
+          },
+        }),
+      );
+    });
+  });
+
+  describe('listMyTips', () => {
+    it('scopes queries to the owned creatorId (no IDOR via filters)', async () => {
+      prisma.creatorProfile.findUnique.mockResolvedValue({
+        id: 'creator_a',
+        userId: userA,
+      });
+      prisma.tip.count.mockResolvedValue(0);
+      prisma.tip.findMany.mockResolvedValue([]);
+
+      await service.listMyTips(userA, {
+        status: TipStatus.PAID,
+        page: 1,
+        pageSize: 10,
+      });
+
+      expect(prisma.tip.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            creatorId: 'creator_a',
+            status: TipStatus.PAID,
+          },
+          skip: 0,
+          take: 10,
+        }),
+      );
+    });
+
+    it('paginates results', async () => {
+      prisma.creatorProfile.findUnique.mockResolvedValue({
+        id: 'creator_a',
+        userId: userA,
+      });
+      prisma.tip.count.mockResolvedValue(25);
+      prisma.tip.findMany.mockResolvedValue([]);
+
+      const page = await service.listMyTips(userA, { page: 2, pageSize: 10 });
+      expect(page.total).toBe(25);
+      expect(page.totalPages).toBe(3);
+      expect(prisma.tip.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 10,
+          take: 10,
+        }),
       );
     });
   });

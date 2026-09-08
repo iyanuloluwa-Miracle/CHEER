@@ -23,7 +23,7 @@ Public creator URL shape: `cheer.cash/{username}` (e.g. `cheer.cash/dina`).
 
 ## Creator flow
 
-Sign up → verify email (SendByte OTP) → create profile → choose unique username → configure profile → configure payout/settlement (Bachs Connect) → share TippyMe URL → receive tips → dashboard (totals, tip count, recent tips, messages, anonymity, payment status, payout info).
+Sign up → verify email (SendByte OTP) → create profile → choose unique username → configure profile → share TippyMe URL → receive tips → dashboard (totals, tip count, recent tips, messages, anonymity, payment status). Payout/settlement via Bachs Connect is a future capability (see `docs/PHASE-10-PAYOUT.md`); TippyMe does not hold a withdrawable wallet.
 
 ---
 

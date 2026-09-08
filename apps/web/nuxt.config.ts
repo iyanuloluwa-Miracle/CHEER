@@ -10,9 +10,16 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Server-only secrets would go here — none for Phase 2
     public: {
-      apiUrl: process.env.NUXT_PUBLIC_API_URL || 'http://localhost:3001',
+      // Dev default is empty → browser calls same-origin `/api` (see routeRules proxy).
+      // Cross-origin localhost↔127.0.0.1 drops the httpOnly session cookie.
+      apiUrl: process.env.NUXT_PUBLIC_API_URL ?? '',
       appUrl: process.env.NUXT_PUBLIC_APP_URL || 'http://localhost:3000',
     },
+  },
+
+  // Local Nest API. Same-origin `/api` keeps tippyme_session cookies working in the browser.
+  routeRules: {
+    '/api/**': { proxy: `${process.env.NUXT_PUBLIC_API_PROXY_TARGET || 'http://localhost:3001'}/api/**` },
   },
 
   app: {

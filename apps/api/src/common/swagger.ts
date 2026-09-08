@@ -21,7 +21,7 @@ export function setupSwagger(app: INestApplication, apiPrefix: string) {
           AUTH_COOKIE_NAME +
           '`. Protected routes also accept `Authorization: Bearer <jwt>`.',
         '',
-        '**Supporters** do not need accounts. Tip payments (Bachs) are not exposed yet.',
+        '**Supporters** do not need accounts. Tips are created via `POST /tips`; NestJS initializes Bachs checkout server-side. Redirects are never proof of payment — webhooks / server verify only.',
         '',
         'OTP codes are never returned in API responses.',
       ].join('\n'),
@@ -46,6 +46,9 @@ export function setupSwagger(app: INestApplication, apiPrefix: string) {
     .addTag('Health', 'Service health')
     .addTag('Auth', 'Creator signup OTP + password login')
     .addTag('Creators', 'Creator profiles, usernames, and public Tippy pages')
+    .addTag('Tips', 'Public tip creation and confirmation payloads')
+    .addTag('Payments', 'Public payment status for confirmation polling')
+    .addTag('Webhooks', 'Provider webhook receivers (Bachs)')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

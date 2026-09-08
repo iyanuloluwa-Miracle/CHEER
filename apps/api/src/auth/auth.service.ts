@@ -9,17 +9,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import {
-  AuditAction,
-  NotificationProvider,
-  NotificationStatus,
-  NotificationType,
-  OtpPurpose,
-  type User,
-} from '@prisma/client';
+import { AuditAction, OtpPurpose, type User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { SendByteService } from '../notifications/sendbyte.service';
+import { TransactionalNotificationsService } from '../notifications/transactional-notifications.service';
 import type {
   AuthUserPayload,
   PublicUser,
@@ -47,7 +40,7 @@ export class AuthService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly sendByte: SendByteService,
+    private readonly notifications: TransactionalNotificationsService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
   ) {}
@@ -136,34 +129,13 @@ export class AuthService {
       },
     });
 
-    const html = this.buildOtpEmailHtml(code);
-    const text = `Your TippyMe verification code is ${code}. It expires in 10 minutes. If you did not request this, ignore this email.`;
-
     try {
-      const sendResult = await this.sendByte.sendEmail({
-        to: email,
-        subject: 'Verify your TippyMe email',
-        html,
-        text,
-        idempotencyKey: `otp-${challenge.id}`,
-      });
-
-      await this.prisma.notification.create({
-        data: {
-          userId: user.id,
-          email,
-          type: NotificationType.EMAIL_OTP,
-          provider:
-            sendResult.provider === 'SENDBYTE'
-              ? NotificationProvider.SENDBYTE
-              : NotificationProvider.DEV_LOG,
-          providerMessageId: sendResult.id,
-          status: NotificationStatus.SENT,
-          metadata: {
-            purpose,
-            challengeId: challenge.id,
-          },
-        },
+      await this.notifications.notifyOtp({
+        userId: user.id,
+        email,
+        code,
+        challengeId: challenge.id,
+        purpose,
       });
     } catch (err) {
       await this.prisma.otpChallenge.update({
@@ -333,6 +305,15 @@ export class AuthService {
 
     const accessToken = await this.signAccessToken(user);
 
+    // Account / security emails are fail-open — never undo verification.
+    void this.notifications
+      .notifyAccountVerified({ userId: user.id, email: user.email })
+      .catch((err) => {
+        this.logger.warn(
+          `Account verified email failed user=${user.id}: ${err instanceof Error ? err.message : 'unknown'}`,
+        );
+      });
+
     return {
       accessToken,
       response: {
@@ -383,7 +364,7 @@ export class AuthService {
       });
     }
 
-    await this.prisma.auditLog.create({
+    const loginAudit = await this.prisma.auditLog.create({
       data: {
         actorUserId: user.id,
         action: AuditAction.LOGIN_SUCCESS,
@@ -396,6 +377,19 @@ export class AuthService {
     });
 
     const accessToken = await this.signAccessToken(user);
+
+    void this.notifications
+      .notifySecurityLogin({
+        userId: user.id,
+        email: user.email,
+        method: 'password',
+        auditLogId: loginAudit.id,
+      })
+      .catch((err) => {
+        this.logger.warn(
+          `Security login email failed user=${user.id}: ${err instanceof Error ? err.message : 'unknown'}`,
+        );
+      });
 
     return {
       accessToken,
@@ -454,18 +448,6 @@ export class AuthService {
       throw new Error('OTP_HASH_PEPPER is not configured');
     }
     return pepper;
-  }
-
-  private buildOtpEmailHtml(code: string): string {
-    return `
-<!DOCTYPE html>
-<html>
-<body style="font-family: system-ui, sans-serif; color: #0f1c17;">
-  <p>Your TippyMe verification code is:</p>
-  <p style="font-size: 28px; font-weight: 700; letter-spacing: 0.2em;">${code}</p>
-  <p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p>
-</body>
-</html>`.trim();
   }
 
   private async recordLoginFailure(

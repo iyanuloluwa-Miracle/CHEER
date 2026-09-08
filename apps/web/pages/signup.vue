@@ -1,7 +1,5 @@
 <template>
-  <div class="w-full max-w-md text-center">
-    <p class="text-sm text-cheer-ink/65">Redirecting to email sign-in…</p>
-  </div>
+  <OtpAuthForm @verified="onVerified" />
 </template>
 
 <script setup lang="ts">
@@ -13,5 +11,16 @@ useHead({
   title: 'Sign up — TippyMe',
 });
 
-await navigateTo('/login', { replace: true });
+const route = useRoute();
+const auth = useAuthStore();
+
+function onVerified() {
+  if (typeof route.query.next === 'string') {
+    return navigateTo(route.query.next);
+  }
+  if (auth.user?.hasCreatorProfile) {
+    return navigateTo('/dashboard');
+  }
+  return navigateTo('/onboarding');
+}
 </script>

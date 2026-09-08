@@ -54,6 +54,8 @@ enum OtpPurpose {
 enum NotificationType {
   EMAIL_OTP
   EMAIL_TIP_RECEIVED
+  EMAIL_ACCOUNT_VERIFIED
+  EMAIL_SECURITY_ALERT
   EMAIL_GENERIC
 }
 
@@ -120,7 +122,7 @@ model CreatorProfile {
   /// Suggested tip amounts as decimal strings, e.g. ["1000.00","2500.00","5000.00"]
   suggestedTipAmounts Json?
   isActive       Boolean  @default(true)
-  /// Bachs Connect account id when onboarded (Phase 11)
+  /// Bachs Connect account id when onboarded (future — see Phase 10)
   bachsAccountId String?  @unique
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -174,6 +176,8 @@ model Tip {
 
   @@index([creatorId, createdAt(sort: Desc)])
   @@index([creatorId, status])
+  @@index([creatorId, status, createdAt(sort: Desc)])
+  @@index([creatorId, amount])
   @@index([status, createdAt])
 }
 

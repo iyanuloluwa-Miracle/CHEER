@@ -5,26 +5,27 @@
   >
     <header class="text-center">
       <h1 class="text-2xl font-bold tracking-tight text-cheer-ink sm:text-3xl">
-        {{ step === 'email' ? 'Welcome to TippyMe' : 'Enter your code' }}
+        {{ step === 'email' ? 'Create your account' : 'Verify your email' }}
       </h1>
       <p class="mt-2 text-sm leading-relaxed text-cheer-ink/65 sm:text-base">
         <template v-if="step === 'email'">
-          Creators sign in with a one-time code sent to your email. Supporters never need an account.
+          We’ll email you a one-time code to verify your address, then you set a password for future logins.
         </template>
         <template v-else>
-          We sent a 6-digit code to
-          <span class="font-semibold text-cheer-ink">{{ email }}</span>.
+          Enter the code sent to
+          <span class="font-semibold text-cheer-ink">{{ email }}</span>
+          and choose a password.
         </template>
       </p>
     </header>
 
     <div class="mt-8 space-y-4">
       <div v-if="step === 'email'">
-        <label for="auth-email" class="block text-sm text-cheer-ink">
+        <label for="signup-email" class="block text-sm text-cheer-ink">
           Email
         </label>
         <input
-          id="auth-email"
+          id="signup-email"
           v-model="email"
           type="email"
           name="email"
@@ -33,29 +34,49 @@
           placeholder="you@example.com"
           :disabled="pending"
           class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base text-cheer-ink placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
-        />
+        >
       </div>
 
-      <div v-else>
-        <label for="auth-otp" class="block text-sm text-cheer-ink">
-          Verification code
-        </label>
-        <input
-          id="auth-otp"
-          v-model="code"
-          type="text"
-          name="otp"
-          inputmode="numeric"
-          autocomplete="one-time-code"
-          pattern="[0-9]*"
-          maxlength="6"
-          required
-          placeholder="••••••"
-          :disabled="pending"
-          class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-center text-2xl tracking-[0.35em] text-cheer-ink placeholder:tracking-[0.35em] placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
-        />
+      <template v-else>
+        <div>
+          <label for="signup-otp" class="block text-sm text-cheer-ink">
+            Verification code
+          </label>
+          <input
+            id="signup-otp"
+            v-model="code"
+            type="text"
+            name="otp"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            pattern="[0-9]*"
+            maxlength="6"
+            required
+            placeholder="••••••"
+            :disabled="pending"
+            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-center text-2xl tracking-[0.35em] text-cheer-ink placeholder:tracking-[0.35em] placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
+          >
+        </div>
 
-        <div class="mt-3 flex items-center justify-between gap-3 text-sm">
+        <div>
+          <label for="signup-password" class="block text-sm text-cheer-ink">
+            Password
+          </label>
+          <input
+            id="signup-password"
+            v-model="password"
+            type="password"
+            name="password"
+            autocomplete="new-password"
+            required
+            minlength="8"
+            placeholder="At least 8 characters"
+            :disabled="pending"
+            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base text-cheer-ink placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
+          >
+        </div>
+
+        <div class="flex items-center justify-between gap-3 text-sm">
           <button
             type="button"
             class="font-semibold text-cheer-leaf transition-colors hover:text-cheer-ink disabled:cursor-not-allowed disabled:opacity-50"
@@ -78,7 +99,7 @@
             Change email
           </button>
         </div>
-      </div>
+      </template>
     </div>
 
     <p
@@ -98,12 +119,22 @@
       :disabled="pending"
     >
       <template v-if="pending">
-        {{ step === 'email' ? 'Sending code…' : 'Verifying…' }}
+        {{ step === 'email' ? 'Sending code…' : 'Creating account…' }}
       </template>
       <template v-else>
-        {{ step === 'email' ? 'Continue with email' : 'Verify and continue' }}
+        {{ step === 'email' ? 'Send verification code' : 'Verify and create account' }}
       </template>
     </button>
+
+    <p class="mt-6 text-center text-sm text-cheer-ink/65">
+      Already have an account?
+      <NuxtLink
+        to="/login"
+        class="font-semibold text-cheer-leaf transition-colors duration-200 hover:text-cheer-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf rounded-sm"
+      >
+        Log in
+      </NuxtLink>
+    </p>
   </form>
 </template>
 
@@ -120,6 +151,7 @@ const auth = useAuthStore();
 const step = ref<'email' | 'otp'>('email');
 const email = ref('');
 const code = ref('');
+const password = ref('');
 const pending = ref(false);
 const error = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
@@ -157,6 +189,8 @@ function mapError(err: unknown): string {
   }
 
   switch (err.errorCode) {
+    case 'ACCOUNT_EXISTS':
+      return 'An account with this email already exists. Please log in.';
     case 'INVALID_OTP':
       return 'That code is incorrect. Please try again.';
     case 'EXPIRED_OTP':
@@ -171,12 +205,14 @@ function mapError(err: unknown): string {
         : 'Please wait before requesting another code.';
     case 'RATE_LIMITED':
       return 'Too many requests. Please wait a minute and try again.';
-    case 'Service Unavailable':
-    case 'EMAIL_DELIVERY_FAILED':
-      return 'We could not send the email right now. Please try again shortly.';
+    case 'INVALID_PURPOSE':
+      return 'Use sign-up to verify your email, or log in with your password.';
     default:
       if (err.statusCode === 429) {
         return 'Too many requests. Please wait a minute and try again.';
+      }
+      if (err.statusCode === 409) {
+        return 'An account with this email already exists. Please log in.';
       }
       if (err.statusCode >= 500) {
         return 'Something went wrong. Please try again.';
@@ -193,6 +229,7 @@ async function requestCode() {
     const result = await api.requestOtp(email.value.trim());
     step.value = 'otp';
     code.value = '';
+    password.value = '';
     startResendCountdown(result.resendAvailableInSeconds);
     successMessage.value = 'Code sent. Check your inbox.';
   } catch (err) {
@@ -206,11 +243,19 @@ async function requestCode() {
 }
 
 async function verifyCode() {
+  if (password.value.length < 8) {
+    error.value = 'Password must be at least 8 characters.';
+    return;
+  }
   pending.value = true;
   error.value = null;
   successMessage.value = null;
   try {
-    const result = await api.verifyOtp(email.value.trim(), code.value.trim());
+    const result = await api.verifyOtp(
+      email.value.trim(),
+      code.value.trim(),
+      password.value,
+    );
     auth.setUser(result.user);
     successMessage.value = 'Verified — signing you in…';
     emit('verified');
@@ -237,6 +282,7 @@ async function resendOtp() {
 function backToEmail() {
   step.value = 'email';
   code.value = '';
+  password.value = '';
   error.value = null;
   successMessage.value = null;
   clearResendTimer();

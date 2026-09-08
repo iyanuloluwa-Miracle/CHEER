@@ -52,18 +52,37 @@
           </nav>
 
           <div class="hidden items-center gap-2 sm:flex">
-            <NuxtLink
-              :to="loginLink.to"
-              class="rounded-full px-3.5 py-1.5 text-sm font-medium text-cheer-ink/70 transition-colors duration-200 hover:text-cheer-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-white/80"
-              :class="isLinkActive(loginLink.to) ? 'text-cheer-leaf' : ''"
-            >
-              {{ loginLink.label }}
-            </NuxtLink>
-            <UiButtonLink
-              :to="signupLink.to"
-              :label="signupLink.label"
-              size="sm"
-            />
+            <template v-if="auth.isAuthenticated">
+              <NuxtLink
+                :to="dashboardLink.to"
+                class="rounded-full px-3.5 py-1.5 text-sm font-medium text-cheer-ink/70 transition-colors duration-200 hover:text-cheer-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-white/80"
+                :class="isLinkActive(dashboardLink.to) ? 'text-cheer-leaf' : ''"
+              >
+                {{ dashboardLink.label }}
+              </NuxtLink>
+              <button
+                type="button"
+                class="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-cheer-ink transition hover:border-cheer-leaf/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2 disabled:opacity-60"
+                :disabled="loggingOut"
+                @click="onLogout"
+              >
+                {{ loggingOut ? 'Signing out…' : 'Sign out' }}
+              </button>
+            </template>
+            <template v-else>
+              <NuxtLink
+                :to="loginLink.to"
+                class="rounded-full px-3.5 py-1.5 text-sm font-medium text-cheer-ink/70 transition-colors duration-200 hover:text-cheer-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-white/80"
+                :class="isLinkActive(loginLink.to) ? 'text-cheer-leaf' : ''"
+              >
+                {{ loginLink.label }}
+              </NuxtLink>
+              <UiButtonLink
+                :to="signupLink.to"
+                :label="signupLink.label"
+                size="sm"
+              />
+            </template>
           </div>
 
           <button
@@ -110,7 +129,10 @@
           aria-label="Main navigation"
         >
           <ul class="space-y-1">
-            <li v-for="link in mobileNavLinks" :key="link.to">
+            <li
+              v-for="link in auth.isAuthenticated ? mobileAuthedNavLinks : mobileNavLinks"
+              :key="link.to"
+            >
               <NuxtLink
                 :to="link.to"
                 class="block rounded-xl px-3 py-3 text-base font-medium text-cheer-ink/70 transition-colors duration-200 hover:bg-black/[0.03] hover:text-cheer-leaf focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf"
@@ -120,7 +142,23 @@
                 {{ link.label }}
               </NuxtLink>
             </li>
-            <li class="px-1 pt-3">
+            <li
+              v-if="auth.isAuthenticated"
+              class="px-1 pt-3"
+            >
+              <button
+                type="button"
+                class="inline-flex w-full items-center justify-center rounded-full border border-black/10 bg-white px-6 py-2.5 text-sm font-semibold text-cheer-ink transition hover:border-cheer-leaf/40 disabled:opacity-60"
+                :disabled="loggingOut"
+                @click="onLogout"
+              >
+                {{ loggingOut ? 'Signing out…' : 'Sign out' }}
+              </button>
+            </li>
+            <li
+              v-else
+              class="px-1 pt-3"
+            >
               <UiButtonLink
                 :to="signupLink.to"
                 :label="signupLink.label"
@@ -136,26 +174,27 @@
 </template>
 
 <script setup lang="ts">
-/**
- * Public marketing navbar. Authenticated dashboard navigation will be a separate component.
- */
 import {
+  dashboardLink,
   loginLink,
+  mobileAuthedNavLinks,
   mobileNavLinks,
   sectionLinks,
   signupLink,
 } from '~/data/navigation';
 
 const route = useRoute();
+const auth = useAuthStore();
 
 const menuOpen = ref(false);
+const loggingOut = ref(false);
 
 function isLinkActive(path: string) {
   if (path.includes('#')) {
     const hash = `#${path.split('#')[1]}`;
     return route.path === '/' && route.hash === hash;
   }
-  return route.path === path;
+  return route.path === path || route.path.startsWith(`${path}/`);
 }
 
 function toggleMenu() {
@@ -172,6 +211,17 @@ function onEscape(event: KeyboardEvent) {
   }
 }
 
+async function onLogout() {
+  loggingOut.value = true;
+  closeMenu();
+  try {
+    await auth.logout();
+    await navigateTo('/');
+  } finally {
+    loggingOut.value = false;
+  }
+}
+
 watch(
   () => [route.path, route.hash],
   () => {
@@ -181,6 +231,9 @@ watch(
 
 onMounted(() => {
   document.addEventListener('keydown', onEscape);
+  if (auth.status === 'idle') {
+    void auth.fetchMe();
+  }
 });
 
 onUnmounted(() => {
