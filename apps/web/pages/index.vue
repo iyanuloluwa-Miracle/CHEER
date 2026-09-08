@@ -8,7 +8,6 @@
     <LandingTrustSection />
     <LandingStackSection />
     <LandingFaqSection />
-    <LandingFinalCtaSection />
   </div>
 </template>
 

@@ -196,15 +196,6 @@ export const trustItems: readonly TrustItem[] = [
   },
 ] as const;
 
-export const finalCtaSection = {
-  id: 'get-started',
-  title: 'Ready for one link that represents your work?',
-  description:
-    'Create your Tippy, share it anywhere people already follow you, and receive support without pasting bank details.',
-  primaryCta: { label: 'Create your Tippy', to: '/signup' } satisfies CtaLink,
-  secondaryCta: { label: 'Log in', to: '/login' } satisfies CtaLink,
-} as const;
-
 export const faqSection = {
   id: 'faq',
   eyebrow: 'FAQ',
