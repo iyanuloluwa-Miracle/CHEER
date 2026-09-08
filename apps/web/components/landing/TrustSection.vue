@@ -29,24 +29,6 @@
           </p>
         </li>
       </ul>
-
-      <p class="mt-8 text-center text-sm text-cheer-ink/60">
-        Questions or support:
-        <a
-          href="mailto:hello@tippy.me"
-          class="font-semibold text-cheer-leaf underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf"
-        >hello@tippy.me</a>
-        ·
-        <NuxtLink
-          to="/terms"
-          class="font-semibold text-cheer-leaf underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf"
-        >Terms</NuxtLink>
-        ·
-        <NuxtLink
-          to="/privacy"
-          class="font-semibold text-cheer-leaf underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf"
-        >Privacy</NuxtLink>
-      </p>
     </UiRevealOnScroll>
   </section>
 </template>

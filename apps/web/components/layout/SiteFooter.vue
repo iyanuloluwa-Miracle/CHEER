@@ -78,9 +78,28 @@
         </div>
       </div>
 
-      <p class="mt-8 border-t border-black/5 pt-5 text-xs text-cheer-ink/45">
-        © {{ year }} TippyMe
-      </p>
+      <div class="mt-8 flex flex-col gap-3 border-t border-black/5 pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-xs text-cheer-ink/45">
+          © {{ year }} TippyMe
+        </p>
+        <p class="text-sm text-cheer-ink/60">
+          Questions or support:
+          <a
+            href="mailto:hello@tippy.me"
+            class="font-semibold text-cheer-leaf underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf"
+          >hello@tippy.me</a>
+          ·
+          <NuxtLink
+            to="/terms"
+            class="font-semibold text-cheer-leaf underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf"
+          >Terms</NuxtLink>
+          ·
+          <NuxtLink
+            to="/privacy"
+            class="font-semibold text-cheer-leaf underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf"
+          >Privacy</NuxtLink>
+        </p>
+      </div>
     </div>
   </footer>
 </template>
