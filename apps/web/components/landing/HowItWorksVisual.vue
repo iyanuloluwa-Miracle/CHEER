@@ -12,7 +12,7 @@
     <div
       class="flex h-10 items-center justify-center rounded-xl border border-dashed border-cheer-leaf/30 bg-cheer-leaf/[0.04] text-sm font-semibold text-cheer-leaf"
     >
-      cheer.cash/dina
+      tippy.me/dina
     </div>
   </div>
 
@@ -42,7 +42,7 @@
     <div
       class="flex h-10 items-center justify-center rounded-full bg-cheer-leaf text-sm font-semibold text-white"
     >
-      Send tip →
+      Support →
     </div>
   </div>
 </template>

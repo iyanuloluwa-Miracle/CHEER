@@ -2,13 +2,13 @@ import type { NavLink } from '~/types/landing';
 
 export const sectionLinks: readonly NavLink[] = [
   { label: 'How it works', to: '/#how-it-works' },
-  { label: 'Stack', to: '/#stack' },
-  { label: 'FAQ', to: '/#faq' },
+  { label: 'Features', to: '/#features' },
+  { label: 'Trust', to: '/#trust' },
 ] as const;
 
 export const loginLink: NavLink = { label: 'Log in', to: '/login' };
 
-export const signupLink: NavLink = { label: 'Get started', to: '/signup' };
+export const signupLink: NavLink = { label: 'Create your Tippy', to: '/signup' };
 
 export const dashboardLink: NavLink = { label: 'Dashboard', to: '/dashboard' };
 
@@ -25,6 +25,12 @@ export const mobileAuthedNavLinks: readonly NavLink[] = [
 
 export const footerLinks: readonly NavLink[] = [
   { label: 'How it works', to: '/#how-it-works' },
-  { label: 'Stack', to: '/#stack' },
+  { label: 'Features', to: '/#features' },
+  { label: 'Trust', to: '/#trust' },
   { label: 'FAQ', to: '/#faq' },
+] as const;
+
+export const legalLinks: readonly NavLink[] = [
+  { label: 'Terms', to: '/terms' },
+  { label: 'Privacy', to: '/privacy' },
 ] as const;

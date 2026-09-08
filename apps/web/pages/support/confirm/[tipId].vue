@@ -41,6 +41,7 @@
           v-if="polling"
           class="mt-3 text-xs text-cheer-ink/45"
           role="status"
+          aria-live="polite"
         >
           Waiting for payment confirmation…
         </p>
@@ -79,13 +80,13 @@
       <div class="flex flex-col gap-3">
         <NuxtLink
           :to="`/${tip.creator.username}`"
-          class="inline-flex items-center justify-center rounded-full bg-cheer-leaf px-6 py-2.5 text-sm font-semibold text-white"
+          class="inline-flex items-center justify-center rounded-full bg-cheer-leaf px-6 py-2.5 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2"
         >
           Back to {{ tip.creator.displayName }}
         </NuxtLink>
         <NuxtLink
           to="/"
-          class="inline-flex items-center justify-center rounded-full border border-black/10 px-6 py-2.5 text-sm font-semibold text-cheer-ink"
+          class="inline-flex items-center justify-center rounded-full border border-black/10 px-6 py-2.5 text-sm font-semibold text-cheer-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2"
         >
           TippyMe home
         </NuxtLink>
@@ -97,6 +98,10 @@
 <script setup lang="ts">
 import type { PublicTip, TipStatus } from '~/types/api';
 import { ApiClientError } from '~/services/api';
+
+definePageMeta({
+  layout: 'support',
+});
 
 const route = useRoute();
 const api = useApi();

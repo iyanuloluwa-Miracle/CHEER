@@ -28,9 +28,11 @@ export default defineNuxtConfig({
       meta: [
         {
           name: 'description',
-          content: 'One link for everyone who wants to support your work.',
+          content:
+            'One link for everyone who wants to support your work. TippyMe gives you a simple page to receive support and messages.',
         },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'theme-color', content: '#1f6b4a' },
       ],
       link: [
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -41,7 +43,7 @@ export default defineNuxtConfig({
         },
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@300;400;500;600;700;800;900&display=swap',
+          href: 'https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@400;500;600;700;800&display=swap',
         },
       ],
       htmlAttrs: { lang: 'en' },

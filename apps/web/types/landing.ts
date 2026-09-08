@@ -41,3 +41,17 @@ export interface StackTool {
   role: string;
   href?: string;
 }
+
+export interface FeatureItem {
+  id: string;
+  title: string;
+  description: string;
+  illustration: string;
+  illustrationAlt: string;
+}
+
+export interface TrustItem {
+  id: string;
+  title: string;
+  description: string;
+}

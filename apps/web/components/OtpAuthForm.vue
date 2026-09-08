@@ -5,11 +5,11 @@
   >
     <header class="text-center">
       <h1 class="text-2xl font-bold tracking-tight text-cheer-ink sm:text-3xl">
-        {{ step === 'email' ? 'Create your account' : 'Verify your email' }}
+        {{ step === 'email' ? 'Create your Tippy' : 'Verify your email' }}
       </h1>
       <p class="mt-2 text-sm leading-relaxed text-cheer-ink/65 sm:text-base">
         <template v-if="step === 'email'">
-          We’ll email you a one-time code to verify your address, then you set a password for future logins.
+          Start with your email. We’ll send a one-time code, then you set a password and claim your link.
         </template>
         <template v-else>
           Enter the code sent to

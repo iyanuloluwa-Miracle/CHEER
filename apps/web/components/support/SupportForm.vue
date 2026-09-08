@@ -1,37 +1,45 @@
 <template>
   <form
     class="space-y-6"
+    novalidate
     @submit.prevent="onSubmit"
   >
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-wide text-cheer-ink/45">
+    <fieldset :disabled="pending">
+      <legend
+        id="tip-amount-legend"
+        class="text-xs font-semibold uppercase tracking-wide text-cheer-ink/45"
+      >
         Choose an amount · {{ currency }}
-      </p>
-      <div class="mt-3 flex flex-wrap gap-2">
+      </legend>
+      <div
+        class="mt-3 flex flex-wrap gap-2"
+        role="group"
+        aria-labelledby="tip-amount-legend"
+      >
         <button
           v-for="preset in presets"
           :key="preset"
           type="button"
-          class="rounded-full border px-4 py-2 text-sm font-semibold transition-colors"
+          class="rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2"
           :class="
             selectedPreset === preset && !useCustom
               ? 'border-cheer-leaf bg-cheer-leaf text-white'
               : 'border-black/10 bg-[#faf8f4] text-cheer-ink hover:border-cheer-leaf/40'
           "
-          :disabled="pending"
+          :aria-pressed="selectedPreset === preset && !useCustom"
           @click="selectPreset(preset)"
         >
           {{ formatAmount(preset) }}
         </button>
         <button
           type="button"
-          class="rounded-full border px-4 py-2 text-sm font-semibold transition-colors"
+          class="rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2"
           :class="
             useCustom
               ? 'border-cheer-leaf bg-cheer-leaf text-white'
               : 'border-black/10 bg-[#faf8f4] text-cheer-ink hover:border-cheer-leaf/40'
           "
-          :disabled="pending"
+          :aria-pressed="useCustom"
           @click="enableCustom"
         >
           Custom
@@ -44,9 +52,12 @@
         <label
           for="tip-custom-amount"
           class="sr-only"
-        >Custom amount</label>
+        >Custom amount in {{ currency }}</label>
         <div class="flex items-center gap-2 rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 focus-within:border-cheer-leaf/40 focus-within:ring-2 focus-within:ring-cheer-leaf/30">
-          <span class="text-sm text-cheer-ink/45">{{ currency }}</span>
+          <span
+            class="text-sm text-cheer-ink/45"
+            aria-hidden="true"
+          >{{ currency }}</span>
           <input
             id="tip-custom-amount"
             v-model="customAmount"
@@ -55,11 +66,12 @@
             autocomplete="off"
             class="w-full bg-transparent py-2.5 text-base text-cheer-ink outline-none"
             placeholder="1000.00"
-            :disabled="pending"
+            :aria-invalid="Boolean(error && !resolvedAmount)"
+            :aria-describedby="error && !resolvedAmount ? 'tip-form-error' : undefined"
           >
         </div>
       </div>
-    </div>
+    </fieldset>
 
     <div>
       <label
@@ -75,7 +87,10 @@
         :placeholder="`A note for ${displayName}…`"
         :disabled="pending"
       />
-      <p class="mt-1 text-xs text-cheer-ink/45">
+      <p
+        id="tip-message-count"
+        class="mt-1 text-xs text-cheer-ink/45"
+      >
         {{ message.length }}/500
       </p>
     </div>
@@ -95,9 +110,14 @@
         class="w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base outline-none focus:border-cheer-leaf/40 focus:ring-2 focus:ring-cheer-leaf/30"
         placeholder="you@example.com"
         :disabled="pending"
+        :aria-invalid="Boolean(error && !supporterEmail.trim())"
+        :aria-describedby="emailHelpId"
       >
-      <p class="text-xs text-cheer-ink/45">
-        Needed for checkout. Not shown on the public page when you tip anonymously.
+      <p
+        :id="emailHelpId"
+        class="text-xs text-cheer-ink/45"
+      >
+        Needed for secure checkout. Not shown publicly when you tip anonymously.
       </p>
     </div>
 
@@ -114,6 +134,7 @@
         v-model="supporterName"
         type="text"
         maxlength="80"
+        autocomplete="name"
         class="w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base outline-none focus:border-cheer-leaf/40 focus:ring-2 focus:ring-cheer-leaf/30"
         placeholder="How should they see you?"
         :disabled="pending"
@@ -132,6 +153,7 @@
 
     <p
       v-if="error"
+      id="tip-form-error"
       class="text-sm text-red-700"
       role="alert"
     >
@@ -140,13 +162,14 @@
 
     <button
       type="submit"
-      class="inline-flex w-full items-center justify-center rounded-full bg-cheer-leaf px-6 py-3 text-base font-semibold text-white transition-opacity disabled:opacity-60"
+      class="inline-flex w-full items-center justify-center rounded-full bg-cheer-leaf px-6 py-3.5 text-base font-semibold text-white transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
       :disabled="pending || !resolvedAmount || !supporterEmail.trim()"
+      :aria-busy="pending"
     >
-      {{ pending ? 'Starting checkout…' : ctaLabel }}
+      {{ pending ? 'Continuing to payment…' : ctaLabel }}
     </button>
-    <p class="text-center text-xs text-cheer-ink/45">
-      No TippyMe account needed. You’ll complete payment on a secure checkout.
+    <p class="text-center text-xs leading-relaxed text-cheer-ink/45">
+      No TippyMe account needed. You’ll finish payment on Bachs secure checkout.
     </p>
   </form>
 </template>
@@ -178,6 +201,7 @@ const supporterEmail = ref('');
 const isAnonymous = ref(false);
 const pending = ref(false);
 const error = ref<string | null>(null);
+const emailHelpId = 'tip-email-help';
 
 const resolvedAmount = computed(() => {
   const raw = useCustom.value ? customAmount.value.trim() : selectedPreset.value;
@@ -243,7 +267,7 @@ async function onSubmit() {
     return;
   }
   if (!supporterEmail.value.trim()) {
-    error.value = 'Enter your email to continue to checkout.';
+    error.value = 'Enter your email to continue to payment.';
     return;
   }
 
@@ -266,7 +290,6 @@ async function onSubmit() {
       { idempotencyKey },
     );
 
-    // Redirect to checkout (stub in Phase 6; Bachs in Phase 7)
     try {
       const url = new URL(result.checkoutUrl);
       if (

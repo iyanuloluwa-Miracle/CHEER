@@ -8,7 +8,7 @@ definePageMeta({
 });
 
 useHead({
-  title: 'Sign up — TippyMe',
+  title: 'Create your Tippy — TippyMe',
 });
 
 const route = useRoute();

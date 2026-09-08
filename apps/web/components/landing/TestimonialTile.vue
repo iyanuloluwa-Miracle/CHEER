@@ -9,6 +9,8 @@
         class="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-black/10"
         width="56"
         height="56"
+        loading="lazy"
+        decoding="async"
       />
       <div class="min-w-0">
         <cite class="block truncate text-base font-semibold not-italic tracking-tight text-cheer-ink">

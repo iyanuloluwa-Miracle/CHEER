@@ -11,17 +11,21 @@
       "
     />
 
-    <div class="mx-auto max-w-lg px-4 py-12 sm:py-16">
+    <div class="mx-auto max-w-lg px-4 py-10 sm:py-14">
       <div
         v-if="pending"
-        class="text-center text-sm text-cheer-ink/60"
+        class="rounded-2xl border border-black/5 bg-white/60 px-6 py-16 text-center"
+        role="status"
+        aria-live="polite"
       >
-        Loading…
+        <p class="text-sm text-cheer-ink/60">
+          Loading Tippy page…
+        </p>
       </div>
 
       <div
         v-else-if="error"
-        class="text-center"
+        class="rounded-2xl border border-black/8 bg-white/80 px-6 py-12 text-center shadow-sm"
       >
         <h1 class="text-2xl font-bold text-cheer-ink">
           Page not found
@@ -31,7 +35,7 @@
         </p>
         <NuxtLink
           to="/"
-          class="mt-6 inline-flex rounded-full bg-cheer-leaf px-5 py-2 text-sm font-semibold text-white"
+          class="mt-6 inline-flex rounded-full bg-cheer-leaf px-5 py-2.5 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2"
         >
           Back home
         </NuxtLink>
@@ -43,17 +47,18 @@
       >
         <header class="flex flex-col items-center text-center">
           <div
-            class="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-cheer-mint/50 text-3xl font-bold text-cheer-leaf shadow-md"
+            class="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-cheer-mint/50 text-3xl font-bold text-cheer-leaf shadow-md sm:h-28 sm:w-28 sm:text-4xl"
           >
             <img
               v-if="profile.avatarUrl"
               :src="profile.avatarUrl"
-              :alt="profile.displayName"
+              :alt="`${profile.displayName} profile photo`"
               class="h-full w-full object-cover"
-              width="96"
-              height="96"
+              width="112"
+              height="112"
+              decoding="async"
             >
-            <span v-else>{{ initials }}</span>
+            <span v-else aria-hidden="true">{{ initials }}</span>
           </div>
           <h1 class="mt-5 text-3xl font-bold tracking-tight text-cheer-ink sm:text-4xl">
             {{ profile.displayName }}
@@ -67,16 +72,17 @@
           >
             {{ profile.bio }}
           </p>
-          <p
+          <blockquote
             v-if="profile.supportMessage"
-            class="mt-5 max-w-md text-base leading-relaxed text-cheer-ink/85"
+            class="mt-5 max-w-md rounded-xl bg-white/70 px-4 py-3 text-base leading-relaxed text-cheer-ink/90"
           >
             {{ profile.supportMessage }}
-          </p>
+          </blockquote>
 
-          <div
+          <nav
             v-if="profile.socialLinks?.length"
             class="mt-5 flex flex-wrap justify-center gap-4"
+            aria-label="Social links"
           >
             <a
               v-for="(link, i) in profile.socialLinks"
@@ -84,22 +90,25 @@
               :href="link.url"
               target="_blank"
               rel="noopener noreferrer"
-              class="text-sm font-semibold text-cheer-leaf hover:text-cheer-ink"
+              class="text-sm font-semibold text-cheer-leaf underline-offset-2 hover:text-cheer-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf"
             >
               {{ link.label || link.platform }}
             </a>
-          </div>
+          </nav>
         </header>
 
         <section
-          class="rounded-2xl border border-black/8 bg-white/80 p-6 shadow-sm backdrop-blur-sm sm:p-8"
-          aria-label="Support form"
+          class="rounded-2xl border border-black/8 bg-white/90 p-5 shadow-sm backdrop-blur-sm sm:p-7"
+          aria-labelledby="support-heading"
         >
-          <h2 class="text-lg font-bold text-cheer-ink">
+          <h2
+            id="support-heading"
+            class="text-lg font-bold text-cheer-ink"
+          >
             Support {{ profile.displayName }}
           </h2>
           <p class="mt-1 text-sm text-cheer-ink/60">
-            Pick an amount, add a note if you like, and continue to checkout.
+            Choose an amount, add a message if you’d like, then continue to secure payment.
           </p>
           <div class="mt-6">
             <SupportForm
@@ -110,6 +119,10 @@
             />
           </div>
         </section>
+
+        <p class="text-center text-xs leading-relaxed text-cheer-ink/45">
+          TippyMe confirms support after Bachs verifies payment.
+        </p>
       </div>
     </div>
   </div>
@@ -118,6 +131,10 @@
 <script setup lang="ts">
 import type { CreatorProfile } from '~/types/api';
 import { ApiClientError } from '~/services/api';
+
+definePageMeta({
+  layout: 'creator',
+});
 
 const route = useRoute();
 const api = useApi();
@@ -157,6 +174,14 @@ useHead(() => ({
   title: profile.value
     ? `Support ${profile.value.displayName} — TippyMe`
     : 'Creator — TippyMe',
+  meta: [
+    {
+      name: 'description',
+      content: profile.value?.supportMessage
+        || profile.value?.bio
+        || 'Send support and a message through TippyMe.',
+    },
+  ],
 }));
 
 await load();
