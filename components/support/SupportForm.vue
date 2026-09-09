@@ -1,6 +1,6 @@
 <template>
   <form
-    class="space-y-7"
+    class="space-y-5 sm:space-y-6"
     novalidate
     @submit.prevent="onSubmit"
   >

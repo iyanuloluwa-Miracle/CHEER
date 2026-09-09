@@ -1,22 +1,31 @@
 <template>
-  <div class="mx-auto max-w-xl px-4 py-8 sm:px-5 sm:py-12">
+  <div class="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10 lg:py-12">
     <div
       v-if="pending"
-      class="overflow-hidden rounded-[2rem] border border-black/5 bg-white/60 p-8 sm:p-10"
+      class="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]"
       role="status"
       aria-live="polite"
     >
-      <div class="flex flex-col items-center">
-        <div class="dash-shimmer h-28 w-28 rounded-full opacity-40" />
-        <div class="dash-shimmer mt-6 h-8 w-48 rounded-2xl opacity-35" />
-        <div class="dash-shimmer mt-3 h-4 w-36 rounded-full opacity-30" />
-        <div class="dash-shimmer mt-8 h-40 w-full rounded-3xl opacity-25" />
+      <div class="overflow-hidden rounded-[1.75rem] bg-cheer-ink/90 p-8 sm:p-10">
+        <div class="flex flex-col items-center lg:items-start">
+          <div class="dash-shimmer h-24 w-24 rounded-full opacity-30" />
+          <div class="dash-shimmer mt-6 h-8 w-48 rounded-2xl opacity-25" />
+          <div class="dash-shimmer mt-3 h-4 w-36 rounded-full opacity-20" />
+          <div class="dash-shimmer mt-8 h-24 w-full rounded-2xl opacity-15" />
+        </div>
+      </div>
+      <div class="overflow-hidden rounded-[1.75rem] border border-black/5 bg-white/70 p-8 sm:p-10">
+        <div class="dash-shimmer h-5 w-28 rounded-full opacity-30" />
+        <div class="dash-shimmer mt-4 h-8 w-56 rounded-2xl opacity-25" />
+        <div class="dash-shimmer mt-8 h-12 w-full rounded-2xl opacity-20" />
+        <div class="dash-shimmer mt-3 h-12 w-full rounded-2xl opacity-15" />
+        <div class="dash-shimmer mt-8 h-32 w-full rounded-2xl opacity-15" />
       </div>
     </div>
 
     <div
       v-else-if="error"
-      class="motion-animate rounded-[2rem] border border-black/8 bg-white/90 px-6 py-14 text-center shadow-[0_20px_60px_-40px_rgba(15,28,23,0.35)]"
+      class="motion-animate mx-auto max-w-md rounded-[1.75rem] border border-black/8 bg-white/90 px-6 py-14 text-center shadow-[0_20px_60px_-40px_rgba(15,28,23,0.35)]"
     >
       <div
         class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-cheer-sand text-2xl font-bold text-cheer-ink/40"
@@ -40,129 +49,146 @@
 
     <div
       v-else-if="profile"
-      class="space-y-5"
+      class="space-y-8 lg:space-y-10"
     >
-      <!-- Creator presence -->
-      <header
-        class="motion-animate relative overflow-hidden rounded-[2rem] px-5 py-9 text-center text-white shadow-[0_30px_80px_-40px_rgba(15,28,23,0.75)] sm:px-8 sm:py-11"
-        style="
-          background:
-            radial-gradient(ellipse 70% 80% at 100% 0%, rgba(200, 240, 221, 0.22), transparent 55%),
-            radial-gradient(ellipse 50% 60% at 0% 100%, rgba(240, 162, 2, 0.12), transparent 50%),
-            linear-gradient(155deg, #1a4f38 0%, #134032 42%, #0f1c17 100%);
-        "
+      <!-- One composition: who + tip -->
+      <div
+        class="motion-animate overflow-hidden rounded-[1.75rem] border border-black/6 bg-white shadow-[0_28px_70px_-42px_rgba(15,28,23,0.45)] lg:grid lg:grid-cols-[minmax(17rem,0.92fr)_minmax(0,1.08fr)]"
       >
-        <div
-          class="pointer-events-none absolute inset-0 opacity-[0.18]"
+        <aside
+          class="relative overflow-hidden px-6 py-8 text-white sm:px-8 sm:py-10 lg:px-9 lg:py-11"
           style="
-            background-image: radial-gradient(rgba(200, 240, 221, 0.4) 1px, transparent 1px);
-            background-size: 18px 18px;
+            background:
+              radial-gradient(ellipse 80% 70% at 100% 0%, rgba(200, 240, 221, 0.2), transparent 55%),
+              radial-gradient(ellipse 60% 50% at 0% 100%, rgba(240, 162, 2, 0.1), transparent 50%),
+              linear-gradient(160deg, #1a4f38 0%, #134032 45%, #0f1c17 100%);
           "
-          aria-hidden="true"
-        />
-        <div
-          class="dash-float pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-cheer-mint/25 blur-3xl"
-          aria-hidden="true"
-        />
-
-        <div class="relative">
-          <div class="relative mx-auto inline-flex">
-            <div
-              class="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-cheer-mint text-4xl font-bold text-cheer-ink shadow-[0_16px_40px_-12px_rgba(200,240,221,0.85)] ring-[6px] ring-white/15 sm:h-32 sm:w-32 sm:text-5xl"
-            >
-              <img
-                :src="avatarSrc"
-                :alt="`${profile.displayName} profile photo`"
-                class="h-full w-full object-cover"
-                width="128"
-                height="128"
-                decoding="async"
-              >
-            </div>
-            <span
-              class="dash-pulse-dot absolute bottom-1 right-2 h-3.5 w-3.5 rounded-full bg-cheer-glow text-cheer-glow ring-[3px] ring-[#134032]"
-              aria-hidden="true"
-            />
-          </div>
-
-          <p class="mt-6 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-cheer-mint/75">
-            Tippy page
-          </p>
-          <h1 class="mt-2 text-4xl font-bold tracking-tight sm:text-5xl sm:leading-none">
-            {{ profile.displayName }}
-          </h1>
-          <p class="mt-2 text-sm font-semibold text-cheer-mint/80">
-            {{ pathLabel }}
-          </p>
-
-          <p
-            v-if="profile.bio"
-            class="mx-auto mt-5 max-w-md text-base leading-relaxed text-white/70"
-          >
-            {{ profile.bio }}
-          </p>
-
-          <blockquote
-            v-if="profile.supportMessage"
-            class="mx-auto mt-6 max-w-md rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-base leading-relaxed text-white/90 backdrop-blur-sm"
-          >
-            {{ profile.supportMessage }}
-          </blockquote>
-
-          <nav
-            v-if="profile.socialLinks?.length"
-            class="mt-6 flex flex-wrap justify-center gap-2"
-            aria-label="Social links"
-          >
-            <a
-              v-for="(link, i) in profile.socialLinks"
-              :key="link.id ?? `${link.platform}-${i}`"
-              :href="link.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="motion-cta inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-sm font-semibold text-white/85 transition hover:border-cheer-mint/40 hover:bg-white/15 hover:text-cheer-mint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-mint"
-            >
-              {{ link.label || link.platform }}
-            </a>
-          </nav>
-        </div>
-      </header>
-
-      <!-- Support panel -->
-      <section
-        class="motion-animate motion-animate-delay-1 overflow-hidden rounded-[2rem] border border-black/6 bg-white/90 shadow-[0_24px_60px_-36px_rgba(15,28,23,0.35)] backdrop-blur-md"
-        aria-labelledby="support-heading"
-      >
-        <div
-          class="border-b border-black/6 bg-gradient-to-r from-cheer-mint/25 via-white to-cheer-sand/40 px-5 py-5 sm:px-7 sm:py-6"
         >
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-cheer-leaf">
-            Send support
-          </p>
-          <h2
-            id="support-heading"
-            class="mt-1 text-xl font-bold tracking-tight text-cheer-ink sm:text-2xl"
-          >
-            Support {{ profile.displayName }}
-          </h2>
-          <p class="mt-1.5 text-sm leading-relaxed text-cheer-ink/60">
-            Choose an amount, add a message if you’d like, then continue to secure payment.
-          </p>
-        </div>
-        <div class="px-5 py-6 sm:px-7 sm:py-7">
+          <div
+            class="pointer-events-none absolute inset-0 opacity-[0.16]"
+            style="
+              background-image: radial-gradient(rgba(200, 240, 221, 0.45) 1px, transparent 1px);
+              background-size: 18px 18px;
+            "
+            aria-hidden="true"
+          />
+          <div
+            class="dash-float pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-cheer-mint/20 blur-3xl"
+            aria-hidden="true"
+          />
+
+          <div class="relative flex flex-col items-center text-center lg:items-start lg:text-left">
+            <div class="relative inline-flex">
+              <div
+                class="h-24 w-24 overflow-hidden rounded-full bg-cheer-mint shadow-[0_14px_36px_-12px_rgba(200,240,221,0.75)] ring-[5px] ring-white/15 sm:h-28 sm:w-28"
+              >
+                <img
+                  :src="avatarSrc"
+                  :alt="`${profile.displayName} profile photo`"
+                  class="h-full w-full object-cover"
+                  width="112"
+                  height="112"
+                  decoding="async"
+                >
+              </div>
+              <span
+                class="dash-pulse-dot absolute bottom-1 right-1 h-3 w-3 rounded-full bg-cheer-glow ring-[3px] ring-[#134032]"
+                aria-hidden="true"
+              />
+            </div>
+
+            <h1 class="mt-5 text-3xl font-bold tracking-tight sm:text-4xl lg:leading-none">
+              {{ profile.displayName }}
+            </h1>
+            <p class="mt-1.5 text-sm font-semibold text-cheer-mint/80">
+              {{ pathLabel }}
+            </p>
+
+            <p
+              v-if="profile.bio"
+              class="mt-4 max-w-sm text-sm leading-relaxed text-white/70 sm:text-[0.95rem]"
+            >
+              {{ profile.bio }}
+            </p>
+
+            <p
+              v-if="profile.supportMessage"
+              class="mt-5 max-w-sm border-l-2 border-cheer-mint/40 pl-3 text-left text-sm leading-relaxed text-white/85"
+            >
+              {{ profile.supportMessage }}
+            </p>
+
+            <nav
+              v-if="profile.socialLinks?.length"
+              class="mt-6 flex flex-wrap justify-center gap-2 lg:justify-start"
+              aria-label="Social links"
+            >
+              <a
+                v-for="(link, i) in profile.socialLinks"
+                :key="link.id ?? `${link.platform}-${i}`"
+                :href="link.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="motion-cta inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/85 transition hover:border-cheer-mint/40 hover:bg-white/15 hover:text-cheer-mint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-mint"
+              >
+                {{ link.label || link.platform }}
+              </a>
+            </nav>
+
+            <div
+              v-if="tipsThisWeek"
+              class="mt-8 w-full border-t border-white/10 pt-6"
+            >
+              <p class="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-cheer-mint/65">
+                Tips this week
+              </p>
+              <p class="mt-1.5 text-2xl font-bold tabular-nums tracking-tight">
+                {{ weekSumLabel }}
+              </p>
+              <p class="mt-1 text-xs text-white/50">
+                <template v-if="tipsThisWeek.count > 0">
+                  {{ tipsThisWeek.count }}
+                  {{ tipsThisWeek.count === 1 ? 'supporter' : 'supporters' }}
+                </template>
+                <template v-else>
+                  No tips yet this week
+                </template>
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        <section
+          class="px-5 py-7 sm:px-8 sm:py-9 lg:px-9 lg:py-10"
+          aria-labelledby="support-heading"
+        >
+          <header class="mb-7">
+            <p class="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-cheer-leaf">
+              Send support
+            </p>
+            <h2
+              id="support-heading"
+              class="mt-1.5 text-2xl font-bold tracking-tight text-cheer-ink sm:text-[1.65rem]"
+            >
+              Support {{ profile.displayName }}
+            </h2>
+            <p class="mt-2 max-w-md text-sm leading-relaxed text-cheer-ink/60">
+              Choose an amount, leave a note if you like, then continue to secure payment.
+            </p>
+          </header>
+
           <SupportForm
             :username="profile.username"
             :display-name="profile.displayName"
             :currency="profile.currency"
             :suggested-amounts="profile.suggestedTipAmounts ?? []"
           />
-        </div>
-      </section>
+        </section>
+      </div>
 
       <CreatorPublicActivity
-        v-if="tipsThisWeek"
-        class="motion-animate motion-animate-delay-2"
-        :tips-this-week="tipsThisWeek"
+        v-if="recentSupporterNotes.length"
+        class="motion-animate motion-animate-delay-1"
         :recent-supporter-notes="recentSupporterNotes"
       />
 
@@ -188,13 +214,11 @@ definePageMeta({
 
 const route = useRoute();
 const api = useApi();
-const config = useRuntimeConfig();
 const { track } = useSabilytics();
 
 const username = computed(() =>
   String(route.params.username || '').toLowerCase(),
 );
-const appOrigin = computed(() => (config.public.appUrl as string) || '');
 
 const pending = ref(true);
 const error = ref<string | null>(null);
@@ -209,15 +233,28 @@ const avatarSrc = computed(() => {
 
 const pathLabel = computed(() => {
   const path = profile.value?.publicPath || `/${username.value}`;
-  if (appOrigin.value) {
-    try {
-      return `${new URL(appOrigin.value).host}${path}`;
-    } catch {
-      return path;
-    }
-  }
-  return path;
+  return path.startsWith('/') ? path : `/${path}`;
 });
+
+const weekSumLabel = computed(() => {
+  if (!tipsThisWeek.value) return '';
+  return formatMoney(tipsThisWeek.value.sum, tipsThisWeek.value.currency);
+});
+
+function formatMoney(amount: string, currency: string) {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return `${currency} ${amount}`;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(n);
+  } catch {
+    return `${currency} ${amount}`;
+  }
+}
 
 useHead(() => ({
   title: profile.value

@@ -1,96 +1,64 @@
 <template>
-  <div class="space-y-5">
-    <section
-      class="overflow-hidden rounded-[2rem] border border-black/6 bg-white/90 shadow-[0_24px_60px_-36px_rgba(15,28,23,0.35)] backdrop-blur-md"
-      aria-labelledby="tips-week-heading"
-    >
-      <div class="px-5 py-6 sm:px-7 sm:py-7">
-        <p class="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-cheer-leaf">
-          Tips this week
-        </p>
-        <h2
-          id="tips-week-heading"
-          class="mt-2 text-3xl font-bold tracking-tight text-cheer-ink sm:text-4xl"
+  <section
+    class="overflow-hidden rounded-[1.75rem] border border-black/6 bg-white/90 shadow-[0_20px_50px_-36px_rgba(15,28,23,0.3)]"
+    aria-labelledby="supporter-notes-heading"
+  >
+    <div class="border-b border-black/6 px-5 py-5 sm:px-7 sm:py-6">
+      <p class="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-cheer-leaf">
+        From supporters
+      </p>
+      <h2
+        id="supporter-notes-heading"
+        class="mt-1 text-xl font-bold tracking-tight text-cheer-ink"
+      >
+        Notes with tips
+      </h2>
+    </div>
+    <ul class="divide-y divide-black/5 px-5 sm:px-7">
+      <li
+        v-for="(note, index) in notes"
+        :key="`${note.createdAt}-${index}`"
+        class="flex gap-3.5 py-5"
+      >
+        <img
+          :src="noteAvatar(note)"
+          :alt="noteLabel(note)"
+          class="mt-0.5 h-10 w-10 shrink-0 rounded-2xl bg-cheer-sand object-cover"
+          width="40"
+          height="40"
+          loading="lazy"
+          decoding="async"
         >
-          {{ formattedSum }}
-        </h2>
-        <p class="mt-2 text-sm text-cheer-ink/60">
-          <template v-if="tipsThisWeek.count > 0">
-            {{ tipsThisWeek.count }}
-            {{ tipsThisWeek.count === 1 ? 'supporter' : 'supporters' }}
-            this week
-          </template>
-          <template v-else>
-            No tips yet this week
-          </template>
-        </p>
-      </div>
-    </section>
-
-    <section
-      v-if="notes.length"
-      class="overflow-hidden rounded-[2rem] border border-black/6 bg-white/90 shadow-[0_24px_60px_-36px_rgba(15,28,23,0.35)] backdrop-blur-md"
-      aria-labelledby="supporter-notes-heading"
-    >
-      <div class="border-b border-black/6 px-5 py-5 sm:px-7">
-        <h2
-          id="supporter-notes-heading"
-          class="text-xl font-bold tracking-tight text-cheer-ink"
-        >
-          Notes from supporters
-        </h2>
-      </div>
-      <ul class="divide-y divide-black/5 px-5 sm:px-7">
-        <li
-          v-for="(note, index) in notes"
-          :key="`${note.createdAt}-${index}`"
-          class="flex gap-3.5 py-5"
-        >
-          <img
-            :src="noteAvatar(note)"
-            :alt="noteLabel(note)"
-            class="mt-0.5 h-10 w-10 shrink-0 rounded-2xl bg-cheer-sand object-cover"
-            width="40"
-            height="40"
-            loading="lazy"
-            decoding="async"
-          >
-          <div class="min-w-0 flex-1">
-            <div class="flex flex-wrap items-baseline justify-between gap-2">
-              <p class="font-semibold text-cheer-ink">
-                {{ noteLabel(note) }}
-              </p>
-              <p class="text-sm font-bold tabular-nums text-cheer-ink">
-                {{ formatMoney(note.amount, note.currency) }}
-              </p>
-            </div>
-            <p class="mt-1 text-xs text-cheer-ink/45">
-              {{ formatRelativeDay(note.createdAt) }}
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <p class="font-semibold text-cheer-ink">
+              {{ noteLabel(note) }}
             </p>
-            <p class="mt-2.5 text-sm leading-relaxed text-cheer-ink/80">
-              “{{ note.message }}”
+            <p class="text-sm font-bold tabular-nums text-cheer-ink">
+              {{ formatMoney(note.amount, note.currency) }}
             </p>
           </div>
-        </li>
-      </ul>
-    </section>
-  </div>
+          <p class="mt-1 text-xs text-cheer-ink/45">
+            {{ formatRelativeDay(note.createdAt) }}
+          </p>
+          <p class="mt-2.5 text-sm leading-relaxed text-cheer-ink/80">
+            “{{ note.message }}”
+          </p>
+        </div>
+      </li>
+    </ul>
+  </section>
 </template>
 
 <script setup lang="ts">
-import type { PublicSupporterNote, TipsThisWeek } from '~/types/api';
+import type { PublicSupporterNote } from '~/types/api';
 import { resolveAvatarUrl } from '~/utils/avatar';
 
 const props = defineProps<{
-  tipsThisWeek: TipsThisWeek;
   recentSupporterNotes: PublicSupporterNote[];
 }>();
 
 const notes = computed(() => props.recentSupporterNotes);
-
-const formattedSum = computed(() =>
-  formatMoney(props.tipsThisWeek.sum, props.tipsThisWeek.currency),
-);
 
 function noteLabel(note: PublicSupporterNote) {
   if (note.isAnonymous || !note.displayName?.trim()) return 'Anonymous';

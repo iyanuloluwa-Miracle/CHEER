@@ -28,7 +28,7 @@
     />
 
     <header class="relative z-20 border-b border-black/5 bg-[#f7f3eb]/75 backdrop-blur-md">
-      <div class="mx-auto flex max-w-xl items-center justify-between px-4 py-3.5 sm:px-5">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5 sm:px-6">
         <NuxtLink
           to="/"
           aria-label="TippyMe home"
@@ -63,7 +63,7 @@
     </main>
 
     <footer class="relative z-10 border-t border-black/5 py-5">
-      <div class="mx-auto flex max-w-xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 text-xs text-cheer-ink/45">
+      <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 text-xs text-cheer-ink/45 sm:px-6">
         <span class="inline-flex items-center gap-1.5">
           <span
             class="h-1.5 w-1.5 rounded-full bg-cheer-leaf"
