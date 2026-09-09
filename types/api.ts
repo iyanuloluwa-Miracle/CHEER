@@ -158,6 +158,10 @@ export interface CreatorDashboard {
   publicPath: string;
   publicUrl: string;
   totals: CreatorDashboardTotals;
+  linkViews: {
+    lifetime: number;
+    thisWeek: number;
+  };
   recentTips: CreatorTip[];
   recentMessages: CreatorTip[];
   settlement: CreatorSettlementStatus;

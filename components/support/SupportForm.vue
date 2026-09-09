@@ -191,6 +191,7 @@ const props = defineProps<{
 }>();
 
 const api = useApi();
+const { track } = useSabilytics();
 
 const presets = computed(() =>
   props.suggestedAmounts.length
@@ -295,6 +296,12 @@ async function onSubmit() {
       },
       { idempotencyKey },
     );
+
+    track('tip_checkout_started', {
+      username: props.username,
+      amount: resolvedAmount.value,
+      currency: props.currency,
+    });
 
     try {
       const url = new URL(result.checkoutUrl);

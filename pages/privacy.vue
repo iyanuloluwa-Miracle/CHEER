@@ -62,6 +62,18 @@
 
       <section>
         <h2 class="text-lg font-bold text-cheer-ink">
+          Analytics and tip-page views
+        </h2>
+        <p class="mt-2">
+          When configured, TippyMe uses Sabilytics for aggregated website traffic and product events (such as tip page opens, link copy/share, and checkout starts). Event payloads do not include supporter emails or other payment identifiers.
+        </p>
+        <p class="mt-2">
+          TippyMe also stores anonymous tip-page view counts so creators can see how often their public link is opened. These counts do not include IP addresses, device fingerprints, or visitor identity.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold text-cheer-ink">
           Contact
         </h2>
         <p class="mt-2">

@@ -198,6 +198,12 @@ export function createApiClient(apiBaseUrl: string) {
         `/api/creators/${encodeURIComponent(username)}`,
       ),
 
+    recordCreatorPageView: (username: string) =>
+      request<{ recorded: boolean }>(
+        `/api/creators/${encodeURIComponent(username)}/view`,
+        { method: 'POST' },
+      ),
+
     createTip: (
       payload: {
         username: string;

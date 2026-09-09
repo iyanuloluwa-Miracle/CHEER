@@ -40,6 +40,10 @@ export interface CreatorDashboardDto {
   publicPath: string;
   publicUrl: string;
   totals: DashboardTotalsDto;
+  linkViews: {
+    lifetime: number;
+    thisWeek: number;
+  };
   recentTips: CreatorTipDto[];
   recentMessages: CreatorTipDto[];
   /** Bachs Connect / payout readiness — never a TippyMe wallet. */

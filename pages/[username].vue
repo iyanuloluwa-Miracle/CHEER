@@ -189,6 +189,7 @@ definePageMeta({
 const route = useRoute();
 const api = useApi();
 const config = useRuntimeConfig();
+const { track } = useSabilytics();
 
 const username = computed(() =>
   String(route.params.username || '').toLowerCase(),
@@ -242,6 +243,11 @@ async function load() {
     profile.value = result.profile;
     tipsThisWeek.value = result.tipsThisWeek;
     recentSupporterNotes.value = result.recentSupporterNotes ?? [];
+
+    track('tip_page_view', { username: result.profile.username });
+    void api.recordCreatorPageView(result.profile.username).catch(() => {
+      // View counting must not block the tip page.
+    });
   } catch (err) {
     if (err instanceof ApiClientError && err.statusCode === 404) {
       error.value = 'This Tippy page does not exist.';

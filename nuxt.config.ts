@@ -29,6 +29,9 @@ export default defineNuxtConfig({
       // Empty → browser uses same-origin `/api` (Nitro handlers).
       apiUrl: process.env.NUXT_PUBLIC_API_URL ?? '',
       appUrl: process.env.NUXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000',
+      sabilyticsSiteId: process.env.NUXT_PUBLIC_SABILYTICS_SITE_ID || '',
+      sabilyticsDomain: process.env.NUXT_PUBLIC_SABILYTICS_DOMAIN || '',
+      sabilyticsScriptUrl: process.env.NUXT_PUBLIC_SABILYTICS_SCRIPT_URL || '',
     },
   },
 

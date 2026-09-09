@@ -95,70 +95,22 @@
             </div>
           </div>
 
-          <div class="motion-animate motion-animate-delay-2 mt-10 grid gap-6 border-t border-white/10 pt-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-end lg:gap-10">
-            <div>
-              <p class="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-white/45">
-                Total successful support
-              </p>
-              <p class="mt-2 text-5xl font-bold tabular-nums tracking-tight sm:text-6xl lg:text-[4.25rem] lg:leading-none">
-                {{ formatMoney(dashboard.totals.successfulSupport, dashboard.currency) }}
-              </p>
-              <p class="mt-3 text-sm text-white/50">
-                Across
-                <span class="font-semibold text-cheer-mint">{{ dashboard.totals.successfulTipCount }}</span>
-                successful tip{{ dashboard.totals.successfulTipCount === 1 ? '' : 's' }}
-              </p>
-            </div>
-
-            <!-- Decorative support pulse visual -->
-            <div
-              class="relative hidden h-28 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4 lg:block"
-              aria-hidden="true"
-            >
-              <svg
-                class="h-full w-full"
-                viewBox="0 0 280 80"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  class="dash-draw-path"
-                  d="M0 58 C28 58 28 22 56 22 C84 22 84 62 112 62 C140 62 140 18 168 18 C196 18 196 48 224 48 C248 48 252 30 280 30"
-                  stroke="rgba(200,240,221,0.75)"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                />
-                <path
-                  d="M0 58 C28 58 28 22 56 22 C84 22 84 62 112 62 C140 62 140 18 168 18 C196 18 196 48 224 48 C248 48 252 30 280 30 V80 H0 Z"
-                  fill="url(#dashWaveFill)"
-                  opacity="0.35"
-                />
-                <defs>
-                  <linearGradient
-                    id="dashWaveFill"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="0%"
-                      stop-color="#c8f0dd"
-                      stop-opacity="0.45"
-                    />
-                    <stop
-                      offset="100%"
-                      stop-color="#c8f0dd"
-                      stop-opacity="0"
-                    />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
+          <div class="motion-animate motion-animate-delay-2 mt-10 border-t border-white/10 pt-8">
+            <p class="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-white/45">
+              Total successful support
+            </p>
+            <p class="mt-2 text-5xl font-bold tabular-nums tracking-tight sm:text-6xl lg:text-[4.25rem] lg:leading-none">
+              {{ formatMoney(dashboard.totals.successfulSupport, dashboard.currency) }}
+            </p>
+            <p class="mt-3 text-sm text-white/50">
+              Across
+              <span class="font-semibold text-cheer-mint">{{ dashboard.totals.successfulTipCount }}</span>
+              successful tip{{ dashboard.totals.successfulTipCount === 1 ? '' : 's' }}
+            </p>
           </div>
 
           <div
-            class="motion-animate motion-animate-delay-3 mt-8 grid gap-3 sm:grid-cols-3"
+            class="motion-animate motion-animate-delay-3 mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
             aria-label="Support totals"
           >
             <div class="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm sm:p-5">
@@ -167,6 +119,17 @@
               </p>
               <p class="mt-2 text-3xl font-bold tabular-nums tracking-tight">
                 {{ dashboard.totals.successfulTipCount }}
+              </p>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm sm:p-5">
+              <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-white/45">
+                Link views
+              </p>
+              <p class="mt-2 text-3xl font-bold tabular-nums tracking-tight">
+                {{ dashboard.linkViews?.lifetime ?? 0 }}
+              </p>
+              <p class="mt-1.5 text-xs text-white/45">
+                {{ dashboard.linkViews?.thisWeek ?? 0 }} this week (UTC)
               </p>
             </div>
             <div class="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm sm:p-5">
@@ -275,70 +238,8 @@
         </dl>
       </section>
 
-      <!-- Empty state -->
-      <section
-        v-if="isEmpty"
-        class="motion-animate motion-animate-delay-4 relative mt-5 overflow-hidden rounded-[2rem] border border-cheer-leaf/15 bg-gradient-to-br from-white via-white to-cheer-mint/35 px-6 py-14 text-center sm:px-12 sm:py-20"
-      >
-        <div
-          class="dash-float pointer-events-none absolute -left-10 top-8 h-40 w-40 rounded-full bg-cheer-mint/50 blur-3xl"
-          aria-hidden="true"
-        />
-        <div
-          class="dash-float-delay pointer-events-none absolute -right-8 bottom-4 h-44 w-44 rounded-full bg-cheer-glow/20 blur-3xl"
-          aria-hidden="true"
-        />
-        <div
-          class="pointer-events-none absolute inset-0 opacity-30"
-          style="
-            background-image: radial-gradient(rgba(31, 107, 74, 0.1) 1px, transparent 1px);
-            background-size: 16px 16px;
-          "
-          aria-hidden="true"
-        />
-
-        <div class="relative mx-auto flex h-20 w-20 items-center justify-center">
-          <span
-            class="absolute inset-0 rounded-[1.35rem] bg-cheer-leaf/15"
-            aria-hidden="true"
-          />
-          <span
-            class="dash-pulse-dot absolute inset-2 rounded-[1.1rem] bg-cheer-leaf text-cheer-leaf"
-            aria-hidden="true"
-          />
-          <span
-            class="relative flex h-16 w-16 items-center justify-center rounded-[1.15rem] bg-cheer-leaf text-white shadow-[0_16px_40px_-12px_rgba(31,107,74,0.65)]"
-          >
-            <img
-              src="/cheers-logo-nav.png"
-              alt=""
-              aria-hidden="true"
-              class="h-7 w-auto brightness-0 invert"
-              width="20"
-              height="28"
-              decoding="async"
-            />
-          </span>
-        </div>
-
-        <h2 class="relative mt-8 text-3xl font-bold tracking-tight text-cheer-ink sm:text-4xl">
-          Your first tip is one share away
-        </h2>
-        <p class="relative mx-auto mt-3 max-w-lg text-base leading-relaxed text-cheer-ink/65">
-          Drop your Tippy link in your bio, stories, or DMs. Totals stay at zero until a payment succeeds — then this space lights up.
-        </p>
-        <div class="relative mt-9 flex justify-center">
-          <DashboardShareTippyLink
-            :public-url="dashboard.publicUrl"
-            :public-path="dashboard.publicPath"
-            :display-name="dashboard.displayName"
-          />
-        </div>
-      </section>
-
       <!-- Activity -->
       <div
-        v-else
         class="motion-animate motion-animate-delay-4 mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]"
       >
         <section
@@ -496,14 +397,6 @@ const tipsPage = ref<CreatorTipsPage | null>(null);
 const tips = ref<CreatorTip[]>([]);
 const page = ref(1);
 const statusFilter = ref<TipStatus | ''>('');
-
-const isEmpty = computed(
-  () =>
-    dashboard.value !== null &&
-    dashboard.value.totals.successfulTipCount === 0 &&
-    (tipsPage.value?.total ?? 0) === 0 &&
-    !statusFilter.value,
-);
 
 const dashboardAvatarSrc = computed(() => {
   if (!dashboard.value) return resolveAvatarUrl(null, 'creator');

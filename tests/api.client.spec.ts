@@ -82,6 +82,10 @@ describe('createApiClient', () => {
             },
             recentTips: [],
             recentMessages: [],
+            linkViews: {
+              lifetime: 0,
+              thisWeek: 0,
+            },
             settlement: {
               readiness: 'NOT_CONFIGURED',
               bachsConnectAccountId: null,

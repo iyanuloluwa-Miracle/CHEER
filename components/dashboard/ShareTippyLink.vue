@@ -49,7 +49,7 @@
           :rel="item.external ? 'noopener noreferrer' : undefined"
           class="block rounded-xl px-3 py-2.5 text-sm font-semibold text-cheer-ink transition hover:bg-cheer-mint/45"
           role="menuitem"
-          @click="item.onClick?.($event)"
+          @click="onShareClick(item, $event)"
         >
           {{ item.label }}
         </a>
@@ -69,10 +69,16 @@ const props = withDefaults(
   { variant: 'light' },
 );
 
+const { track } = useSabilytics();
+
 const isDark = computed(() => props.variant === 'dark');
 
 const copied = ref(false);
 let copyTimer: ReturnType<typeof setTimeout> | null = null;
+
+const username = computed(() =>
+  props.publicPath.replace(/^\//, '').toLowerCase(),
+);
 
 const shareText = computed(
   () => `Support ${props.displayName} on TippyMe — ${props.publicUrl}`,
@@ -81,21 +87,25 @@ const shareText = computed(
 const shareItems = computed(() => [
   {
     label: 'WhatsApp',
+    channel: 'whatsapp',
     href: `https://wa.me/?text=${encodeURIComponent(shareText.value)}`,
     external: true,
   },
   {
     label: 'X (Twitter)',
+    channel: 'x',
     href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`Support ${props.displayName} on TippyMe`)}&url=${encodeURIComponent(props.publicUrl)}`,
     external: true,
   },
   {
     label: 'LinkedIn',
+    channel: 'linkedin',
     href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(props.publicUrl)}`,
     external: true,
   },
   {
     label: 'Copy for Instagram bio',
+    channel: 'instagram',
     href: '#',
     external: false,
     onClick: (e: Event) => {
@@ -105,6 +115,7 @@ const shareItems = computed(() => [
   },
   {
     label: 'Copy for TikTok bio',
+    channel: 'tiktok',
     href: '#',
     external: false,
     onClick: (e: Event) => {
@@ -114,16 +125,39 @@ const shareItems = computed(() => [
   },
 ]);
 
+function trackShare(channel: string) {
+  track('tip_link_share', {
+    username: username.value,
+    channel,
+  });
+}
+
+function onShareClick(
+  item: {
+    channel: string;
+    external: boolean;
+    onClick?: (e: Event) => void;
+  },
+  event: Event,
+) {
+  if (item.external) {
+    trackShare(item.channel);
+  }
+  item.onClick?.(event);
+}
+
 async function copyLink() {
   try {
     await navigator.clipboard.writeText(props.publicUrl);
     copied.value = true;
+    track('tip_link_copy', { username: username.value });
     if (copyTimer) clearTimeout(copyTimer);
     copyTimer = setTimeout(() => {
       copied.value = false;
     }, 2000);
   } catch {
     window.prompt('Copy your Tippy link:', props.publicUrl);
+    track('tip_link_copy', { username: username.value });
   }
 }
 </script>

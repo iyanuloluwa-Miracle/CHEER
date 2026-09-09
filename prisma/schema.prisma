@@ -130,9 +130,21 @@ model CreatorProfile {
   user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   socialLinks SocialLink[]
   tips       Tip[]
+  tipPageViews TipPageView[]
 
   @@index([isActive])
   @@index([createdAt])
+}
+
+/// Anonymous tip-page opens for creator dashboard (no IP / UA stored).
+model TipPageView {
+  id        String   @id @default(cuid())
+  creatorId String
+  createdAt DateTime @default(now())
+
+  creator CreatorProfile @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId, createdAt])
 }
 
 model SocialLink {

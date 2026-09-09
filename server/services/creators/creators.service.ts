@@ -374,44 +374,58 @@ export class CreatorsService {
 
     const creatorId = profile.id;
     const { start, end, periodKey, periodLabel } = utcMonthBounds();
+    const week = utcWeekBounds();
     const appUrl = (getServerEnv().APP_URL ?? 'http://localhost:3000').replace(
       /\/$/,
       '',
     );
 
-    const [lifetimeAgg, periodAgg, recentTips, recentMessages] =
-      await Promise.all([
-        this.prisma.tip.aggregate({
-          where: { creatorId, status: TipStatus.PAID },
-          _sum: { amount: true },
-          _count: { _all: true },
-        }),
-        this.prisma.tip.aggregate({
-          where: {
-            creatorId,
-            status: TipStatus.PAID,
-            createdAt: { gte: start, lt: end },
-          },
-          _sum: { amount: true },
-          _count: { _all: true },
-        }),
-        this.prisma.tip.findMany({
-          where: { creatorId },
-          include: tipWithPaymentInclude,
-          orderBy: { createdAt: 'desc' },
-          take: RECENT_TIPS_LIMIT,
-        }),
-        this.prisma.tip.findMany({
-          where: {
-            creatorId,
-            status: TipStatus.PAID,
-            message: { not: null },
-          },
-          include: tipWithPaymentInclude,
-          orderBy: { createdAt: 'desc' },
-          take: RECENT_MESSAGES_LIMIT,
-        }),
-      ]);
+    const [
+      lifetimeAgg,
+      periodAgg,
+      recentTips,
+      recentMessages,
+      lifetimeViews,
+      weekViews,
+    ] = await Promise.all([
+      this.prisma.tip.aggregate({
+        where: { creatorId, status: TipStatus.PAID },
+        _sum: { amount: true },
+        _count: { _all: true },
+      }),
+      this.prisma.tip.aggregate({
+        where: {
+          creatorId,
+          status: TipStatus.PAID,
+          createdAt: { gte: start, lt: end },
+        },
+        _sum: { amount: true },
+        _count: { _all: true },
+      }),
+      this.prisma.tip.findMany({
+        where: { creatorId },
+        include: tipWithPaymentInclude,
+        orderBy: { createdAt: 'desc' },
+        take: RECENT_TIPS_LIMIT,
+      }),
+      this.prisma.tip.findMany({
+        where: {
+          creatorId,
+          status: TipStatus.PAID,
+          message: { not: null },
+        },
+        include: tipWithPaymentInclude,
+        orderBy: { createdAt: 'desc' },
+        take: RECENT_MESSAGES_LIMIT,
+      }),
+      this.prisma.tipPageView.count({ where: { creatorId } }),
+      this.prisma.tipPageView.count({
+        where: {
+          creatorId,
+          createdAt: { gte: week.start, lt: week.end },
+        },
+      }),
+    ]);
 
     return {
       currency: profile.currency,
@@ -431,12 +445,38 @@ export class CreatorsService {
         periodKey,
         periodLabel,
       },
+      linkViews: {
+        lifetime: lifetimeViews,
+        thisWeek: weekViews,
+      },
       recentTips: recentTips.map(toCreatorTipDto),
       recentMessages: recentMessages
         .filter((t) => Boolean(t.message?.trim()))
         .map(toCreatorTipDto),
       settlement: buildSettlementStatus(profile.bachsAccountId),
     };
+  }
+
+  /**
+   * Record an anonymous public tip-page view for dashboard link-view counts.
+   * Does not store IP, user-agent, or other visitor identifiers.
+   */
+  async recordTipPageView(raw: string): Promise<{ recorded: true }> {
+    const username = normalizeUsername(raw);
+    const profile = await this.prisma.creatorProfile.findUnique({
+      where: { username },
+      select: { id: true, isActive: true },
+    });
+
+    if (!profile || !profile.isActive) {
+      throw new ApiError(404, 'CREATOR_NOT_FOUND', 'Creator not found.');
+    }
+
+    await this.prisma.tipPageView.create({
+      data: { creatorId: profile.id },
+    });
+
+    return { recorded: true };
   }
 
   /**
