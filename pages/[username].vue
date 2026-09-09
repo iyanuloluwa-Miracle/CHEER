@@ -134,27 +134,6 @@
                 {{ link.label || link.platform }}
               </a>
             </nav>
-
-            <div
-              v-if="tipsThisWeek"
-              class="mt-8 w-full border-t border-white/10 pt-6"
-            >
-              <p class="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-cheer-mint/65">
-                Tips this week
-              </p>
-              <p class="mt-1.5 text-2xl font-bold tabular-nums tracking-tight">
-                {{ weekSumLabel }}
-              </p>
-              <p class="mt-1 text-xs text-white/50">
-                <template v-if="tipsThisWeek.count > 0">
-                  {{ tipsThisWeek.count }}
-                  {{ tipsThisWeek.count === 1 ? 'supporter' : 'supporters' }}
-                </template>
-                <template v-else>
-                  No tips yet this week
-                </template>
-              </p>
-            </div>
           </div>
         </aside>
 
@@ -203,7 +182,6 @@
 import type {
   CreatorProfile,
   PublicSupporterNote,
-  TipsThisWeek,
 } from '~/types/api';
 import { ApiClientError } from '~/services/api';
 import { resolveAvatarUrl } from '~/utils/avatar';
@@ -223,7 +201,6 @@ const username = computed(() =>
 const pending = ref(true);
 const error = ref<string | null>(null);
 const profile = ref<CreatorProfile | null>(null);
-const tipsThisWeek = ref<TipsThisWeek | null>(null);
 const recentSupporterNotes = ref<PublicSupporterNote[]>([]);
 
 const avatarSrc = computed(() => {
@@ -235,26 +212,6 @@ const pathLabel = computed(() => {
   const path = profile.value?.publicPath || `/${username.value}`;
   return path.startsWith('/') ? path : `/${path}`;
 });
-
-const weekSumLabel = computed(() => {
-  if (!tipsThisWeek.value) return '';
-  return formatMoney(tipsThisWeek.value.sum, tipsThisWeek.value.currency);
-});
-
-function formatMoney(amount: string, currency: string) {
-  const n = Number(amount);
-  if (!Number.isFinite(n)) return `${currency} ${amount}`;
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(n);
-  } catch {
-    return `${currency} ${amount}`;
-  }
-}
 
 useHead(() => ({
   title: profile.value
@@ -278,7 +235,6 @@ async function load() {
   try {
     const result = await api.getCreatorByUsername(username.value);
     profile.value = result.profile;
-    tipsThisWeek.value = result.tipsThisWeek;
     recentSupporterNotes.value = result.recentSupporterNotes ?? [];
 
     track('tip_page_view', { username: result.profile.username });
@@ -292,7 +248,6 @@ async function load() {
       error.value = 'Unable to load this page right now.';
     }
     profile.value = null;
-    tipsThisWeek.value = null;
     recentSupporterNotes.value = [];
   } finally {
     pending.value = false;
