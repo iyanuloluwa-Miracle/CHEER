@@ -77,9 +77,28 @@ async function bootstrap() {
     setupSwagger(app, apiPrefix);
   }
 
-  await app.listen(port);
+  // Pxxl (and most PaaS) probe `/` on 0.0.0.0. API health remains at /api/health.
+  const expressApp = app.getHttpAdapter().getInstance() as {
+    get: (
+      path: string,
+      handler: (
+        req: unknown,
+        res: { status: (code: number) => { json: (body: object) => void } },
+      ) => void,
+    ) => void;
+  };
+  expressApp.get('/', (_req, res) => {
+    res.status(200).json({
+      status: 'ok',
+      service: 'cheer-api',
+      health: `/${apiPrefix}/health`,
+    });
+  });
 
-  logger.log(`TippyMe API listening on http://localhost:${port}/${apiPrefix}`);
+  const host = process.env.HOST?.trim() || '0.0.0.0';
+  await app.listen(port, host);
+
+  logger.log(`TippyMe API listening on http://${host}:${port}/${apiPrefix}`);
   if (nodeEnv !== 'production') {
     logger.log(`Swagger docs: http://localhost:${port}/${apiPrefix}/docs`);
   }
