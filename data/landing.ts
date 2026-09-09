@@ -12,7 +12,7 @@ export const heroContent = {
   title: 'One link for everyone who wants to support your work.',
   description:
     'TippyMe helps African creators and builders receive personal support — without sending a bank account to every fan.',
-  primaryCta: { label: 'Get started', to: '/signup' } satisfies CtaLink,
+  primaryCta: { label: 'Claim your link', to: '/signup' } satisfies CtaLink,
   secondaryCta: { label: 'How it works', to: '/#how-it-works' } satisfies CtaLink,
 } as const;
 
@@ -180,7 +180,7 @@ export const trustItems: readonly TrustItem[] = [
     id: 'bachs',
     title: 'Processed through Bachs',
     description:
-      'Checkout and settlement run on Bachs infrastructure. TippyMe is not a bank and does not hold balances for you.',
+      'Checkout and settlement run on Bachs infrastructure. Automatic Friday payouts via Bachs Connect are coming — TippyMe is not a bank and does not hold balances for you.',
   },
   {
     id: 'privacy',
@@ -233,7 +233,7 @@ export const faqItems: readonly FaqItem[] = [
     id: 'how-paid',
     question: 'How do I get paid?',
     answer:
-      'Payments are processed by Bachs. TippyMe is the creator page, messages, and dashboard — Bachs moves the money to you.',
+      'Payments are processed by Bachs. TippyMe is the creator page, messages, and dashboard — not a bank. Automatic Friday payouts via Bachs Connect are coming when Connect settlement is enabled; TippyMe does not hold a withdrawable balance.',
   },
   {
     id: 'share-link',

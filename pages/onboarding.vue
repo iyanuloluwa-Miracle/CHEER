@@ -46,6 +46,13 @@
           @input="onUsernameInput"
         >
       </div>
+      <p
+        v-if="claimPathPreview"
+        class="mt-2 text-sm font-medium text-cheer-ink/70"
+      >
+        Your page will be
+        <span class="font-semibold text-cheer-ink">{{ claimPathPreview }}</span>
+      </p>
       <p class="mt-2 text-xs text-cheer-ink/50">
         Lowercase letters, numbers, underscores. 3–30 characters.
       </p>
@@ -334,6 +341,7 @@
 <script setup lang="ts">
 import type { CreatorProfile, SocialPlatform } from '~/types/api';
 import { ApiClientError } from '~/services/api';
+import { normalizeClaimUsername } from '~/utils/username-claim';
 
 definePageMeta({
   middleware: 'auth',
@@ -343,6 +351,7 @@ useHead({
   title: 'Set up your Tippy page — TippyMe',
 });
 
+const route = useRoute();
 const api = useApi();
 const auth = useAuthStore();
 const config = useRuntimeConfig();
@@ -437,6 +446,19 @@ const publicUrlLabel = computed(() => {
   }
 });
 
+const claimPathPreview = computed(() => {
+  if (username.value.length < 3) return '';
+  const path = `/${username.value}`;
+  try {
+    if (appOrigin.value) {
+      return `${new URL(appOrigin.value).host}${path}`;
+    }
+  } catch {
+    // fall through
+  }
+  return `tippy.me${path}`;
+});
+
 onMounted(async () => {
   if (auth.user?.hasCreatorProfile) {
     await navigateTo('/dashboard');
@@ -450,9 +472,19 @@ onMounted(async () => {
         hasCreatorProfile: true,
       });
       await navigateTo('/dashboard');
+      return;
     }
   } catch {
     // stay on onboarding
+  }
+
+  const raw = route.query.username;
+  if (typeof raw === 'string') {
+    const normalized = normalizeClaimUsername(raw);
+    if (normalized.length >= 3) {
+      username.value = normalized;
+      await checkUsername();
+    }
   }
 });
 
@@ -569,7 +601,7 @@ async function submitOnboarding() {
     if (auth.user) {
       auth.setUser({ ...auth.user, hasCreatorProfile: true });
     }
-    step.value = 'done';
+    await navigateTo(profile.publicPath);
   } catch (err) {
     error.value = mapError(err);
   } finally {

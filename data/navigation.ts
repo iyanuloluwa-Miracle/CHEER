@@ -8,7 +8,7 @@ export const sectionLinks: readonly NavLink[] = [
 
 export const loginLink: NavLink = { label: 'Log in', to: '/login' };
 
-export const signupLink: NavLink = { label: 'Create your Tippy', to: '/signup' };
+export const signupLink: NavLink = { label: 'Claim your link', to: '/signup' };
 
 export const dashboardLink: NavLink = { label: 'Dashboard', to: '/dashboard' };
 

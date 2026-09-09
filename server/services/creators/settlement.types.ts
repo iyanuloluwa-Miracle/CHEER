@@ -53,7 +53,7 @@ export function buildSettlementStatus(
       tippyInitiatedPayoutAvailable: false,
       automatedFridayPayout: 'FUTURE_CAPABILITY',
       message:
-        'Payout setup is not available yet. Successful tips are recorded in TippyMe; creator settlement via Bachs Connect is a future capability. Automatic scheduled payout — future capability.',
+        'Money settlement via Bachs — automatic Friday payouts coming when Connect is enabled. Successful tips are recorded in TippyMe; TippyMe is not a bank and does not hold a withdrawable balance.',
     };
   }
 
@@ -65,6 +65,6 @@ export function buildSettlementStatus(
     tippyInitiatedPayoutAvailable: false,
     automatedFridayPayout: 'FUTURE_CAPABILITY',
     message:
-      'Bachs Connect account linked. TippyMe does not hold a withdrawable wallet; withdrawals and schedules use Bachs when fully enabled. Automatic scheduled payout — future capability.',
+      'Bachs Connect account linked. TippyMe does not hold a withdrawable wallet. Automatic Friday payouts via Bachs schedules will apply when destinations and Connect settlement are fully enabled.',
   };
 }

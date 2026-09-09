@@ -56,10 +56,16 @@
             <div class="min-w-0">
               <div class="flex items-center gap-3">
                 <div
-                  class="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cheer-mint text-xl font-bold text-cheer-ink shadow-[0_12px_32px_-12px_rgba(200,240,221,0.8)] sm:h-16 sm:w-16 sm:text-2xl"
+                  class="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-cheer-mint text-xl font-bold text-cheer-ink shadow-[0_12px_32px_-12px_rgba(200,240,221,0.8)] sm:h-16 sm:w-16 sm:text-2xl"
                   aria-hidden="true"
                 >
-                  {{ nameInitial }}
+                  <img
+                    :src="dashboardAvatarSrc"
+                    :alt="dashboard.displayName"
+                    class="h-full w-full object-cover"
+                    width="64"
+                    height="64"
+                  >
                   <span
                     class="dash-pulse-dot absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-cheer-glow text-cheer-glow ring-2 ring-[#134032]"
                   />
@@ -77,20 +83,6 @@
               <h1 class="mt-5 max-w-xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-[3.35rem] lg:leading-[1.05]">
                 {{ dashboard.displayName }}
               </h1>
-
-              <a
-                v-if="publicHostLabel"
-                :href="dashboard.publicUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="mt-4 inline-flex max-w-full items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-sm text-white/75 backdrop-blur-sm transition hover:border-cheer-mint/40 hover:bg-white/15 hover:text-cheer-mint"
-              >
-                <span
-                  class="dash-pulse-dot h-1.5 w-1.5 shrink-0 rounded-full bg-cheer-mint text-cheer-mint"
-                  aria-hidden="true"
-                />
-                <span class="truncate">{{ publicHostLabel }}</span>
-              </a>
             </div>
 
             <div class="motion-animate motion-animate-delay-1 shrink-0 lg:pt-2">
@@ -277,7 +269,7 @@
               Automatic Friday payout
             </dt>
             <dd class="mt-2 text-base font-bold text-cheer-ink">
-              Future capability
+              Coming via Bachs Connect
             </dd>
           </div>
         </dl>
@@ -481,6 +473,7 @@ import type {
   TipStatus,
 } from '~/types/api';
 import { ApiClientError } from '~/services/api';
+import { resolveAvatarUrl } from '~/utils/avatar';
 
 definePageMeta({
   layout: 'dashboard',
@@ -512,19 +505,9 @@ const isEmpty = computed(
     !statusFilter.value,
 );
 
-const publicHostLabel = computed(() => {
-  if (!dashboard.value) return '';
-  try {
-    return new URL(dashboard.value.publicUrl).href.replace(/^https?:\/\//, '');
-  } catch {
-    return dashboard.value.publicUrl;
-  }
-});
-
-const nameInitial = computed(() => {
-  const name = dashboard.value?.displayName?.trim();
-  if (!name) return 'T';
-  return name.charAt(0).toUpperCase();
+const dashboardAvatarSrc = computed(() => {
+  if (!dashboard.value) return resolveAvatarUrl(null, 'creator');
+  return resolveAvatarUrl(null, dashboard.value.username);
 });
 
 const greeting = computed(() => {

@@ -16,14 +16,12 @@
           class="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-cheer-mint/40 text-2xl font-bold text-cheer-leaf shadow-md"
         >
           <img
-            v-if="profile.avatarUrl"
-            :src="profile.avatarUrl"
+            :src="avatarSrc"
             :alt="profile.displayName"
             class="h-full w-full object-cover"
             width="80"
             height="80"
           >
-          <span v-else>{{ initials }}</span>
         </div>
         <h2 class="mt-4 text-2xl font-bold tracking-tight text-cheer-ink">
           {{ profile.displayName }}
@@ -94,6 +92,7 @@
 
 <script setup lang="ts">
 import type { CreatorProfile } from '~/types/api';
+import { resolveAvatarUrl } from '~/utils/avatar';
 
 const props = withDefaults(
   defineProps<{
@@ -118,13 +117,9 @@ const props = withDefaults(
   },
 );
 
-const initials = computed(() => {
-  const parts = props.profile.displayName.trim().split(/\s+/);
-  return parts
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? '')
-    .join('');
-});
+const avatarSrc = computed(() =>
+  resolveAvatarUrl(props.profile.avatarUrl, props.profile.username),
+);
 
 const pathLabel = computed(() => {
   const path = props.profile.publicPath || `/${props.profile.username}`;

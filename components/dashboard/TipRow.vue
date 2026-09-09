@@ -1,13 +1,15 @@
 <template>
   <li class="group py-4 first:pt-1 last:pb-1">
     <div class="flex items-start gap-3.5">
-      <span
-        class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-bold transition"
-        :class="avatarClass"
-        aria-hidden="true"
+      <img
+        :src="avatarSrc"
+        :alt="supporterLabel"
+        class="mt-0.5 h-10 w-10 shrink-0 rounded-2xl object-cover ring-1 ring-black/5"
+        width="40"
+        height="40"
+        loading="lazy"
+        decoding="async"
       >
-        {{ tipInitial }}
-      </span>
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
           <p class="text-lg font-bold tabular-nums tracking-tight text-cheer-ink">
@@ -45,6 +47,7 @@
 
 <script setup lang="ts">
 import type { CreatorTip } from '~/types/api';
+import { resolveAvatarUrl } from '~/utils/avatar';
 
 const props = defineProps<{
   tip: CreatorTip;
@@ -55,10 +58,11 @@ const supporterLabel = computed(() => {
   return props.tip.supporterName?.trim() || 'Supporter';
 });
 
-const tipInitial = computed(() => {
-  if (props.tip.isAnonymous) return 'A';
-  const name = props.tip.supporterName?.trim();
-  return name ? name.charAt(0).toUpperCase() : 'S';
+const avatarSrc = computed(() => {
+  const seed = props.tip.isAnonymous
+    ? 'anonymous'
+    : props.tip.supporterName?.trim() || 'supporter';
+  return resolveAvatarUrl(null, seed);
 });
 
 const statusClass = computed(() => {
@@ -70,18 +74,6 @@ const statusClass = computed(() => {
       return 'bg-red-50 text-red-700';
     default:
       return 'bg-amber-50 text-amber-800';
-  }
-});
-
-const avatarClass = computed(() => {
-  switch (props.tip.status) {
-    case 'PAID':
-      return 'bg-cheer-mint/70 text-cheer-leaf';
-    case 'FAILED':
-    case 'EXPIRED':
-      return 'bg-red-50 text-red-700';
-    default:
-      return 'bg-cheer-sand text-cheer-ink/55';
   }
 });
 

@@ -11,6 +11,7 @@ import type {
   CreatorDashboard,
   CreatorTipsPage,
   ListMyTipsQuery,
+  PublicCreatorPage,
 } from '~/types/api';
 
 export class ApiClientError extends Error {
@@ -193,7 +194,7 @@ export function createApiClient(apiBaseUrl: string) {
       }),
 
     getCreatorByUsername: (username: string) =>
-      request<{ profile: CreatorProfile }>(
+      request<PublicCreatorPage>(
         `/api/creators/${encodeURIComponent(username)}`,
       ),
 

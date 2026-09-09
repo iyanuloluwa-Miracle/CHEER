@@ -15,10 +15,13 @@ import type {
 import { toCreatorProfileDto } from './creators.types';
 import {
   toCreatorTipDto,
+  toPublicSupporterNoteDto,
   utcMonthBounds,
+  utcWeekBounds,
   type CreatorDashboardDto,
   type CreatorTipsPageDto,
   type ListTipsQuery,
+  type PublicCreatorPageDto,
 } from './dashboard.types';
 import { buildSettlementStatus } from './settlement.types';
 import {
@@ -37,6 +40,7 @@ const tipWithPaymentInclude = {
 
 const RECENT_TIPS_LIMIT = 8;
 const RECENT_MESSAGES_LIMIT = 8;
+const PUBLIC_NOTES_LIMIT = 8;
 
 export class CreatorsService {
   constructor(private readonly prisma = usePrisma()) {}
@@ -78,7 +82,7 @@ export class CreatorsService {
     return profile ? toCreatorProfileDto(profile) : null;
   }
 
-  async getPublicByUsername(raw: string): Promise<CreatorProfileDto> {
+  async getPublicByUsername(raw: string): Promise<PublicCreatorPageDto> {
     const username = normalizeUsername(raw);
     const profile = await this.prisma.creatorProfile.findUnique({
       where: { username },
@@ -89,7 +93,49 @@ export class CreatorsService {
       throw new ApiError(404, 'CREATOR_NOT_FOUND', 'Creator not found.');
     }
 
-    return toCreatorProfileDto(profile);
+    const { start, end, weekKey, weekStart, weekEnd } = utcWeekBounds();
+    const creatorId = profile.id;
+
+    const [weekAgg, recentNotes] = await Promise.all([
+      this.prisma.tip.aggregate({
+        where: {
+          creatorId,
+          status: TipStatus.PAID,
+          createdAt: { gte: start, lt: end },
+        },
+        _sum: { amount: true },
+        _count: { _all: true },
+      }),
+      this.prisma.tip.findMany({
+        where: {
+          creatorId,
+          status: TipStatus.PAID,
+          message: { not: null },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: PUBLIC_NOTES_LIMIT * 2,
+      }),
+    ]);
+
+    const recentSupporterNotes = recentNotes
+      .map(toPublicSupporterNoteDto)
+      .filter((note): note is NonNullable<typeof note> => note !== null)
+      .slice(0, PUBLIC_NOTES_LIMIT);
+
+    return {
+      profile: toCreatorProfileDto(profile),
+      tipsThisWeek: {
+        sum: decimalToAmountString(
+          weekAgg._sum.amount ?? new Prisma.Decimal(0),
+        ),
+        count: weekAgg._count._all,
+        currency: profile.currency,
+        weekKey,
+        weekStart,
+        weekEnd,
+      },
+      recentSupporterNotes,
+    };
   }
 
   async create(

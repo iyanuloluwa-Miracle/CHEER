@@ -46,6 +46,30 @@ export interface CreatorProfile {
   updatedAt: string;
 }
 
+export interface TipsThisWeek {
+  sum: string;
+  count: number;
+  currency: string;
+  weekKey: string;
+  weekStart: string;
+  weekEnd: string;
+}
+
+export interface PublicSupporterNote {
+  amount: string;
+  currency: string;
+  message: string;
+  displayName: string | null;
+  isAnonymous: boolean;
+  createdAt: string;
+}
+
+export interface PublicCreatorPage {
+  profile: CreatorProfile;
+  tipsThisWeek: TipsThisWeek;
+  recentSupporterNotes: PublicSupporterNote[];
+}
+
 export interface UsernameAvailability {
   username: string;
   available: boolean;

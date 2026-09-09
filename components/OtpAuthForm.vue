@@ -5,7 +5,7 @@
   >
     <header class="text-center">
       <h1 class="text-2xl font-bold tracking-tight text-cheer-ink sm:text-3xl">
-        {{ step === 'email' ? 'Create your Tippy' : 'Verify your email' }}
+        {{ step === 'email' ? 'Claim your link' : 'Verify your email' }}
       </h1>
       <p class="mt-2 text-sm leading-relaxed text-cheer-ink/65 sm:text-base">
         <template v-if="step === 'email'">

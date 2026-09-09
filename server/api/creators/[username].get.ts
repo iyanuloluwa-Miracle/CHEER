@@ -4,6 +4,5 @@ import { defineApiHandler } from '../../lib/define-api';
 export default defineApiHandler(async (event) => {
   const username = getRouterParam(event, 'username') ?? '';
   const creators = new CreatorsService();
-  const profile = await creators.getPublicByUsername(username);
-  return { profile };
+  return creators.getPublicByUsername(username);
 });

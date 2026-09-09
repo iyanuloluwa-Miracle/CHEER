@@ -71,18 +71,13 @@
               class="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-cheer-mint text-4xl font-bold text-cheer-ink shadow-[0_16px_40px_-12px_rgba(200,240,221,0.85)] ring-[6px] ring-white/15 sm:h-32 sm:w-32 sm:text-5xl"
             >
               <img
-                v-if="profile.avatarUrl"
-                :src="profile.avatarUrl"
+                :src="avatarSrc"
                 :alt="`${profile.displayName} profile photo`"
                 class="h-full w-full object-cover"
                 width="128"
                 height="128"
                 decoding="async"
               >
-              <span
-                v-else
-                aria-hidden="true"
-              >{{ initials }}</span>
             </div>
             <span
               class="dash-pulse-dot absolute bottom-1 right-2 h-3.5 w-3.5 rounded-full bg-cheer-glow text-cheer-glow ring-[3px] ring-[#134032]"
@@ -164,6 +159,13 @@
         </div>
       </section>
 
+      <CreatorPublicActivity
+        v-if="tipsThisWeek"
+        class="motion-animate motion-animate-delay-2"
+        :tips-this-week="tipsThisWeek"
+        :recent-supporter-notes="recentSupporterNotes"
+      />
+
       <p class="motion-animate motion-animate-delay-2 text-center text-xs leading-relaxed text-cheer-ink/45">
         TippyMe confirms support after Bachs verifies payment.
       </p>
@@ -172,8 +174,13 @@
 </template>
 
 <script setup lang="ts">
-import type { CreatorProfile } from '~/types/api';
+import type {
+  CreatorProfile,
+  PublicSupporterNote,
+  TipsThisWeek,
+} from '~/types/api';
 import { ApiClientError } from '~/services/api';
+import { resolveAvatarUrl } from '~/utils/avatar';
 
 definePageMeta({
   layout: 'creator',
@@ -191,14 +198,12 @@ const appOrigin = computed(() => (config.public.appUrl as string) || '');
 const pending = ref(true);
 const error = ref<string | null>(null);
 const profile = ref<CreatorProfile | null>(null);
+const tipsThisWeek = ref<TipsThisWeek | null>(null);
+const recentSupporterNotes = ref<PublicSupporterNote[]>([]);
 
-const initials = computed(() => {
-  if (!profile.value) return '';
-  const parts = profile.value.displayName.trim().split(/\s+/);
-  return parts
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? '')
-    .join('');
+const avatarSrc = computed(() => {
+  if (!profile.value) return resolveAvatarUrl(null, username.value || 'creator');
+  return resolveAvatarUrl(profile.value.avatarUrl, profile.value.username);
 });
 
 const pathLabel = computed(() => {
@@ -235,6 +240,8 @@ async function load() {
   try {
     const result = await api.getCreatorByUsername(username.value);
     profile.value = result.profile;
+    tipsThisWeek.value = result.tipsThisWeek;
+    recentSupporterNotes.value = result.recentSupporterNotes ?? [];
   } catch (err) {
     if (err instanceof ApiClientError && err.statusCode === 404) {
       error.value = 'This Tippy page does not exist.';
@@ -242,6 +249,8 @@ async function load() {
       error.value = 'Unable to load this page right now.';
     }
     profile.value = null;
+    tipsThisWeek.value = null;
+    recentSupporterNotes.value = [];
   } finally {
     pending.value = false;
   }
