@@ -12,51 +12,47 @@ AIB does not publish a mandatory host in public docs (`docs/aib-stack.md`). Tipp
 
 | Service | Image | Role |
 |---------|-------|------|
-| `web` | `apps/web/Dockerfile` | Nuxt 3 (Nitro `node-server`) |
-| `api` | `apps/api/Dockerfile` | NestJS |
+| `web` | `Dockerfile` | Nuxt 3 + Nitro (`node-server`, SSR + `/api`) |
 | Postgres | Managed (recommended) | Prisma |
 
 Compose example: `docker-compose.prod.yml`.
 
-**Recommended public topology (cookie-safe):**
+**Recommended public topology (cookie-safe, single process):**
 
 ```text
-https://<domain>/          → web:3000
-https://<domain>/api/*     → api:3001   (edge reverse proxy preferred)
+https://<domain>/          → web:3000 (pages)
+https://<domain>/api/*     → web:3000 (Nitro handlers)
 ```
 
-Leave `NUXT_PUBLIC_API_URL` empty so the browser uses same-origin `/api`.  
-Set `API_INTERNAL_URL=http://api:3001` for SSR / Nitro proxy.
+Leave `NUXT_PUBLIC_API_URL` empty so the browser uses same-origin `/api`.
 
 **OutRay:** development only. Production Bachs webhooks:
 
 ```text
-https://<production-api-domain>/api/webhooks/bachs
+https://<production-domain>/api/webhooks/bachs
 ```
 
 ---
 
 ## What was implemented in-repo
 
-1. Production Dockerfiles for API and web  
+1. Production Dockerfile for the Nuxt/Nitro app  
 2. `docker-compose.prod.yml` (secrets via host env)  
 3. `prisma migrate deploy` scripts (`prisma:migrate:deploy`, `scripts/prod-migrate.sh`, `start:prod:migrate`)  
 4. Fail-closed production env (`APP_URL` + `API_URL` https, Bachs, SendByte, strong secrets)  
-5. Structured JSON logging + `x-request-id` + optional `ERROR_MONITORING_DSN`  
-6. Nuxt server-only `apiInternalUrl` for SSR without exposing secrets  
-7. Production checklist document  
+5. Production checklist document  
 
 ---
 
 ## Operator steps (do not skip)
 
 1. Confirm Phases 13–14 reports are green.  
-2. Provision HTTPS domain(s) and managed Postgres.  
-3. Create Bachs **live** (or sandbox) webhook destination → production API URL.  
+2. Provision HTTPS domain and managed Postgres.  
+3. Create Bachs **live** (or sandbox) webhook destination → `https://<domain>/api/webhooks/bachs`.  
 4. Verify SendByte sender domain; set `SENDBYTE_FROM_EMAIL`.  
 5. Inject secrets into the host (never Git).  
 6. `prisma migrate deploy` against production `DATABASE_URL`.  
-7. Deploy API then web; verify `/api/health`, `/privacy`, `/terms`.  
+7. Deploy web; verify `/api/health`, `/privacy`, `/terms`.  
 8. Run one tip end-to-end including webhook → dashboard.  
 9. Sign every box in [production-checklist.md](./production-checklist.md).
 

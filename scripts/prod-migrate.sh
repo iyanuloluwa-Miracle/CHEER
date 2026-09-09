@@ -1,7 +1,5 @@
-#!/usr/bin/env sh
-# Safe production migration — never runs reset/dev.
-set -eu
-cd "$(dirname "$0")/../apps/api"
-echo "Running prisma migrate deploy (non-destructive)…"
+#!/usr/bin/env bash
+# Safe production migration helper — never use `prisma migrate dev` here.
+set -euo pipefail
+cd "$(dirname "$0")/.."
 npx prisma migrate deploy
-echo "Migrations complete."

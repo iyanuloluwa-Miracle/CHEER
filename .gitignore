@@ -33,5 +33,4 @@ Thumbs.db
 outray/
 
 # Test artifacts
-apps/api/coverage/
-apps/web/coverage/
+coverage/

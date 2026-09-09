@@ -23,29 +23,26 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 
 | Check | Notes | Done |
 |-------|-------|------|
-| Frontend deployed | Image `apps/web/Dockerfile` or host build of `npm run build -w @cheer/web` | ☐ |
+| Frontend deployed | Image `Dockerfile` or `npm run build` | ☐ |
 | Production domain | `NUXT_PUBLIC_APP_URL=https://<domain>` | ☐ |
 | HTTPS | TLS at edge (Cloudflare / Caddy / load balancer) | ☐ |
-| Production API routing | Prefer same-origin: edge or Nitro proxies `/api` → Nest; leave `NUXT_PUBLIC_API_URL` empty | ☐ |
-| Runtime configuration | `API_INTERNAL_URL` / `NUXT_PUBLIC_API_PROXY_TARGET` = internal Nest URL | ☐ |
+| Production API routing | Same-origin Nitro `/api` — leave `NUXT_PUBLIC_API_URL` empty | ☐ |
+| Runtime configuration | Server secrets via env / `runtimeConfig` (`DATABASE_URL`, `AUTH_*`, `BACHS_*`, `SENDBYTE_*`) | ☐ |
 | No secrets in bundle | Confirm build output has no `BACHS_*`, `SENDBYTE_*`, `DATABASE_URL`, `AUTH_*` | ☐ |
 | Privacy / terms pages | `/privacy`, `/terms` reachable | ☐ |
 
 ---
 
-## 2. Backend (NestJS)
+## 2. Backend (Nitro `/api`)
 
 | Check | Notes | Done |
 |-------|-------|------|
-| Backend deployed | Image `apps/api/Dockerfile` or `npm run build -w @cheer/api` + `node dist/main` | ☐ |
+| App deployed | Image `Dockerfile` or `npm run build` + `node .output/server/index.mjs` | ☐ |
 | `NODE_ENV=production` | Fail-closed env validation active | ☐ |
-| HTTPS | Public `API_URL=https://…` (terminate TLS at edge; `trust proxy=1`) | ☐ |
-| CORS | Production allowlist = `APP_URL` only, credentials on | ☐ |
+| HTTPS | Public `API_URL=https://…` (same origin as `APP_URL`) | ☐ |
 | API URL | Matches public webhook host | ☐ |
-| Logging | `LOG_FORMAT=json`; request IDs via `x-request-id` | ☐ |
-| Health check | `GET https://<api>/api/health` returns DB-aware status | ☐ |
+| Health check | `GET https://<domain>/api/health` returns DB-aware status | ☐ |
 | Rate limiting | Auth OTP / login / tip create throttles verified (single instance OK) | ☐ |
-| Swagger disabled | No `/api/docs` in production | ☐ |
 
 ---
 
@@ -93,7 +90,7 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 | Check | Notes | Done |
 |-------|-------|------|
 | Dev-only | Documented; not in `docker-compose.prod.yml` | ☐ |
-| Production webhooks | Direct HTTPS to Nest | ☐ |
+| Production webhooks | Direct HTTPS to Nitro `/api/webhooks/bachs` | ☐ |
 
 ---
 
@@ -101,22 +98,23 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 
 | Variable | Required in production | Location |
 |----------|------------------------|----------|
-| `NODE_ENV` | `production` | API |
-| `APP_URL` | `https://…` | API (+ Nuxt public app URL) |
-| `API_URL` | `https://…` | API |
-| `DATABASE_URL` | Yes | API only |
-| `AUTH_SECRET` | ≥32 chars, non-placeholder | API only |
-| `OTP_HASH_PEPPER` | ≥32 chars, ≠ `AUTH_SECRET` | API only |
-| `BACHS_API_KEY` | Yes | API only |
-| `BACHS_WEBHOOK_SECRET` | Yes | API only |
-| `BACHS_API_BASE_URL` | Live base when live | API only |
-| `SENDBYTE_API_KEY` | Yes | API only |
-| `SENDBYTE_FROM_EMAIL` | Verified sender | API only |
-| `LOG_FORMAT` | `json` recommended | API |
-| `ERROR_MONITORING_DSN` | Optional | API |
+| Variable | Production rule | Where |
+|----------|------------------|-------|
+| `NODE_ENV` | `production` | Web |
+| `APP_URL` | `https://…` | Web (+ `NUXT_PUBLIC_APP_URL`) |
+| `API_URL` | `https://…` (same origin as APP_URL) | Web |
+| `DATABASE_URL` | Yes | Web server-only |
+| `AUTH_SECRET` | ≥32 chars, non-placeholder | Web server-only |
+| `OTP_HASH_PEPPER` | ≥32 chars, ≠ `AUTH_SECRET` | Web server-only |
+| `BACHS_API_KEY` | Yes | Web server-only |
+| `BACHS_WEBHOOK_SECRET` | Yes | Web server-only |
+| `BACHS_API_BASE_URL` | Live base when live | Web server-only |
+| `SENDBYTE_API_KEY` | Yes | Web server-only |
+| `SENDBYTE_FROM_EMAIL` | Verified sender | Web server-only |
+| `LOG_FORMAT` | `json` recommended | Web |
+| `ERROR_MONITORING_DSN` | Optional | Web |
 | `NUXT_PUBLIC_APP_URL` | `https://…` | Web (public) |
-| `NUXT_PUBLIC_API_URL` | Empty if same-origin proxy | Web (public) |
-| `API_INTERNAL_URL` | Internal Nest URL | Web server-only |
+| `NUXT_PUBLIC_API_URL` | Empty (same-origin Nitro `/api`) | Web (public) |
 
 | Check | Done |
 |-------|------|
@@ -146,7 +144,7 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 |-------|------|
 | Authentication verified (OTP signup + password login) | ☐ |
 | HTTPS verified (web + API) | ☐ |
-| CORS verified (only `APP_URL`) | ☐ |
+| CORS verified (same-origin app) | ☐ |
 | Rate limiting verified (429 on OTP burst) | ☐ |
 | Monitoring verified (logs + health) | ☐ |
 | Domain verified (DNS + cert) | ☐ |
@@ -159,9 +157,8 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 ## Release commands (safe)
 
 ```bash
-# Build artifacts
-npm run build:api
-npm run build:web
+# Build artifact
+npm run build
 
 # Or Docker (from repo root)
 docker compose -f docker-compose.prod.yml build
@@ -169,16 +166,17 @@ docker compose -f docker-compose.prod.yml build
 # Apply migrations ONLY (never reset)
 npm run prisma:migrate:deploy
 # or: sh scripts/prod-migrate.sh
-# or: docker compose -f docker-compose.prod.yml exec api npx prisma migrate deploy
+# or: docker compose -f docker-compose.prod.yml exec web npx prisma migrate deploy
 
-# Start API (after migrate)
-npm run start:prod -w @cheer/api
+# Start (after migrate)
+npm run start:prod:migrate
+# or: node .output/server/index.mjs
 ```
 
 Optional combined start (migrate then boot) — use only when the release job owns a single replica:
 
 ```bash
-npm run start:prod:migrate -w @cheer/api
+npm run start:prod:migrate
 ```
 
 ---

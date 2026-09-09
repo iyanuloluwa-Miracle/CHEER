@@ -38,12 +38,13 @@ No publicly indexed official “Africa Is Building Ship 2026” requirements doc
 
 The TippyMe master build instruction locks:
 
-- Frontend: Vue 3 + Nuxt 3 + TypeScript + Tailwind (+ Pinia when needed)
-- Backend: Node.js + NestJS + TypeScript
+- App: Vue 3 + Nuxt 3 + Nitro + TypeScript + Tailwind (+ Pinia when needed)
 - Database: PostgreSQL + Prisma
 - Payments: Bachs
 - Communications: SendByte
 - Local webhooks: OutRay
+
+(Historical notes may still mention NestJS; the live stack is a single Nuxt/Nitro process.)
 
 These are treated as **project-locked requirements**. They are **not** confirmed as an official published AIB Stack mandate from a single AIB source page.
 

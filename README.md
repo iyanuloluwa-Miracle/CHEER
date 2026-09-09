@@ -6,59 +6,46 @@ Creator support platform for African builders — **one link** to receive tips v
 
 | Layer | Tech |
 |-------|------|
-| Web | Vue 3 + Nuxt 3 + TypeScript + Tailwind + Pinia |
-| API | Node.js + NestJS + TypeScript |
-| DB | PostgreSQL + Prisma (Phase 3) |
-| Payments | Bachs (later phases) |
-| Email | SendByte (later phases) |
-
-## Monorepo
-
-```text
-apps/web   Nuxt frontend (port 3000)
-apps/api   NestJS API (port 3001, prefix /api)
-docs/      Architecture & integration research
-```
+| App | Vue 3 + Nuxt 3 + Nitro (SSR + `/api`) + TypeScript + Tailwind + Pinia |
+| DB | PostgreSQL + Prisma |
+| Payments | Bachs |
+| Email | SendByte |
 
 ## Setup
 
 ```bash
 npm install
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env
+cp .env.example .env
 docker compose up -d postgres
-npm run prisma:migrate -w @cheer/api
-npm run prisma:seed -w @cheer/api
+npm run prisma:migrate
+npm run prisma:seed
 ```
 
 ## Develop
 
 ```bash
-npm run dev:api
-npm run dev:web
+npm run dev
 ```
 
-Health check: [http://localhost:3001/api/health](http://localhost:3001/api/health)
+Health check: [http://localhost:3000/api/health](http://localhost:3000/api/health)
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run lint` | Lint API + web |
+| `npm run lint` | Lint |
 | `npm run typecheck` | TypeScript checks |
 | `npm run test` | Unit tests |
-| `npm run build` | Production builds |
-| `npm run prisma:migrate:deploy` | **Safe** production migrations (`prisma migrate deploy`) |
+| `npm run build` | Production build |
+| `npm run prisma:migrate:deploy` | **Safe** production migrations |
 
 ## Production
-
-Do **not** deploy until Phases 13–14 pass. Prep and checklist:
 
 - [docs/PHASE-15-PRODUCTION.md](./docs/PHASE-15-PRODUCTION.md)
 - [docs/production-checklist.md](./docs/production-checklist.md)
 
-Docker images: `apps/api/Dockerfile`, `apps/web/Dockerfile`, compose example `docker-compose.prod.yml`.  
-OutRay is **development only** — production Bachs webhooks hit `https://<api>/api/webhooks/bachs`.
+Docker: `Dockerfile` + `docker-compose.prod.yml`.  
+Bachs webhooks: `https://<domain>/api/webhooks/bachs`.
 
 ## Docs
 
