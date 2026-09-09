@@ -80,6 +80,7 @@ describe('validateEnv', () => {
         OTP_HASH_PEPPER: strong('pepper'),
         DATABASE_URL: 'postgresql://u:p@db:5432/cheer',
         APP_URL: 'http://tippy.me',
+        API_URL: 'https://api.tippy.me',
         BACHS_API_KEY: 'sk_live_test',
         BACHS_WEBHOOK_SECRET: 'whsec_test',
         SENDBYTE_API_KEY: 'sk_live_send',
@@ -94,11 +95,28 @@ describe('validateEnv', () => {
       OTP_HASH_PEPPER: strong('pepper'),
       DATABASE_URL: 'postgresql://u:p@db:5432/cheer',
       APP_URL: 'https://tippy.me',
+      API_URL: 'https://api.tippy.me',
       BACHS_API_KEY: 'sk_live_test',
       BACHS_WEBHOOK_SECRET: 'whsec_test',
       SENDBYTE_API_KEY: 'sk_live_send',
     });
     expect(env.NODE_ENV).toBe('production');
     expect(env.BACHS_API_KEY).toBe('sk_live_test');
+  });
+
+  it('rejects http API_URL in production', () => {
+    expect(() =>
+      validateEnv({
+        NODE_ENV: 'production',
+        AUTH_SECRET: strong('auth'),
+        OTP_HASH_PEPPER: strong('pepper'),
+        DATABASE_URL: 'postgresql://u:p@db:5432/cheer',
+        APP_URL: 'https://tippy.me',
+        API_URL: 'http://api.tippy.me',
+        BACHS_API_KEY: 'sk_live_test',
+        BACHS_WEBHOOK_SECRET: 'whsec_test',
+        SENDBYTE_API_KEY: 'sk_live_send',
+      }),
+    ).toThrow(/API_URL/);
   });
 });

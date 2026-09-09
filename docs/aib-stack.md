@@ -135,8 +135,8 @@ Until official AIB requirements arrive:
 | Concern | Decision |
 |---------|----------|
 | Local | Docker Compose Postgres + NestJS + Nuxt; OutRay for Bachs webhooks |
-| Production | Deploy NestJS + Nuxt + managed/self-hosted Postgres on HTTPS |
-| AIB-mandated host | UNKNOWN — NEEDS VERIFICATION |
+| Production | Docker images (`apps/*/Dockerfile`) + managed Postgres + HTTPS reverse proxy; see [production-checklist.md](./production-checklist.md) |
+| AIB-mandated host | UNKNOWN — NEEDS VERIFICATION (Pxxl not adopted until confirmed) |
 
 ---
 

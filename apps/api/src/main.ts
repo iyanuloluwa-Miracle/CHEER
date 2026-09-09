@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -9,7 +10,7 @@ import { RequestLoggingInterceptor } from './common/interceptors/request-logging
 import { setupSwagger } from './common/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
     rawBody: true,
   });
@@ -27,8 +28,7 @@ async function bootstrap() {
   // Behind a single reverse proxy (nginx/Cloudflare), trust one hop so
   // throttler client IP and secure cookies resolve correctly.
   if (nodeEnv === 'production') {
-    const httpAdapter = app.getHttpAdapter();
-    httpAdapter.getInstance().set('trust proxy', 1);
+    app.set('trust proxy', 1);
   }
 
   app.use(

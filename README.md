@@ -48,6 +48,17 @@ Health check: [http://localhost:3001/api/health](http://localhost:3001/api/healt
 | `npm run typecheck` | TypeScript checks |
 | `npm run test` | Unit tests |
 | `npm run build` | Production builds |
+| `npm run prisma:migrate:deploy` | **Safe** production migrations (`prisma migrate deploy`) |
+
+## Production
+
+Do **not** deploy until Phases 13–14 pass. Prep and checklist:
+
+- [docs/PHASE-15-PRODUCTION.md](./docs/PHASE-15-PRODUCTION.md)
+- [docs/production-checklist.md](./docs/production-checklist.md)
+
+Docker images: `apps/api/Dockerfile`, `apps/web/Dockerfile`, compose example `docker-compose.prod.yml`.  
+OutRay is **development only** — production Bachs webhooks hit `https://<api>/api/webhooks/bachs`.
 
 ## Docs
 

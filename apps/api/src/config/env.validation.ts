@@ -88,6 +88,16 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   SENDBYTE_FROM_EMAIL?: string;
+
+  /** json (default in production) | text */
+  @IsString()
+  @IsOptional()
+  LOG_FORMAT?: string;
+
+  /** Optional error sink DSN (Sentry-compatible). Never required to boot. */
+  @IsString()
+  @IsOptional()
+  ERROR_MONITORING_DSN?: string;
 }
 
 function resolvePort(raw: unknown): number {
@@ -165,12 +175,14 @@ export function validateEnv(config: Record<string, unknown>) {
     normalized.API_PREFIX = 'api';
   }
 
-  if (!normalized.APP_URL) {
-    normalized.APP_URL = 'http://localhost:3000';
-  }
+  if (!production) {
+    if (!normalized.APP_URL) {
+      normalized.APP_URL = 'http://localhost:3000';
+    }
 
-  if (!normalized.API_URL) {
-    normalized.API_URL = 'http://localhost:3001';
+    if (!normalized.API_URL) {
+      normalized.API_URL = 'http://localhost:3001';
+    }
   }
 
   if (production) {
@@ -206,11 +218,17 @@ export function validateEnv(config: Record<string, unknown>) {
       normalized.SENDBYTE_API_KEY,
     );
 
-    const appUrl =
-      typeof normalized.APP_URL === 'string' ? normalized.APP_URL : '';
-    if (!appUrl.startsWith('https://')) {
+    normalized.APP_URL = requireNonEmpty('APP_URL', normalized.APP_URL);
+    if (!String(normalized.APP_URL).startsWith('https://')) {
       throw new Error(
         'Environment validation failed: APP_URL must use https:// in production.',
+      );
+    }
+
+    normalized.API_URL = requireNonEmpty('API_URL', normalized.API_URL);
+    if (!String(normalized.API_URL).startsWith('https://')) {
+      throw new Error(
+        'Environment validation failed: API_URL must use https:// in production (Bachs webhooks).',
       );
     }
   }

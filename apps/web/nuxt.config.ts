@@ -1,25 +1,33 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  devtools: { enabled: true },
+  // Disable heavy DevTools UI in production builds
+  devtools: { enabled: process.env.NODE_ENV !== 'production' },
 
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxt/eslint'],
 
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
-    // Server-only secrets would go here — none for Phase 2
+    // Server-only: SSR / Nitro → Nest (never sent to the browser).
+    apiInternalUrl:
+      process.env.API_INTERNAL_URL ||
+      process.env.NUXT_PUBLIC_API_PROXY_TARGET ||
+      'http://127.0.0.1:3001',
     public: {
-      // Dev default is empty → browser calls same-origin `/api` (see routeRules proxy).
-      // Cross-origin localhost↔127.0.0.1 drops the httpOnly session cookie.
+      // Empty → browser uses same-origin `/api` (cookie-safe with reverse proxy).
+      // Set only when intentionally calling a same-origin absolute API base.
       apiUrl: process.env.NUXT_PUBLIC_API_URL ?? '',
       appUrl: process.env.NUXT_PUBLIC_APP_URL || 'http://localhost:3000',
     },
   },
 
-  // Local Nest API. Same-origin `/api` keeps tippyme_session cookies working in the browser.
+  // Proxy `/api` → Nest. In production set NUXT_PUBLIC_API_PROXY_TARGET / API_INTERNAL_URL
+  // to the internal Nest service (e.g. http://api:3001). OutRay is never used here.
   routeRules: {
-    '/api/**': { proxy: `${process.env.NUXT_PUBLIC_API_PROXY_TARGET || 'http://localhost:3001'}/api/**` },
+    '/api/**': {
+      proxy: `${process.env.NUXT_PUBLIC_API_PROXY_TARGET || process.env.API_INTERNAL_URL || 'http://127.0.0.1:3001'}/api/**`,
+    },
   },
 
   app: {
@@ -37,8 +45,7 @@ export default defineNuxtConfig({
       link: [
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         {
-          rel: 'preconnect',
-          href: 'https://fonts.gstatic.com',
+          rel: 'preconnect', href: 'https://fonts.gstatic.com',
           crossorigin: '',
         },
         {

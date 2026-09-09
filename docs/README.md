@@ -17,6 +17,10 @@ Research and architecture for **TippyMe** (AIB Ship 2026). Application code is n
 | [PHASE-3-DATABASE.md](./PHASE-3-DATABASE.md) | Phase 3 PostgreSQL + Prisma |
 | [PHASE-4-AUTHENTICATION.md](./PHASE-4-AUTHENTICATION.md) | Phase 4 creator OTP auth + SendByte |
 | [PHASE-5-ONBOARDING.md](./PHASE-5-ONBOARDING.md) | Phase 5 creator onboarding + Tippy page |
+| [security-audit.md](./security-audit.md) | Phase 13 security audit |
+| [testing-report.md](./testing-report.md) | Phase 14 complete testing pass |
+| [production-checklist.md](./production-checklist.md) | Phase 15 production readiness checklist |
+| [PHASE-15-PRODUCTION.md](./PHASE-15-PRODUCTION.md) | Phase 15 deploy prep / runbook |
 
 ## Root env template
 
