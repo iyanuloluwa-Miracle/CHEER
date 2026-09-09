@@ -119,12 +119,15 @@
         v-if="auth.user?.email"
         class="flex items-center gap-3"
       >
-        <span
-          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cheer-mint to-cheer-leaf text-sm font-bold text-cheer-ink ring-2 ring-white/10"
+        <img
+          :src="avatarSrc"
+          alt=""
           aria-hidden="true"
+          class="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-white/10"
+          width="40"
+          height="40"
+          decoding="async"
         >
-          {{ emailInitial }}
-        </span>
         <div class="min-w-0">
           <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-white/35">
             Signed in
@@ -151,8 +154,9 @@
 
 <script setup lang="ts">
 import { dashboardNavLinks } from '~/data/navigation';
+import { resolveAvatarUrl } from '~/utils/avatar';
 
-defineProps<{
+const props = defineProps<{
   publicPath?: string | null;
 }>();
 
@@ -166,10 +170,10 @@ const loggingOut = ref(false);
 
 const primaryLinks = dashboardNavLinks;
 
-const emailInitial = computed(() => {
-  const email = auth.user?.email?.trim();
-  if (!email) return '?';
-  return email.charAt(0).toUpperCase();
+const avatarSrc = computed(() => {
+  const username = props.publicPath?.replace(/^\//, '').trim();
+  const seed = username || auth.user?.email?.split('@')[0] || 'user';
+  return resolveAvatarUrl(null, seed);
 });
 
 function isActive(path: string) {
