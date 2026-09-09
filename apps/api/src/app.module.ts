@@ -24,7 +24,8 @@ import {
       envFilePath: ['.env', '../../.env'],
       validate: validateEnv,
     }),
-    // In-memory throttler — no Redis in MVP (Phase 1).
+    // Process-local throttler. Safe for single-instance deploy.
+    // Before horizontal scale, replace with a shared store (e.g. Redis).
     ThrottlerModule.forRoot([
       {
         name: 'default',

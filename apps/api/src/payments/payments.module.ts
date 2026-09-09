@@ -10,7 +10,8 @@ import { BachsPaymentProvider } from './providers/bachs-payment.provider';
 import { StubPaymentProvider } from './providers/stub-payment.provider';
 
 /**
- * Phase 7–8 — Bachs when BACHS_API_KEY is set; stub otherwise.
+ * Bachs when BACHS_API_KEY is set; local stub otherwise.
+ * Production env validation requires BACHS_API_KEY — stub is never selected there.
  */
 @Module({
   imports: [ConfigModule, PrismaModule],
@@ -28,7 +29,16 @@ import { StubPaymentProvider } from './providers/stub-payment.provider';
         stub: StubPaymentProvider,
       ): PaymentProviderPort => {
         const key = config.get<string>('BACHS_API_KEY')?.trim();
-        return key ? bachs : stub;
+        const nodeEnv = config.get<string>('NODE_ENV', 'development');
+        if (!key) {
+          if (nodeEnv === 'production') {
+            throw new Error(
+              'BACHS_API_KEY is required in production — refusing stub payment provider',
+            );
+          }
+          return stub;
+        }
+        return bachs;
       },
     },
     PaymentsService,

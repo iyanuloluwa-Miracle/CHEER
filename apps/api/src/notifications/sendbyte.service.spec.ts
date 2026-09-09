@@ -47,6 +47,19 @@ describe('SendByteService', () => {
     expect(result.id).toMatch(/^dev_/);
   });
 
+  it('fails closed when API key is missing in production', () => {
+    expect(
+      () =>
+        new SendByteService({
+          get: (key: string, fallback?: string) => {
+            if (key === 'SENDBYTE_API_KEY') return '';
+            if (key === 'NODE_ENV') return 'production';
+            return fallback;
+          },
+        } as ConfigService),
+    ).toThrow(/SENDBYTE_API_KEY/);
+  });
+
   it('throws when SendByte SDK fails', async () => {
     const send = jest.fn().mockRejectedValue(
       Object.assign(new SendByteError('fail'), {

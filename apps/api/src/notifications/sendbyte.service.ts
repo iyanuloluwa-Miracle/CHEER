@@ -39,17 +39,14 @@ export class SendByteService {
 
     if (apiKey) {
       this.client = new SendByte(apiKey);
+    } else if (this.nodeEnv === 'production') {
+      // Fail closed — production must not boot without email delivery for OTP.
+      throw new Error('SENDBYTE_API_KEY is required in production');
     } else {
       this.client = null;
-      if (this.nodeEnv === 'production') {
-        this.logger.error(
-          'SENDBYTE_API_KEY is missing in production — email delivery disabled',
-        );
-      } else {
-        this.logger.warn(
-          'SENDBYTE_API_KEY not set — OTP emails will use DEV_LOG transport',
-        );
-      }
+      this.logger.warn(
+        'SENDBYTE_API_KEY not set — OTP emails will use DEV_LOG transport',
+      );
     }
   }
 

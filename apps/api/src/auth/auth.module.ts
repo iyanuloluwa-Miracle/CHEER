@@ -13,10 +13,16 @@ import { AUTH_JWT_EXPIRES_IN } from './otp.constants';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('AUTH_SECRET') || 'dev-only-change-me',
-        signOptions: { expiresIn: AUTH_JWT_EXPIRES_IN },
-      }),
+      useFactory: (config: ConfigService) => {
+        const secret = config.get<string>('AUTH_SECRET')?.trim();
+        if (!secret) {
+          throw new Error('AUTH_SECRET is required');
+        }
+        return {
+          secret,
+          signOptions: { expiresIn: AUTH_JWT_EXPIRES_IN },
+        };
+      },
     }),
   ],
   controllers: [AuthController],

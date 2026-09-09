@@ -24,6 +24,13 @@ async function bootstrap() {
 
   app.setGlobalPrefix(apiPrefix);
 
+  // Behind a single reverse proxy (nginx/Cloudflare), trust one hop so
+  // throttler client IP and secure cookies resolve correctly.
+  if (nodeEnv === 'production') {
+    const httpAdapter = app.getHttpAdapter();
+    httpAdapter.getInstance().set('trust proxy', 1);
+  }
+
   app.use(
     helmet({
       // Allow Swagger UI assets in non-production
