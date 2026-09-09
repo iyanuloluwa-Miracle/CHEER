@@ -2,19 +2,26 @@
   <div
     class="relative flex min-h-dvh"
     style="
-      background-color: #f7f4ee;
+      background-color: #efeae1;
       background-image:
-        radial-gradient(ellipse 90% 55% at 15% -10%, rgba(200, 240, 221, 0.45), transparent 55%),
-        radial-gradient(ellipse 70% 45% at 95% 0%, rgba(31, 107, 74, 0.07), transparent 50%),
-        linear-gradient(180deg, #faf8f4 0%, #f3efe6 100%);
+        radial-gradient(ellipse 80% 50% at 0% 0%, rgba(200, 240, 221, 0.55), transparent 55%),
+        radial-gradient(ellipse 55% 40% at 100% 10%, rgba(31, 107, 74, 0.1), transparent 50%),
+        linear-gradient(180deg, #f6f2ea 0%, #ebe5da 100%);
     "
   >
-    <!-- Desktop sidebar -->
-    <div class="hidden md:sticky md:top-0 md:flex md:h-dvh md:shrink-0">
+    <div
+      class="pointer-events-none absolute inset-0 opacity-[0.22]"
+      style="
+        background-image: radial-gradient(rgba(15, 28, 23, 0.07) 1px, transparent 1px);
+        background-size: 22px 22px;
+      "
+      aria-hidden="true"
+    />
+
+    <div class="relative z-10 hidden md:sticky md:top-0 md:flex md:h-dvh md:shrink-0">
       <DashboardSidebar :public-path="publicPath" />
     </div>
 
-    <!-- Mobile drawer -->
     <Teleport to="body">
       <div
         v-if="mobileOpen"
@@ -22,11 +29,11 @@
       >
         <button
           type="button"
-          class="absolute inset-0 bg-cheer-ink/25"
+          class="absolute inset-0 bg-cheer-ink/40 backdrop-blur-[3px]"
           aria-label="Close navigation"
           @click="mobileOpen = false"
         />
-        <div class="absolute inset-y-0 left-0 shadow-xl">
+        <div class="absolute inset-y-0 left-0 shadow-2xl shadow-black/40">
           <DashboardSidebar
             :public-path="publicPath"
             @navigate="mobileOpen = false"
@@ -35,9 +42,9 @@
       </div>
     </Teleport>
 
-    <div class="flex min-w-0 flex-1 flex-col">
+    <div class="relative z-0 flex min-w-0 flex-1 flex-col">
       <header
-        class="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-black/10 bg-[#f7f4ee]/90 px-4 backdrop-blur-md md:hidden"
+        class="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-black/8 bg-[#f6f2ea]/90 px-4 backdrop-blur-md md:hidden"
       >
         <button
           type="button"
@@ -58,12 +65,21 @@
             <path d="M4 7h16M4 12h16M4 17h16" />
           </svg>
         </button>
+        <img
+          src="/cheers-logo-nav.png"
+          alt=""
+          aria-hidden="true"
+          class="h-5 w-auto"
+          width="17"
+          height="24"
+          decoding="async"
+        />
         <span class="text-sm font-bold tracking-tight text-cheer-ink">
-          Dashboard
+          TippyMe
         </span>
       </header>
 
-      <main class="relative z-0 min-h-0 w-full flex-1 overflow-y-auto">
+      <main class="relative min-h-0 w-full flex-1 overflow-y-auto">
         <slot />
       </main>
     </div>

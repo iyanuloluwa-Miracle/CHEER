@@ -86,6 +86,54 @@ body {
   }
 }
 
+@keyframes dash-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes dash-pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+
+  70% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes dash-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes dash-draw {
+  from {
+    stroke-dashoffset: 120;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 @layer components {
   .motion-animate {
     opacity: 0;
@@ -102,6 +150,10 @@ body {
 
   .motion-animate-delay-3 {
     animation-delay: 0.22s;
+  }
+
+  .motion-animate-delay-4 {
+    animation-delay: 0.3s;
   }
 
   .motion-cta {
@@ -136,6 +188,43 @@ body {
     opacity: 1;
     transform: translate3d(0, 0, 0);
   }
+
+  .dash-float {
+    animation: dash-float 5.5s ease-in-out infinite;
+  }
+
+  .dash-float-delay {
+    animation: dash-float 7s ease-in-out 0.8s infinite;
+  }
+
+  .dash-pulse-dot {
+    position: relative;
+  }
+
+  .dash-pulse-dot::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    border: 1.5px solid currentColor;
+    animation: dash-pulse-ring 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+
+  .dash-shimmer {
+    background: linear-gradient(
+      105deg,
+      rgba(255, 255, 255, 0.04) 30%,
+      rgba(255, 255, 255, 0.18) 45%,
+      rgba(255, 255, 255, 0.04) 60%
+    );
+    background-size: 200% 100%;
+    animation: dash-shimmer 1.6s linear infinite;
+  }
+
+  .dash-draw-path {
+    stroke-dasharray: 120;
+    animation: dash-draw 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -153,5 +242,17 @@ body {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+
+  .dash-float,
+  .dash-float-delay,
+  .dash-shimmer,
+  .dash-draw-path {
+    animation: none;
+  }
+
+  .dash-pulse-dot::after {
+    animation: none;
+    opacity: 0;
   }
 }

@@ -1,134 +1,341 @@
 <template>
-  <div class="w-full px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
-    <header
-      class="flex flex-col gap-6 border-b border-black/10 pb-8 lg:flex-row lg:items-end lg:justify-between"
-    >
-      <div class="min-w-0">
-        <p class="text-sm font-semibold uppercase tracking-wide text-cheer-leaf">
-          Creator dashboard
-        </p>
-        <h1 class="mt-2 text-3xl font-bold tracking-tight text-cheer-ink sm:text-4xl">
-          {{ dashboard?.displayName || 'Your TippyMe' }}
-        </h1>
-        <p
-          v-if="publicHostLabel"
-          class="mt-2 text-sm text-cheer-ink/55"
-        >
-          {{ publicHostLabel }}
-        </p>
-      </div>
-
-      <div
-        v-if="dashboard"
-        class="shrink-0"
-      >
-        <DashboardShareTippyLink
-          :public-url="dashboard.publicUrl"
-          :public-path="dashboard.publicPath"
-          :display-name="dashboard.displayName"
-        />
-      </div>
-    </header>
-
+  <div class="w-full px-3 py-4 sm:px-5 sm:py-6 lg:px-8 lg:py-8">
     <p
       v-if="loadError"
-      class="mt-8 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+      class="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
       role="alert"
     >
       {{ loadError }}
     </p>
 
     <div
-      v-else-if="loading"
-      class="mt-12 text-sm text-cheer-ink/55"
+      v-if="loading"
+      class="overflow-hidden rounded-[2rem] border border-black/5 bg-cheer-ink p-8 sm:p-10"
     >
-      Loading your support…
+      <div class="dash-shimmer h-4 w-28 rounded-full opacity-40" />
+      <div class="dash-shimmer mt-5 h-10 w-2/3 max-w-md rounded-2xl opacity-35" />
+      <div class="dash-shimmer mt-8 h-16 w-48 rounded-2xl opacity-30" />
+      <div class="mt-10 grid gap-3 sm:grid-cols-3">
+        <div class="dash-shimmer h-24 rounded-2xl opacity-25" />
+        <div class="dash-shimmer h-24 rounded-2xl opacity-25" />
+        <div class="dash-shimmer h-24 rounded-2xl opacity-25" />
+      </div>
     </div>
 
     <template v-else-if="dashboard">
+      <!-- Hero composition -->
       <section
-        class="mt-10 grid gap-8 border-b border-black/10 pb-10 sm:grid-cols-3"
-        aria-label="Support totals"
+        class="motion-animate relative overflow-hidden rounded-[2rem] text-white shadow-[0_30px_80px_-40px_rgba(15,28,23,0.85)]"
+        style="
+          background:
+            radial-gradient(ellipse 70% 80% at 100% 0%, rgba(200, 240, 221, 0.22), transparent 55%),
+            radial-gradient(ellipse 50% 60% at 0% 100%, rgba(240, 162, 2, 0.12), transparent 50%),
+            linear-gradient(145deg, #1a4f38 0%, #134032 40%, #0f1c17 100%);
+        "
+        aria-label="Creator overview"
       >
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-cheer-ink/45">
-            Total successful support
-          </p>
-          <p class="mt-2 text-3xl font-bold tabular-nums tracking-tight text-cheer-ink">
-            {{ formatMoney(dashboard.totals.successfulSupport, dashboard.currency) }}
-          </p>
-        </div>
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-cheer-ink/45">
-            Successful tips
-          </p>
-          <p class="mt-2 text-3xl font-bold tabular-nums tracking-tight text-cheer-ink">
-            {{ dashboard.totals.successfulTipCount }}
-          </p>
-        </div>
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-cheer-ink/45">
-            {{ dashboard.totals.periodLabel }}
-          </p>
-          <p class="mt-2 text-3xl font-bold tabular-nums tracking-tight text-cheer-ink">
-            {{ formatMoney(dashboard.totals.periodSupport, dashboard.currency) }}
-          </p>
-          <p class="mt-2 text-xs text-cheer-ink/45">
-            {{ dashboard.totals.periodTipCount }}
-            successful tip{{ dashboard.totals.periodTipCount === 1 ? '' : 's' }} this month (UTC)
-          </p>
+        <div
+          class="pointer-events-none absolute inset-0 opacity-[0.2]"
+          style="
+            background-image: radial-gradient(rgba(200, 240, 221, 0.4) 1px, transparent 1px);
+            background-size: 20px 20px;
+          "
+          aria-hidden="true"
+        />
+        <div
+          class="dash-float pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-cheer-mint/20 blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          class="dash-float-delay pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-cheer-glow/15 blur-3xl"
+          aria-hidden="true"
+        />
+
+        <div class="relative px-5 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10">
+          <div class="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0">
+              <div class="flex items-center gap-3">
+                <div
+                  class="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cheer-mint text-xl font-bold text-cheer-ink shadow-[0_12px_32px_-12px_rgba(200,240,221,0.8)] sm:h-16 sm:w-16 sm:text-2xl"
+                  aria-hidden="true"
+                >
+                  {{ nameInitial }}
+                  <span
+                    class="dash-pulse-dot absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-cheer-glow text-cheer-glow ring-2 ring-[#134032]"
+                  />
+                </div>
+                <div>
+                  <p class="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-cheer-mint/80">
+                    Creator dashboard
+                  </p>
+                  <p class="mt-0.5 text-sm text-white/55">
+                    {{ greeting }}
+                  </p>
+                </div>
+              </div>
+
+              <h1 class="mt-5 max-w-xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-[3.35rem] lg:leading-[1.05]">
+                {{ dashboard.displayName }}
+              </h1>
+
+              <a
+                v-if="publicHostLabel"
+                :href="dashboard.publicUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mt-4 inline-flex max-w-full items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-sm text-white/75 backdrop-blur-sm transition hover:border-cheer-mint/40 hover:bg-white/15 hover:text-cheer-mint"
+              >
+                <span
+                  class="dash-pulse-dot h-1.5 w-1.5 shrink-0 rounded-full bg-cheer-mint text-cheer-mint"
+                  aria-hidden="true"
+                />
+                <span class="truncate">{{ publicHostLabel }}</span>
+              </a>
+            </div>
+
+            <div class="motion-animate motion-animate-delay-1 shrink-0 lg:pt-2">
+              <DashboardShareTippyLink
+                variant="dark"
+                :public-url="dashboard.publicUrl"
+                :public-path="dashboard.publicPath"
+                :display-name="dashboard.displayName"
+              />
+            </div>
+          </div>
+
+          <div class="motion-animate motion-animate-delay-2 mt-10 grid gap-6 border-t border-white/10 pt-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-end lg:gap-10">
+            <div>
+              <p class="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-white/45">
+                Total successful support
+              </p>
+              <p class="mt-2 text-5xl font-bold tabular-nums tracking-tight sm:text-6xl lg:text-[4.25rem] lg:leading-none">
+                {{ formatMoney(dashboard.totals.successfulSupport, dashboard.currency) }}
+              </p>
+              <p class="mt-3 text-sm text-white/50">
+                Across
+                <span class="font-semibold text-cheer-mint">{{ dashboard.totals.successfulTipCount }}</span>
+                successful tip{{ dashboard.totals.successfulTipCount === 1 ? '' : 's' }}
+              </p>
+            </div>
+
+            <!-- Decorative support pulse visual -->
+            <div
+              class="relative hidden h-28 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4 lg:block"
+              aria-hidden="true"
+            >
+              <svg
+                class="h-full w-full"
+                viewBox="0 0 280 80"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  class="dash-draw-path"
+                  d="M0 58 C28 58 28 22 56 22 C84 22 84 62 112 62 C140 62 140 18 168 18 C196 18 196 48 224 48 C248 48 252 30 280 30"
+                  stroke="rgba(200,240,221,0.75)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M0 58 C28 58 28 22 56 22 C84 22 84 62 112 62 C140 62 140 18 168 18 C196 18 196 48 224 48 C248 48 252 30 280 30 V80 H0 Z"
+                  fill="url(#dashWaveFill)"
+                  opacity="0.35"
+                />
+                <defs>
+                  <linearGradient
+                    id="dashWaveFill"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="0%"
+                      stop-color="#c8f0dd"
+                      stop-opacity="0.45"
+                    />
+                    <stop
+                      offset="100%"
+                      stop-color="#c8f0dd"
+                      stop-opacity="0"
+                    />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+          </div>
+
+          <div
+            class="motion-animate motion-animate-delay-3 mt-8 grid gap-3 sm:grid-cols-3"
+            aria-label="Support totals"
+          >
+            <div class="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm sm:p-5">
+              <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-white/45">
+                Successful tips
+              </p>
+              <p class="mt-2 text-3xl font-bold tabular-nums tracking-tight">
+                {{ dashboard.totals.successfulTipCount }}
+              </p>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm sm:p-5">
+              <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-white/45">
+                {{ dashboard.totals.periodLabel }}
+              </p>
+              <p class="mt-2 text-3xl font-bold tabular-nums tracking-tight">
+                {{ formatMoney(dashboard.totals.periodSupport, dashboard.currency) }}
+              </p>
+              <p class="mt-1.5 text-xs text-white/45">
+                {{ dashboard.totals.periodTipCount }} tip{{ dashboard.totals.periodTipCount === 1 ? '' : 's' }} (UTC)
+              </p>
+            </div>
+            <div class="rounded-2xl border border-cheer-mint/25 bg-cheer-mint/15 p-4 backdrop-blur-sm sm:p-5">
+              <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cheer-mint/80">
+                Payout status
+              </p>
+              <p class="mt-2 text-lg font-bold tracking-tight text-cheer-mint sm:text-xl">
+                {{ settlementLabel }}
+              </p>
+              <p class="mt-1.5 text-xs text-white/45">
+                TippyMe is not a bank
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
+      <!-- Payout detail -->
       <section
-        class="mt-10 border-b border-black/10 pb-10"
+        class="motion-animate motion-animate-delay-3 mt-5 overflow-hidden rounded-[1.75rem] border border-black/6 bg-white/80 shadow-[0_1px_0_rgba(15,28,23,0.04)] backdrop-blur-md"
         aria-label="Payout and settlement"
       >
-        <h2 class="text-xl font-semibold tracking-tight text-cheer-ink">
-          Payout &amp; settlement
-        </h2>
-        <p class="mt-2 max-w-3xl text-sm leading-relaxed text-cheer-ink/70">
-          {{ dashboard.settlement.message }}
-        </p>
-        <dl class="mt-6 grid gap-6 text-sm sm:grid-cols-3">
-          <div>
-            <dt class="text-xs font-semibold uppercase tracking-wide text-cheer-ink/45">
+        <div class="flex flex-col gap-4 border-b border-black/6 px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-7 sm:py-6">
+          <div class="max-w-2xl">
+            <div class="flex items-center gap-2.5">
+              <span
+                class="flex h-9 w-9 items-center justify-center rounded-xl bg-cheer-leaf/10 text-cheer-leaf"
+                aria-hidden="true"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-4 w-4"
+                >
+                  <rect
+                    x="3"
+                    y="6"
+                    width="18"
+                    height="13"
+                    rx="2"
+                  />
+                  <path d="M3 10h18" />
+                  <path d="M7 15h3" />
+                </svg>
+              </span>
+              <h2 class="text-xl font-bold tracking-tight text-cheer-ink">
+                Payout &amp; settlement
+              </h2>
+            </div>
+            <p class="mt-3 text-sm leading-relaxed text-cheer-ink/65">
+              {{ dashboard.settlement.message }}
+            </p>
+          </div>
+          <span
+            class="inline-flex w-fit items-center gap-2 self-start rounded-full border border-black/8 bg-cheer-sand/90 px-3.5 py-1.5 text-xs font-semibold text-cheer-ink/70"
+          >
+            <span
+              class="h-1.5 w-1.5 rounded-full"
+              :class="settlementReady ? 'bg-cheer-leaf' : 'bg-cheer-glow'"
+              aria-hidden="true"
+            />
+            {{ settlementLabel }}
+          </span>
+        </div>
+        <dl class="grid gap-0 sm:grid-cols-3">
+          <div class="border-b border-black/6 px-5 py-5 sm:border-b-0 sm:border-r sm:px-7">
+            <dt class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cheer-ink/40">
               Status
             </dt>
-            <dd class="mt-1 font-medium text-cheer-ink">
+            <dd class="mt-2 text-base font-bold text-cheer-ink">
               {{ settlementLabel }}
             </dd>
           </div>
-          <div>
-            <dt class="text-xs font-semibold uppercase tracking-wide text-cheer-ink/45">
+          <div class="border-b border-black/6 px-5 py-5 sm:border-b-0 sm:border-r sm:px-7">
+            <dt class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cheer-ink/40">
               TippyMe wallet
             </dt>
-            <dd class="mt-1 font-medium text-cheer-ink">
-              None — TippyMe is not a bank
+            <dd class="mt-2 text-base font-bold text-cheer-ink">
+              None — not a bank
             </dd>
           </div>
-          <div>
-            <dt class="text-xs font-semibold uppercase tracking-wide text-cheer-ink/45">
+          <div class="px-5 py-5 sm:px-7">
+            <dt class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cheer-ink/40">
               Automatic Friday payout
             </dt>
-            <dd class="mt-1 font-medium text-cheer-ink">
+            <dd class="mt-2 text-base font-bold text-cheer-ink">
               Future capability
             </dd>
           </div>
         </dl>
       </section>
 
+      <!-- Empty state -->
       <section
         v-if="isEmpty"
-        class="mt-12 py-10 text-center"
+        class="motion-animate motion-animate-delay-4 relative mt-5 overflow-hidden rounded-[2rem] border border-cheer-leaf/15 bg-gradient-to-br from-white via-white to-cheer-mint/35 px-6 py-14 text-center sm:px-12 sm:py-20"
       >
-        <h2 class="text-2xl font-semibold tracking-tight text-cheer-ink">
-          No support yet
+        <div
+          class="dash-float pointer-events-none absolute -left-10 top-8 h-40 w-40 rounded-full bg-cheer-mint/50 blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          class="dash-float-delay pointer-events-none absolute -right-8 bottom-4 h-44 w-44 rounded-full bg-cheer-glow/20 blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          class="pointer-events-none absolute inset-0 opacity-30"
+          style="
+            background-image: radial-gradient(rgba(31, 107, 74, 0.1) 1px, transparent 1px);
+            background-size: 16px 16px;
+          "
+          aria-hidden="true"
+        />
+
+        <div class="relative mx-auto flex h-20 w-20 items-center justify-center">
+          <span
+            class="absolute inset-0 rounded-[1.35rem] bg-cheer-leaf/15"
+            aria-hidden="true"
+          />
+          <span
+            class="dash-pulse-dot absolute inset-2 rounded-[1.1rem] bg-cheer-leaf text-cheer-leaf"
+            aria-hidden="true"
+          />
+          <span
+            class="relative flex h-16 w-16 items-center justify-center rounded-[1.15rem] bg-cheer-leaf text-white shadow-[0_16px_40px_-12px_rgba(31,107,74,0.65)]"
+          >
+            <img
+              src="/cheers-logo-nav.png"
+              alt=""
+              aria-hidden="true"
+              class="h-7 w-auto brightness-0 invert"
+              width="20"
+              height="28"
+              decoding="async"
+            />
+          </span>
+        </div>
+
+        <h2 class="relative mt-8 text-3xl font-bold tracking-tight text-cheer-ink sm:text-4xl">
+          Your first tip is one share away
         </h2>
-        <p class="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-cheer-ink/65">
-          Share your Tippy link to get your first supporter. Totals stay at zero until a payment succeeds.
+        <p class="relative mx-auto mt-3 max-w-lg text-base leading-relaxed text-cheer-ink/65">
+          Drop your Tippy link in your bio, stories, or DMs. Totals stay at zero until a payment succeeds — then this space lights up.
         </p>
-        <div class="mt-8 flex justify-center">
+        <div class="relative mt-9 flex justify-center">
           <DashboardShareTippyLink
             :public-url="dashboard.publicUrl"
             :public-path="dashboard.publicPath"
@@ -137,21 +344,29 @@
         </div>
       </section>
 
+      <!-- Activity -->
       <div
         v-else
-        class="mt-10 grid gap-12 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] xl:gap-16"
+        class="motion-animate motion-animate-delay-4 mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]"
       >
-        <section>
+        <section
+          class="rounded-[1.75rem] border border-black/6 bg-white/85 p-5 shadow-[0_1px_0_rgba(15,28,23,0.04)] backdrop-blur-md sm:p-7"
+        >
           <div class="flex flex-wrap items-end justify-between gap-3">
-            <h2 class="text-xl font-semibold tracking-tight text-cheer-ink">
-              Recent support
-            </h2>
+            <div>
+              <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cheer-leaf">
+                Activity
+              </p>
+              <h2 class="mt-1 text-xl font-bold tracking-tight text-cheer-ink">
+                Recent support
+              </h2>
+            </div>
             <div class="flex flex-wrap gap-2">
               <label class="sr-only" for="tip-status">Filter by status</label>
               <select
                 id="tip-status"
                 v-model="statusFilter"
-                class="rounded-full border border-black/10 bg-white px-3 py-1.5 text-sm text-cheer-ink"
+                class="rounded-full border border-black/10 bg-white px-3.5 py-2 text-sm font-medium text-cheer-ink transition hover:border-cheer-leaf/30 focus:border-cheer-leaf focus:outline-none focus:ring-2 focus:ring-cheer-leaf/20"
                 @change="onFilterChange"
               >
                 <option value="">
@@ -178,7 +393,7 @@
 
           <ul
             v-if="tips.length"
-            class="mt-4 border-y border-black/10"
+            class="mt-5 divide-y divide-black/6"
           >
             <DashboardTipRow
               v-for="tip in tips"
@@ -188,7 +403,7 @@
           </ul>
           <p
             v-else
-            class="mt-4 text-sm text-cheer-ink/55"
+            class="mt-6 rounded-2xl bg-cheer-sand/70 px-4 py-8 text-center text-sm text-cheer-ink/55"
           >
             No tips match this filter.
           </p>
@@ -199,7 +414,7 @@
           >
             <button
               type="button"
-              class="rounded-full border border-black/10 bg-white px-3 py-1.5 font-semibold disabled:opacity-40"
+              class="motion-cta rounded-full border border-black/10 bg-white px-4 py-2 font-semibold disabled:opacity-40"
               :disabled="page <= 1 || tipsLoading"
               @click="goPage(page - 1)"
             >
@@ -210,7 +425,7 @@
             </span>
             <button
               type="button"
-              class="rounded-full border border-black/10 bg-white px-3 py-1.5 font-semibold disabled:opacity-40"
+              class="motion-cta rounded-full border border-black/10 bg-white px-4 py-2 font-semibold disabled:opacity-40"
               :disabled="page >= tipsPage.totalPages || tipsLoading"
               @click="goPage(page + 1)"
             >
@@ -219,23 +434,28 @@
           </div>
         </section>
 
-        <section>
-          <h2 class="text-xl font-semibold tracking-tight text-cheer-ink">
+        <section
+          class="rounded-[1.75rem] border border-black/6 bg-white/85 p-5 shadow-[0_1px_0_rgba(15,28,23,0.04)] backdrop-blur-md sm:p-7"
+        >
+          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cheer-leaf">
+            From supporters
+          </p>
+          <h2 class="mt-1 text-xl font-bold tracking-tight text-cheer-ink">
             Recent messages
           </h2>
           <ul
             v-if="dashboard.recentMessages.length"
-            class="mt-4 space-y-5"
+            class="mt-5 space-y-3"
           >
             <li
               v-for="msg in dashboard.recentMessages"
               :key="msg.id"
-              class="border-l-2 border-cheer-leaf/40 pl-4"
+              class="rounded-2xl border border-black/5 bg-gradient-to-br from-cheer-sand/70 to-cheer-mint/20 px-4 py-3.5"
             >
               <p class="text-sm leading-relaxed text-cheer-ink">
                 “{{ msg.message }}”
               </p>
-              <p class="mt-1 text-xs text-cheer-ink/45">
+              <p class="mt-2 text-xs font-semibold text-cheer-ink/45">
                 {{ msg.isAnonymous ? 'Anonymous' : (msg.supporterName || 'Supporter') }}
                 · {{ formatMoney(msg.amount, msg.currency) }}
               </p>
@@ -243,7 +463,7 @@
           </ul>
           <p
             v-else
-            class="mt-3 text-sm text-cheer-ink/55"
+            class="mt-5 rounded-2xl bg-cheer-sand/70 px-4 py-8 text-center text-sm text-cheer-ink/55"
           >
             No messages on successful tips yet.
           </p>
@@ -301,9 +521,25 @@ const publicHostLabel = computed(() => {
   }
 });
 
+const nameInitial = computed(() => {
+  const name = dashboard.value?.displayName?.trim();
+  if (!name) return 'T';
+  return name.charAt(0).toUpperCase();
+});
+
+const greeting = computed(() => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+});
+
+const settlementReady = computed(
+  () => dashboard.value?.settlement.readiness === 'CONNECTED',
+);
+
 const settlementLabel = computed(() => {
-  const readiness = dashboard.value?.settlement.readiness;
-  if (readiness === 'CONNECTED') return 'Bachs Connect linked';
+  if (settlementReady.value) return 'Bachs Connect linked';
   return 'Not configured yet';
 });
 

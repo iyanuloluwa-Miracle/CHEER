@@ -1,29 +1,44 @@
 <template>
-  <div class="flex flex-wrap gap-2">
+  <div class="flex flex-wrap gap-2.5">
     <button
       type="button"
-      class="rounded-full bg-cheer-leaf px-4 py-2 text-sm font-semibold text-white transition hover:bg-cheer-ink disabled:opacity-60"
+      class="motion-cta motion-cta-primary rounded-full px-4 py-2.5 text-sm font-semibold transition disabled:opacity-60"
+      :class="
+        isDark
+          ? 'bg-cheer-mint text-cheer-ink shadow-[0_10px_28px_-12px_rgba(200,240,221,0.65)] hover:bg-white'
+          : 'bg-cheer-leaf text-white hover:bg-cheer-ink'
+      "
       @click="copyLink"
     >
       {{ copied ? 'Copied!' : 'Copy Tippy link' }}
     </button>
     <NuxtLink
       :to="publicPath"
-      class="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-cheer-ink transition hover:border-cheer-leaf/40"
+      class="motion-cta rounded-full px-4 py-2.5 text-sm font-semibold transition"
+      :class="
+        isDark
+          ? 'border border-white/20 bg-white/10 text-white hover:border-white/35 hover:bg-white/15'
+          : 'border border-black/10 bg-white/90 text-cheer-ink hover:border-cheer-leaf/40 hover:bg-white'
+      "
     >
       View public page
     </NuxtLink>
     <details class="relative">
       <summary
-        class="cursor-pointer list-none rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-cheer-ink transition hover:border-cheer-leaf/40 [&::-webkit-details-marker]:hidden"
+        class="motion-cta cursor-pointer list-none rounded-full px-4 py-2.5 text-sm font-semibold transition [&::-webkit-details-marker]:hidden"
+        :class="
+          isDark
+            ? 'border border-white/20 bg-white/10 text-white hover:border-white/35 hover:bg-white/15'
+            : 'border border-black/10 bg-white/90 text-cheer-ink hover:border-cheer-leaf/40 hover:bg-white'
+        "
       >
         Share
       </summary>
       <div
-        class="absolute right-0 z-20 mt-2 w-64 rounded-2xl border border-black/10 bg-white p-3 shadow-lg"
+        class="absolute right-0 z-20 mt-2 w-64 overflow-hidden rounded-2xl border border-black/8 bg-white p-2 shadow-xl shadow-cheer-ink/15"
         role="menu"
       >
-        <p class="px-2 pb-2 text-xs text-cheer-ink/55">
+        <p class="px-3 pb-2 pt-1.5 text-xs font-medium text-cheer-ink/50">
           Share your Tippy link
         </p>
         <a
@@ -32,7 +47,7 @@
           :href="item.href"
           :target="item.external ? '_blank' : undefined"
           :rel="item.external ? 'noopener noreferrer' : undefined"
-          class="block rounded-xl px-3 py-2 text-sm font-medium text-cheer-ink hover:bg-cheer-mint/40"
+          class="block rounded-xl px-3 py-2.5 text-sm font-semibold text-cheer-ink transition hover:bg-cheer-mint/45"
           role="menuitem"
           @click="item.onClick?.($event)"
         >
@@ -44,11 +59,17 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
-  publicUrl: string;
-  publicPath: string;
-  displayName: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    publicUrl: string;
+    publicPath: string;
+    displayName: string;
+    variant?: 'light' | 'dark';
+  }>(),
+  { variant: 'light' },
+);
+
+const isDark = computed(() => props.variant === 'dark');
 
 const copied = ref(false);
 let copyTimer: ReturnType<typeof setTimeout> | null = null;
@@ -102,7 +123,6 @@ async function copyLink() {
       copied.value = false;
     }, 2000);
   } catch {
-    // Fallback for older browsers
     window.prompt('Copy your Tippy link:', props.publicUrl);
   }
 }
