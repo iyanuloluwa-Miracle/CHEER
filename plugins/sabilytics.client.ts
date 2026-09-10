@@ -1,6 +1,6 @@
 /**
  * Injects the Sabilytics tracking snippet when public env is configured.
- * No-op when site ID or script URL is missing (local/dev safe).
+ * Loads after idle so it does not compete with tip-page first paint.
  */
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig();
@@ -8,19 +8,28 @@ export default defineNuxtPlugin(() => {
   const scriptUrl = String(config.public.sabilyticsScriptUrl || '').trim();
   const domain = String(config.public.sabilyticsDomain || '').trim();
 
-  if (!siteId || !scriptUrl) {
+  if (!siteId || !scriptUrl || !import.meta.client) {
     return;
   }
 
-  useHead({
-    script: [
-      {
-        key: 'sabilytics',
-        src: scriptUrl,
-        async: true,
-        'data-site': siteId,
-        ...(domain ? { 'data-domain': domain } : {}),
-      },
-    ],
-  });
+  const inject = () => {
+    useHead({
+      script: [
+        {
+          key: 'sabilytics',
+          src: scriptUrl,
+          defer: true,
+          async: true,
+          'data-site': siteId,
+          ...(domain ? { 'data-domain': domain } : {}),
+        },
+      ],
+    });
+  };
+
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(() => inject(), { timeout: 2500 });
+  } else {
+    window.setTimeout(inject, 1200);
+  }
 });

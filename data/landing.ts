@@ -13,7 +13,6 @@ export const heroContent = {
   description:
     'TippyMe helps African creators and builders receive personal support — without sending a bank account to every fan.',
   primaryCta: { label: 'Claim your link', to: '/signup' } satisfies CtaLink,
-  secondaryCta: { label: 'How it works', to: '/#how-it-works' } satisfies CtaLink,
 } as const;
 
 export const problemSection = {

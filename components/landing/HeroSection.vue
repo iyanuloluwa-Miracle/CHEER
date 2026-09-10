@@ -4,7 +4,6 @@
       :title="content.title"
       :description="content.description"
       :primary-cta="content.primaryCta"
-      :secondary-cta="content.secondaryCta"
     />
     <LandingHeroProductVisual />
   </section>

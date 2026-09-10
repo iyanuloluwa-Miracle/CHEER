@@ -3,9 +3,9 @@ import { dicebearAvatarUrl, resolveAvatarUrl } from '../utils/avatar';
 import { normalizeClaimUsername } from '../utils/username-claim';
 
 describe('avatar helpers', () => {
-  it('builds a DiceBear lorelei 10.x URL from a seed', () => {
+  it('builds a DiceBear lorelei png URL from a seed', () => {
     expect(dicebearAvatarUrl('abdul')).toBe(
-      'https://api.dicebear.com/10.x/lorelei/svg?seed=abdul',
+      'https://api.dicebear.com/10.x/lorelei/png?seed=abdul&size=128',
     );
   });
 
@@ -21,7 +21,7 @@ describe('avatar helpers', () => {
 
   it('resolveAvatarUrl uses DiceBear when avatarUrl is null', () => {
     expect(resolveAvatarUrl(null, 'abdul')).toBe(
-      'https://api.dicebear.com/10.x/lorelei/svg?seed=abdul',
+      'https://api.dicebear.com/10.x/lorelei/png?seed=abdul&size=128',
     );
   });
 });

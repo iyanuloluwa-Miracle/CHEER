@@ -54,6 +54,8 @@ export default defineNuxtConfig({
           href: 'https://fonts.gstatic.com',
           crossorigin: '',
         },
+        { rel: 'preconnect', href: 'https://api.dicebear.com', crossorigin: '' },
+        { rel: 'dns-prefetch', href: 'https://api.dicebear.com' },
         {
           rel: 'stylesheet',
           href: 'https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@400;500;600;700;800&display=swap',

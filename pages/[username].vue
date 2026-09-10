@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10 lg:py-12">
     <div
-      v-if="pending"
+      v-if="pending && !profile"
       class="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]"
       role="status"
       aria-live="polite"
@@ -25,7 +25,7 @@
 
     <div
       v-else-if="error"
-      class="motion-animate mx-auto max-w-md rounded-[1.75rem] border border-black/8 bg-white/90 px-6 py-14 text-center shadow-[0_20px_60px_-40px_rgba(15,28,23,0.35)]"
+      class="mx-auto max-w-md rounded-[1.75rem] border border-black/8 bg-white/90 px-6 py-14 text-center shadow-[0_20px_60px_-40px_rgba(15,28,23,0.35)]"
     >
       <div
         class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-cheer-sand text-2xl font-bold text-cheer-ink/40"
@@ -51,9 +51,8 @@
       v-else-if="profile"
       class="space-y-8 lg:space-y-10"
     >
-      <!-- One composition: who + tip -->
       <div
-        class="motion-animate overflow-hidden rounded-[1.75rem] border border-black/6 bg-white shadow-[0_28px_70px_-42px_rgba(15,28,23,0.45)] lg:grid lg:grid-cols-[minmax(17rem,0.92fr)_minmax(0,1.08fr)]"
+        class="overflow-hidden rounded-[1.75rem] border border-black/6 bg-white shadow-[0_28px_70px_-42px_rgba(15,28,23,0.45)] lg:grid lg:grid-cols-[minmax(17rem,0.92fr)_minmax(0,1.08fr)]"
       >
         <aside
           class="relative overflow-hidden px-6 py-8 text-white sm:px-8 sm:py-10 lg:px-9 lg:py-11"
@@ -72,10 +71,6 @@
             "
             aria-hidden="true"
           />
-          <div
-            class="dash-float pointer-events-none absolute -right-10 -top-14 h-44 w-44 rounded-full bg-cheer-mint/20 blur-3xl"
-            aria-hidden="true"
-          />
 
           <div class="relative flex flex-col items-center text-center lg:items-start lg:text-left">
             <div class="relative inline-flex">
@@ -89,10 +84,11 @@
                   width="112"
                   height="112"
                   decoding="async"
+                  fetchpriority="high"
                 >
               </div>
               <span
-                class="dash-pulse-dot absolute bottom-1 right-1 h-3 w-3 rounded-full bg-cheer-glow ring-[3px] ring-[#134032]"
+                class="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-cheer-glow ring-[3px] ring-[#134032]"
                 aria-hidden="true"
               />
             </div>
@@ -167,11 +163,10 @@
 
       <CreatorPublicActivity
         v-if="recentSupporterNotes.length"
-        class="motion-animate motion-animate-delay-1"
         :recent-supporter-notes="recentSupporterNotes"
       />
 
-      <p class="motion-animate motion-animate-delay-2 text-center text-xs leading-relaxed text-cheer-ink/45">
+      <p class="text-center text-xs leading-relaxed text-cheer-ink/45">
         TippyMe confirms support after Bachs verifies payment.
       </p>
     </div>
@@ -179,10 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import type {
-  CreatorProfile,
-  PublicSupporterNote,
-} from '~/types/api';
+import type { PublicCreatorPage } from '~/types/api';
 import { ApiClientError } from '~/services/api';
 import { resolveAvatarUrl } from '~/utils/avatar';
 
@@ -198,14 +190,45 @@ const username = computed(() =>
   String(route.params.username || '').toLowerCase(),
 );
 
-const pending = ref(true);
-const error = ref<string | null>(null);
-const profile = ref<CreatorProfile | null>(null);
-const recentSupporterNotes = ref<PublicSupporterNote[]>([]);
+const {
+  data,
+  pending,
+  error: fetchError,
+} = await useAsyncData(
+  () => `public-creator:${username.value}`,
+  () => api.getCreatorByUsername(username.value),
+  {
+    watch: [username],
+    // Keep prior profile visible while refetching a different username.
+    lazy: false,
+  },
+);
+
+const profile = computed(() => data.value?.profile ?? null);
+const recentSupporterNotes = computed(
+  () => data.value?.recentSupporterNotes ?? [],
+);
+
+const error = computed(() => {
+  if (!fetchError.value) return null;
+  const err = fetchError.value;
+  if (err instanceof ApiClientError && err.statusCode === 404) {
+    return 'This Tippy page does not exist.';
+  }
+  if (
+    typeof err === 'object' &&
+    err &&
+    'statusCode' in err &&
+    (err as { statusCode?: number }).statusCode === 404
+  ) {
+    return 'This Tippy page does not exist.';
+  }
+  return 'Unable to load this page right now.';
+});
 
 const avatarSrc = computed(() => {
-  if (!profile.value) return resolveAvatarUrl(null, username.value || 'creator');
-  return resolveAvatarUrl(profile.value.avatarUrl, profile.value.username);
+  if (!profile.value) return resolveAvatarUrl(null, username.value || 'creator', 128);
+  return resolveAvatarUrl(profile.value.avatarUrl, profile.value.username, 128);
 });
 
 const pathLabel = computed(() => {
@@ -225,32 +248,19 @@ useHead(() => ({
         || 'Send support and a message through TippyMe.',
     },
   ],
+  link: [
+    { rel: 'preconnect', href: 'https://api.dicebear.com', crossorigin: '' },
+    { rel: 'dns-prefetch', href: 'https://api.dicebear.com' },
+  ],
 }));
 
-await load();
-
-async function load() {
-  pending.value = true;
-  error.value = null;
-  try {
-    const result = await api.getCreatorByUsername(username.value);
-    profile.value = result.profile;
-    recentSupporterNotes.value = result.recentSupporterNotes ?? [];
-
-    track('tip_page_view', { username: result.profile.username });
-    void api.recordCreatorPageView(result.profile.username).catch(() => {
-      // View counting must not block the tip page.
-    });
-  } catch (err) {
-    if (err instanceof ApiClientError && err.statusCode === 404) {
-      error.value = 'This Tippy page does not exist.';
-    } else {
-      error.value = 'Unable to load this page right now.';
-    }
-    profile.value = null;
-    recentSupporterNotes.value = [];
-  } finally {
-    pending.value = false;
-  }
-}
+// Analytics after first paint — never block rendering.
+onMounted(() => {
+  const page = data.value as PublicCreatorPage | null;
+  if (!page?.profile?.username) return;
+  track('tip_page_view', { username: page.profile.username });
+  void api.recordCreatorPageView(page.profile.username).catch(() => {
+    // View counting must not block the tip page.
+  });
+});
 </script>

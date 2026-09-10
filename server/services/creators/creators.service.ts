@@ -93,46 +93,40 @@ export class CreatorsService {
       throw new ApiError(404, 'CREATOR_NOT_FOUND', 'Creator not found.');
     }
 
-    const { start, end, weekKey, weekStart, weekEnd } = utcWeekBounds();
-    const creatorId = profile.id;
-
-    const [weekAgg, recentNotes] = await Promise.all([
-      this.prisma.tip.aggregate({
-        where: {
-          creatorId,
-          status: TipStatus.PAID,
-          createdAt: { gte: start, lt: end },
-        },
-        _sum: { amount: true },
-        _count: { _all: true },
-      }),
-      this.prisma.tip.findMany({
-        where: {
-          creatorId,
-          status: TipStatus.PAID,
-          message: { not: null },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: PUBLIC_NOTES_LIMIT * 2,
-      }),
-    ]);
+    // Notes only — weekly tip totals stay private on the creator dashboard.
+    const recentNotes = await this.prisma.tip.findMany({
+      where: {
+        creatorId: profile.id,
+        status: TipStatus.PAID,
+        message: { not: null },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: PUBLIC_NOTES_LIMIT,
+      select: {
+        amount: true,
+        currency: true,
+        message: true,
+        isAnonymous: true,
+        supporterName: true,
+        createdAt: true,
+      },
+    });
 
     const recentSupporterNotes = recentNotes
-      .map(toPublicSupporterNoteDto)
-      .filter((note): note is NonNullable<typeof note> => note !== null)
-      .slice(0, PUBLIC_NOTES_LIMIT);
+      .map((tip) => toPublicSupporterNoteDto(tip as never))
+      .filter((note): note is NonNullable<typeof note> => note !== null);
+
+    const week = utcWeekBounds();
 
     return {
       profile: toCreatorProfileDto(profile),
       tipsThisWeek: {
-        sum: decimalToAmountString(
-          weekAgg._sum.amount ?? new Prisma.Decimal(0),
-        ),
-        count: weekAgg._count._all,
+        sum: '0.00',
+        count: 0,
         currency: profile.currency,
-        weekKey,
-        weekStart,
-        weekEnd,
+        weekKey: week.weekKey,
+        weekStart: week.weekStart,
+        weekEnd: week.weekEnd,
       },
       recentSupporterNotes,
     };

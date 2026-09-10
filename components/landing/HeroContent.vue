@@ -13,7 +13,7 @@
     </p>
 
     <div class="motion-animate motion-animate-delay-3 mt-8">
-      <LandingHeroActions :primary-cta="primaryCta" :secondary-cta="secondaryCta" />
+      <LandingHeroActions :primary-cta="primaryCta" />
     </div>
   </div>
 </template>
@@ -25,6 +25,5 @@ defineProps<{
   title: string;
   description: string;
   primaryCta: CtaLink;
-  secondaryCta: CtaLink;
 }>();
 </script>

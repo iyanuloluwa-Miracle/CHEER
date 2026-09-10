@@ -1,5 +1,5 @@
 <template>
-  <div class="flex w-full max-w-xl flex-col items-center gap-4">
+  <div class="flex w-full max-w-xl flex-col items-center gap-3">
     <form
       class="flex w-full flex-col gap-3 sm:flex-row sm:items-stretch"
       @submit.prevent="claimLink"
@@ -40,12 +40,6 @@
     >
       {{ hint }}
     </p>
-
-    <UiButtonLink
-      :to="secondaryCta.to"
-      :label="secondaryCta.label"
-      variant="secondary"
-    />
   </div>
 </template>
 
@@ -55,7 +49,6 @@ import { normalizeClaimUsername } from '~/utils/username-claim';
 
 defineProps<{
   primaryCta: CtaLink;
-  secondaryCta: CtaLink;
 }>();
 
 const username = ref('');
