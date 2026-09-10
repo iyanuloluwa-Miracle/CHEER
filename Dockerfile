@@ -3,7 +3,9 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# Skip lifecycle scripts: postinstall runs `prisma generate` / `nuxt prepare`,
+# which need the full source tree (not available in this layer).
+RUN npm ci --ignore-scripts
 
 FROM node:20-alpine AS build
 WORKDIR /app

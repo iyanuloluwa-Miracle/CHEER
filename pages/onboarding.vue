@@ -109,18 +109,16 @@
           />
         </div>
         <div>
-          <label for="ob-avatar" class="block text-sm text-cheer-ink">Profile photo URL</label>
-          <input
-            id="ob-avatar"
-            v-model="avatarUrl"
-            type="url"
-            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base outline-none focus:border-cheer-leaf/40 focus:ring-2 focus:ring-cheer-leaf/30"
-            placeholder="https://…"
-            :disabled="pending"
-          >
-          <p class="mt-1 text-xs text-cheer-ink/50">
-            Paste an image URL for now — uploads come later.
-          </p>
+          <p class="block text-sm text-cheer-ink">Profile photo</p>
+          <div class="mt-2">
+            <CreatorAvatarUploader
+              v-model="avatarUrl"
+              :seed="username || displayName || 'creator'"
+              :alt="displayName || 'Profile photo'"
+              size="lg"
+              :disabled="pending"
+            />
+          </div>
         </div>
       </div>
       <p v-if="error" class="mt-3 text-sm text-red-700" role="alert">
@@ -370,7 +368,7 @@ let usernameTimer: ReturnType<typeof setTimeout> | null = null;
 
 const displayName = ref('');
 const bio = ref('');
-const avatarUrl = ref('');
+const avatarUrl = ref<string | null>(null);
 const supportMessage = ref('Thanks for supporting my work — every tip helps.');
 const currency = ref('NGN');
 const tipAmounts = ref(['1000.00', '2500.00', '5000.00']);
@@ -590,7 +588,7 @@ async function submitOnboarding() {
       username: username.value,
       displayName: displayName.value.trim(),
       bio: bio.value.trim() || undefined,
-      avatarUrl: avatarUrl.value.trim() || undefined,
+      avatarUrl: avatarUrl.value?.trim() || undefined,
       supportMessage: supportMessage.value.trim() || undefined,
       currency: currency.value,
       suggestedTipAmounts: tipAmounts.value.filter(Boolean),

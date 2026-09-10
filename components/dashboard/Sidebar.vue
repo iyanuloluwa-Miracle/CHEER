@@ -167,13 +167,14 @@ const emit = defineEmits<{
 const route = useRoute();
 const auth = useAuthStore();
 const loggingOut = ref(false);
+const avatarUrlState = useState<string | null>('dashboardAvatarUrl', () => null);
 
 const primaryLinks = dashboardNavLinks;
 
 const avatarSrc = computed(() => {
   const username = props.publicPath?.replace(/^\//, '').trim();
   const seed = username || auth.user?.email?.split('@')[0] || 'user';
-  return resolveAvatarUrl(null, seed);
+  return resolveAvatarUrl(avatarUrlState.value, seed);
 });
 
 function isActive(path: string) {

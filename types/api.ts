@@ -155,6 +155,7 @@ export interface CreatorDashboard {
   currency: string;
   username: string;
   displayName: string;
+  avatarUrl: string | null;
   publicPath: string;
   publicUrl: string;
   totals: CreatorDashboardTotals;

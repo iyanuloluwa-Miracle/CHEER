@@ -23,6 +23,7 @@ export default defineNuxtConfig({
     sendbyteWebhookSecret: process.env.SENDBYTE_WEBHOOK_SECRET || '',
     sendbyteFromEmail:
       process.env.SENDBYTE_FROM_EMAIL || 'TippyMe <noreply@example.com>',
+    byteshipApiKey: process.env.BYTESHIP_API_KEY || '',
     logFormat: process.env.LOG_FORMAT || '',
     errorMonitoringDsn: process.env.ERROR_MONITORING_DSN || '',
     public: {

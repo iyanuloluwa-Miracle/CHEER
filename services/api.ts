@@ -136,6 +136,16 @@ export function createApiClient(apiBaseUrl: string) {
     getMyDashboard: () =>
       request<{ dashboard: CreatorDashboard }>('/api/creators/me/dashboard'),
 
+    createAvatarUploadToken: () =>
+      request<{
+        token: string;
+        expiresAt: string;
+        folder: string;
+        maxUploadBytes: number;
+      }>('/api/creators/me/avatar/upload-token', {
+        method: 'POST',
+      }),
+
     listMyTips: (query?: ListMyTipsQuery) => {
       const params = new URLSearchParams();
       if (query?.status) params.set('status', query.status);

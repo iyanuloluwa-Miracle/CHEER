@@ -55,21 +55,15 @@
           <div class="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
             <div class="min-w-0">
               <div class="flex items-center gap-3">
-                <div
-                  class="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-cheer-mint text-xl font-bold text-cheer-ink shadow-[0_12px_32px_-12px_rgba(200,240,221,0.8)] sm:h-16 sm:w-16 sm:text-2xl"
-                  aria-hidden="true"
-                >
-                  <img
-                    :src="dashboardAvatarSrc"
-                    :alt="dashboard.displayName"
-                    class="h-full w-full object-cover"
-                    width="64"
-                    height="64"
-                  >
-                  <span
-                    class="dash-pulse-dot absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-cheer-glow text-cheer-glow ring-2 ring-[#134032]"
-                  />
-                </div>
+                <CreatorAvatarUploader
+                  v-model="dashboard.avatarUrl"
+                  :seed="dashboard.username"
+                  :alt="dashboard.displayName"
+                  variant="dark"
+                  persist
+                  hint="Click to change your photo"
+                  @uploaded="onAvatarUploaded"
+                />
                 <div>
                   <p class="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-cheer-mint/80">
                     Creator dashboard
@@ -374,7 +368,6 @@ import type {
   TipStatus,
 } from '~/types/api';
 import { ApiClientError } from '~/services/api';
-import { resolveAvatarUrl } from '~/utils/avatar';
 
 definePageMeta({
   layout: 'dashboard',
@@ -388,6 +381,7 @@ useHead({
 const auth = useAuthStore();
 const api = useApi();
 const publicPath = useState<string | null>('dashboardPublicPath', () => null);
+const avatarUrlState = useState<string | null>('dashboardAvatarUrl', () => null);
 
 const loading = ref(true);
 const tipsLoading = ref(false);
@@ -397,11 +391,6 @@ const tipsPage = ref<CreatorTipsPage | null>(null);
 const tips = ref<CreatorTip[]>([]);
 const page = ref(1);
 const statusFilter = ref<TipStatus | ''>('');
-
-const dashboardAvatarSrc = computed(() => {
-  if (!dashboard.value) return resolveAvatarUrl(null, 'creator');
-  return resolveAvatarUrl(null, dashboard.value.username);
-});
 
 const greeting = computed(() => {
   const hour = new Date().getHours();
@@ -427,12 +416,28 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => dashboard.value?.avatarUrl ?? null,
+  (url) => {
+    avatarUrlState.value = url;
+  },
+  { immediate: true },
+);
+
+function onAvatarUploaded(url: string) {
+  avatarUrlState.value = url;
+  if (dashboard.value) {
+    dashboard.value.avatarUrl = url;
+  }
+}
+
 onMounted(async () => {
   await loadAll();
 });
 
 onUnmounted(() => {
   publicPath.value = null;
+  avatarUrlState.value = null;
 });
 
 async function loadAll() {

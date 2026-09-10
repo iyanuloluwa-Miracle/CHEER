@@ -354,6 +354,7 @@ export class CreatorsService {
         id: true,
         username: true,
         displayName: true,
+        avatarUrl: true,
         currency: true,
         bachsAccountId: true,
       },
@@ -425,6 +426,7 @@ export class CreatorsService {
       currency: profile.currency,
       username: profile.username,
       displayName: profile.displayName,
+      avatarUrl: profile.avatarUrl,
       publicPath: `/${profile.username}`,
       publicUrl: `${appUrl}/${profile.username}`,
       totals: {

@@ -11,6 +11,7 @@ export type ServerEnv = {
   SENDBYTE_API_KEY?: string;
   SENDBYTE_WEBHOOK_SECRET?: string;
   SENDBYTE_FROM_EMAIL?: string;
+  BYTESHIP_API_KEY?: string;
   LOG_FORMAT?: string;
   ERROR_MONITORING_DSN?: string;
 };
@@ -175,6 +176,10 @@ export function getServerEnv(): ServerEnv {
       (
         (config.sendbyteFromEmail as string) || process.env.SENDBYTE_FROM_EMAIL
       )?.trim() || 'TippyMe <noreply@example.com>',
+    BYTESHIP_API_KEY:
+      (
+        (config.byteshipApiKey as string) || process.env.BYTESHIP_API_KEY
+      )?.trim() || undefined,
     LOG_FORMAT:
       ((config.logFormat as string) || process.env.LOG_FORMAT)?.trim() ||
       undefined,
