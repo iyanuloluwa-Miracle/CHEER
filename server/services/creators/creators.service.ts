@@ -25,9 +25,17 @@ import {
 } from './dashboard.types';
 import { buildSettlementStatus } from './settlement.types';
 import {
+  ALLOWED_CURRENCIES,
+  BIO_MAX,
+  DISPLAY_NAME_MAX,
+  DISPLAY_NAME_MIN,
+  MAX_SOCIAL_LINKS,
+  MAX_SUGGESTED_TIPS,
+  SUPPORT_MESSAGE_MAX,
   normalizeUsername,
   validateUsernameFormat,
   usernameValidationMessage,
+  type AllowedCurrency,
 } from './username';
 
 const profileInclude = {
@@ -214,10 +222,11 @@ export class CreatorsService {
     const data: Prisma.CreatorProfileUpdateInput = {};
 
     if (dto.displayName !== undefined) {
-      data.displayName = dto.displayName.trim();
+      data.displayName = this.requireValidDisplayName(dto.displayName);
     }
     if (dto.bio !== undefined) {
-      data.bio = dto.bio === null ? null : dto.bio.trim() || null;
+      data.bio =
+        dto.bio === null ? null : this.requireValidBio(dto.bio);
     }
     if (dto.avatarUrl !== undefined) {
       data.avatarUrl =
@@ -276,10 +285,12 @@ export class CreatorsService {
     const data: Prisma.CreatorProfileUpdateInput = {};
     if (dto.supportMessage !== undefined) {
       data.supportMessage =
-        dto.supportMessage === null ? null : dto.supportMessage.trim() || null;
+        dto.supportMessage === null
+          ? null
+          : this.requireValidSupportMessage(dto.supportMessage);
     }
     if (dto.currency !== undefined) {
-      data.currency = dto.currency.toUpperCase();
+      data.currency = this.requireValidCurrency(dto.currency);
     }
     if (dto.suggestedTipAmounts !== undefined) {
       data.suggestedTipAmounts = this.normalizeTipAmounts(
@@ -582,6 +593,61 @@ export class CreatorsService {
     return profile;
   }
 
+  private requireValidDisplayName(raw: string): string {
+    const displayName = raw.trim();
+    if (
+      displayName.length < DISPLAY_NAME_MIN ||
+      displayName.length > DISPLAY_NAME_MAX
+    ) {
+      throw new ApiError(
+        400,
+        'INVALID_DISPLAY_NAME',
+        `Display name must be between ${DISPLAY_NAME_MIN} and ${DISPLAY_NAME_MAX} characters.`,
+      );
+    }
+    return displayName;
+  }
+
+  private requireValidBio(raw: string): string | null {
+    const bio = raw.trim();
+    if (!bio) return null;
+    if (bio.length > BIO_MAX) {
+      throw new ApiError(
+        400,
+        'INVALID_BIO',
+        `Bio must be at most ${BIO_MAX} characters.`,
+      );
+    }
+    return bio;
+  }
+
+  private requireValidSupportMessage(raw: string): string | null {
+    const message = raw.trim();
+    if (!message) return null;
+    if (message.length > SUPPORT_MESSAGE_MAX) {
+      throw new ApiError(
+        400,
+        'INVALID_SUPPORT_MESSAGE',
+        `Support message must be at most ${SUPPORT_MESSAGE_MAX} characters.`,
+      );
+    }
+    return message;
+  }
+
+  private requireValidCurrency(raw: string): AllowedCurrency {
+    const currency = raw.trim().toUpperCase();
+    if (
+      !(ALLOWED_CURRENCIES as readonly string[]).includes(currency)
+    ) {
+      throw new ApiError(
+        400,
+        'INVALID_CURRENCY',
+        `Currency must be one of: ${ALLOWED_CURRENCIES.join(', ')}.`,
+      );
+    }
+    return currency as AllowedCurrency;
+  }
+
   private requireValidUsername(raw: string): string {
     const format = validateUsernameFormat(raw);
     if (!format.ok) {
@@ -617,6 +683,13 @@ export class CreatorsService {
   }
 
   private normalizeTipAmounts(amounts: string[]): string[] {
+    if (amounts.length > MAX_SUGGESTED_TIPS) {
+      throw new ApiError(
+        400,
+        'TOO_MANY_TIP_AMOUNTS',
+        `You can suggest at most ${MAX_SUGGESTED_TIPS} tip amounts.`,
+      );
+    }
     const normalized = amounts.map((a) => {
       const n = Number(a);
       if (!Number.isFinite(n) || n <= 0) {
@@ -632,6 +705,13 @@ export class CreatorsService {
   }
 
   private normalizeSocialLinks(links: SocialLinkInput[]) {
+    if (links.length > MAX_SOCIAL_LINKS) {
+      throw new ApiError(
+        400,
+        'TOO_MANY_SOCIAL_LINKS',
+        `You can add at most ${MAX_SOCIAL_LINKS} social links.`,
+      );
+    }
     const seen = new Set<string>();
     return links.map((link, index) => {
       const url = link.url.trim();

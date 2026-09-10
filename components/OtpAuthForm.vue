@@ -5,16 +5,19 @@
   >
     <header class="text-center">
       <h1 class="text-2xl font-bold tracking-tight text-cheer-ink sm:text-3xl">
-        {{ step === 'email' ? 'Claim your link' : 'Verify your email' }}
+        {{ title }}
       </h1>
       <p class="mt-2 text-sm leading-relaxed text-cheer-ink/65 sm:text-base">
         <template v-if="step === 'email'">
           Start with your email. We’ll send a one-time code, then you set a password and claim your link.
         </template>
-        <template v-else>
+        <template v-else-if="step === 'otp'">
           Enter the code sent to
-          <span class="font-semibold text-cheer-ink">{{ email }}</span>
-          and choose a password.
+          <span class="font-semibold text-cheer-ink">{{ email }}</span>.
+        </template>
+        <template v-else>
+          Choose a password for
+          <span class="font-semibold text-cheer-ink">{{ email }}</span>.
         </template>
       </p>
     </header>
@@ -37,7 +40,7 @@
         >
       </div>
 
-      <template v-else>
+      <template v-else-if="step === 'otp'">
         <div>
           <label for="signup-otp" class="block text-sm text-cheer-ink">
             Verification code
@@ -55,24 +58,6 @@
             placeholder="••••••"
             :disabled="pending"
             class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-center text-2xl tracking-[0.35em] text-cheer-ink placeholder:tracking-[0.35em] placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
-          >
-        </div>
-
-        <div>
-          <label for="signup-password" class="block text-sm text-cheer-ink">
-            Password
-          </label>
-          <input
-            id="signup-password"
-            v-model="password"
-            type="password"
-            name="password"
-            autocomplete="new-password"
-            required
-            minlength="8"
-            placeholder="At least 8 characters"
-            :disabled="pending"
-            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base text-cheer-ink placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
           >
         </div>
 
@@ -100,6 +85,37 @@
           </button>
         </div>
       </template>
+
+      <template v-else>
+        <div>
+          <label for="signup-password" class="block text-sm text-cheer-ink">
+            Password
+          </label>
+          <input
+            id="signup-password"
+            v-model="password"
+            type="password"
+            name="password"
+            autocomplete="new-password"
+            required
+            minlength="8"
+            placeholder="At least 8 characters"
+            :disabled="pending"
+            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base text-cheer-ink placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
+          >
+        </div>
+
+        <div class="flex items-center justify-between gap-3 text-sm">
+          <button
+            type="button"
+            class="text-cheer-ink/55 transition-colors hover:text-cheer-ink"
+            :disabled="pending"
+            @click="backToOtp"
+          >
+            Back
+          </button>
+        </div>
+      </template>
     </div>
 
     <p
@@ -119,10 +135,10 @@
       :disabled="pending"
     >
       <template v-if="pending">
-        {{ step === 'email' ? 'Sending code…' : 'Creating account…' }}
+        {{ pendingLabel }}
       </template>
       <template v-else>
-        {{ step === 'email' ? 'Send verification code' : 'Verify and create account' }}
+        {{ submitLabel }}
       </template>
     </button>
 
@@ -148,7 +164,7 @@ const emit = defineEmits<{
 const api = useApi();
 const auth = useAuthStore();
 
-const step = ref<'email' | 'otp'>('email');
+const step = ref<'email' | 'otp' | 'password'>('email');
 const email = ref('');
 const code = ref('');
 const password = ref('');
@@ -156,6 +172,24 @@ const pending = ref(false);
 const error = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
 const resendSeconds = ref(0);
+
+const title = computed(() => {
+  if (step.value === 'email') return 'Claim your link';
+  if (step.value === 'otp') return 'Verify your email';
+  return 'Create your password';
+});
+
+const submitLabel = computed(() => {
+  if (step.value === 'email') return 'Send verification code';
+  if (step.value === 'otp') return 'Continue';
+  return 'Create account';
+});
+
+const pendingLabel = computed(() => {
+  if (step.value === 'email') return 'Sending code…';
+  if (step.value === 'otp') return 'Checking…';
+  return 'Creating account…';
+});
 
 let resendTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -242,7 +276,20 @@ async function requestCode() {
   }
 }
 
-async function verifyCode() {
+function continueFromOtp() {
+  const trimmed = code.value.trim();
+  if (!/^\d{6}$/.test(trimmed)) {
+    error.value = 'Enter the 6-digit code from your email.';
+    successMessage.value = null;
+    return;
+  }
+  code.value = trimmed;
+  error.value = null;
+  successMessage.value = null;
+  step.value = 'password';
+}
+
+async function createAccount() {
   if (password.value.length < 8) {
     error.value = 'Password must be at least 8 characters.';
     return;
@@ -261,6 +308,17 @@ async function verifyCode() {
     emit('verified');
   } catch (err) {
     error.value = mapError(err);
+    // OTP failed validation on the server — send user back to re-enter code
+    if (
+      err instanceof ApiClientError &&
+      (err.errorCode === 'INVALID_OTP' ||
+        err.errorCode === 'EXPIRED_OTP' ||
+        err.errorCode === 'OTP_CONSUMED' ||
+        err.errorCode === 'TOO_MANY_ATTEMPTS')
+    ) {
+      step.value = 'otp';
+      password.value = '';
+    }
   } finally {
     pending.value = false;
   }
@@ -269,8 +327,10 @@ async function verifyCode() {
 async function onSubmit() {
   if (step.value === 'email') {
     await requestCode();
+  } else if (step.value === 'otp') {
+    continueFromOtp();
   } else {
-    await verifyCode();
+    await createAccount();
   }
 }
 
@@ -287,5 +347,12 @@ function backToEmail() {
   successMessage.value = null;
   clearResendTimer();
   resendSeconds.value = 0;
+}
+
+function backToOtp() {
+  step.value = 'otp';
+  password.value = '';
+  error.value = null;
+  successMessage.value = null;
 }
 </script>

@@ -79,7 +79,18 @@
             stroke-linejoin="round"
             class="h-4 w-4"
           >
-            <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-5H10v5H5a1 1 0 0 1-1-1v-9.5Z" />
+            <path
+              v-if="link.to === '/dashboard'"
+              d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-5H10v5H5a1 1 0 0 1-1-1v-9.5Z"
+            />
+            <template v-else>
+              <circle
+                cx="12"
+                cy="8"
+                r="3.25"
+              />
+              <path d="M5.5 19.5c1.6-3.2 4-4.75 6.5-4.75s4.9 1.55 6.5 4.75" />
+            </template>
           </svg>
         </span>
         {{ link.label }}
@@ -178,6 +189,11 @@ const avatarSrc = computed(() => {
 });
 
 function isActive(path: string) {
+  // Exact match for /dashboard so nested routes (e.g. /dashboard/profile)
+  // do not keep Overview highlighted.
+  if (path === '/dashboard') {
+    return route.path === '/dashboard';
+  }
   return route.path === path || route.path.startsWith(`${path}/`);
 }
 

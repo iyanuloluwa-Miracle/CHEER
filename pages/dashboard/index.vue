@@ -77,6 +77,13 @@
               <h1 class="mt-5 max-w-xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-[3.35rem] lg:leading-[1.05]">
                 {{ dashboard.displayName }}
               </h1>
+              <NuxtLink
+                to="/dashboard/profile"
+                class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-cheer-mint/90 transition hover:text-cheer-mint"
+              >
+                Edit profile
+                <span aria-hidden="true">→</span>
+              </NuxtLink>
             </div>
 
             <div class="motion-animate motion-animate-delay-1 shrink-0 lg:pt-2">

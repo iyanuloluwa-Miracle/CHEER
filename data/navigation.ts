@@ -14,6 +14,7 @@ export const dashboardLink: NavLink = { label: 'Dashboard', to: '/dashboard' };
 
 export const dashboardNavLinks: readonly NavLink[] = [
   { label: 'Overview', to: '/dashboard' },
+  { label: 'Edit profile', to: '/dashboard/profile' },
 ] as const;
 
 export const mobileNavLinks: readonly NavLink[] = [...sectionLinks, loginLink];
