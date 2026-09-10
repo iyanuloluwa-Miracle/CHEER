@@ -1,7 +1,7 @@
-import { requireUser } from '../../../lib/auth';
-import { defineApiHandler } from '../../../lib/define-api';
-import { assertRateLimit } from '../../../lib/rate-limit';
-import { createAvatarUploadToken } from '../../../services/byteship/byteship.service';
+import { requireUser } from '../../../../lib/auth';
+import { defineApiHandler } from '../../../../lib/define-api';
+import { assertRateLimit } from '../../../../lib/rate-limit';
+import { createAvatarUploadToken } from '../../../../services/byteship/byteship.service';
 
 export default defineApiHandler(async (event) => {
   const user = await requireUser(event);
