@@ -54,6 +54,18 @@
       </div>
 
       <div
+        v-if="thankYou"
+        class="rounded-xl border border-cheer-leaf/25 bg-cheer-mint/30 px-4 py-3 text-sm text-cheer-ink/85"
+      >
+        <p class="text-xs font-semibold uppercase tracking-wide text-cheer-leaf">
+          A note from {{ tip.creator.displayName }}
+        </p>
+        <p class="mt-1.5 whitespace-pre-wrap leading-relaxed">
+          {{ thankYou }}
+        </p>
+      </div>
+
+      <div
         v-if="tip.message"
         class="rounded-xl border border-black/8 bg-white px-4 py-3 text-sm text-cheer-ink/80"
       >
@@ -110,6 +122,7 @@ const tipId = computed(() => String(route.params.tipId || ''));
 const loading = ref(true);
 const error = ref<string | null>(null);
 const tip = ref<PublicTip | null>(null);
+const thankYou = ref<string | null>(null);
 const polling = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -197,9 +210,26 @@ async function refreshStatus() {
     }
     if (isTerminal(status.tipStatus)) {
       stopPolling();
+      if (status.tipStatus === 'PAID') {
+        void loadThankYou();
+      }
     }
   } catch {
     // Keep showing last known tip state; webhook may still arrive
+  }
+}
+
+async function loadThankYou() {
+  if (thankYou.value) return;
+  try {
+    if (tip.value?.aiThankYouMessage) {
+      thankYou.value = tip.value.aiThankYouMessage;
+      return;
+    }
+    const result = await api.generateTipThankYou(tipId.value);
+    thankYou.value = result.message;
+  } catch {
+    // Optional polish — confirmation still works without it
   }
 }
 
@@ -209,7 +239,10 @@ async function load() {
   try {
     const result = await api.getPublicTip(tipId.value);
     tip.value = result.tip;
-    if (!isTerminal(result.tip.status)) {
+    if (result.tip.status === 'PAID') {
+      thankYou.value = result.tip.aiThankYouMessage;
+      void loadThankYou();
+    } else if (!isTerminal(result.tip.status)) {
       startPolling();
     }
   } catch (err) {

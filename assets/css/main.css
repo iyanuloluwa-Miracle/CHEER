@@ -3,11 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --cheer-ink: #0f1c17;
-  --cheer-leaf: #1f6b4a;
-  --cheer-mint: #c8f0dd;
-  --cheer-sand: #f3efe6;
-  --cheer-glow: #f0a202;
+  /* TippyMe brand — white canvas + purple accent */
+  --cheer-ink: #1a1228;
+  --cheer-leaf: #9362ff;
+  --cheer-mint: #eee6ff;
+  --cheer-sand: #f7f4ff;
+  --cheer-glow: #b794ff;
+  --cheer-panel: #3b1d7a;
+  --cheer-panel-deep: #24124f;
+  --cheer-panel-mid: #5b2db8;
   --font-sans: 'Darker Grotesque', sans-serif;
 }
 
@@ -69,7 +73,7 @@ body {
 body {
   margin: 0;
   color: var(--cheer-ink);
-  background-color: #f7f4ee;
+  background-color: #ffffff;
 }
 
 /* ── Motion utilities ────────────────────────────────────────────── */
@@ -173,7 +177,7 @@ body {
   }
 
   .motion-cta-primary:hover {
-    box-shadow: 0 4px 14px -4px rgba(31, 107, 74, 0.3);
+    box-shadow: 0 4px 14px -4px rgba(147, 98, 255, 0.4);
   }
 
   .motion-reveal {
@@ -224,6 +228,26 @@ body {
   .dash-draw-path {
     stroke-dasharray: 120;
     animation: dash-draw 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* Shared purple panel gradients (dashboard / public tip / sidebar) */
+  .cheer-panel-bg {
+    background:
+      radial-gradient(ellipse 70% 80% at 100% 0%, rgba(238, 230, 255, 0.22), transparent 55%),
+      radial-gradient(ellipse 50% 60% at 0% 100%, rgba(183, 148, 255, 0.18), transparent 50%),
+      linear-gradient(145deg, #5b2db8 0%, #3b1d7a 40%, #24124f 100%);
+  }
+
+  .cheer-page-atmosphere {
+    background-color: #ffffff;
+    background-image:
+      radial-gradient(ellipse 85% 55% at 10% -5%, rgba(238, 230, 255, 0.9), transparent 55%),
+      radial-gradient(ellipse 60% 45% at 95% 0%, rgba(147, 98, 255, 0.12), transparent 50%);
+  }
+
+  /* Shift legacy green logo assets toward brand purple */
+  .cheer-logo-tint {
+    filter: hue-rotate(95deg) saturate(1.35) brightness(1.05);
   }
 }
 

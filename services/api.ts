@@ -191,10 +191,48 @@ export function createApiClient(apiBaseUrl: string) {
       supportMessage?: string | null;
       currency?: string;
       suggestedTipAmounts?: string[];
+      goalTitle?: string | null;
+      goalTargetAmount?: string | null;
+      goalActive?: boolean;
     }) =>
       request<{ profile: CreatorProfile }>('/api/creators/me/settings', {
         method: 'PATCH',
         body: JSON.stringify(payload),
+      }),
+
+    startConnectOnboarding: () =>
+      request<{
+        settlement: import('~/types/api').CreatorSettlementStatus;
+        onboardingUrl: string | null;
+        stub: boolean;
+      }>('/api/creators/me/connect/onboard', { method: 'POST' }),
+
+    enableFridayPayout: () =>
+      request<{ settlement: import('~/types/api').CreatorSettlementStatus }>(
+        '/api/creators/me/connect/friday-payout',
+        { method: 'POST' },
+      ),
+
+    polishBio: (payload: {
+      displayName: string;
+      draft?: string;
+      niche?: string;
+    }) =>
+      request<{
+        bio: string;
+        supportCta: string;
+        source: 'cencori' | 'fallback';
+      }>('/api/ai/bio-assist', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
+    generateTipThankYou: (tipId: string) =>
+      request<{
+        message: string;
+        source: 'cencori' | 'fallback' | 'cached';
+      }>(`/api/tips/${encodeURIComponent(tipId)}/thank-you`, {
+        method: 'POST',
       }),
 
     replaceMySocialLinks: (links: Omit<CreatorSocialLink, 'id'>[]) =>

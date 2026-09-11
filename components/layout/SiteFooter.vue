@@ -6,20 +6,16 @@
           <NuxtLink
             to="/"
             aria-label="TippyMe"
-            class="inline-flex items-center gap-2 rounded-sm transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2"
+            class="inline-flex items-center rounded-sm transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2"
           >
             <img
-              src="/cheers-logo-nav.png"
-              alt=""
-              aria-hidden="true"
-              class="h-5 w-auto shrink-0 object-contain"
-              width="17"
-              height="24"
+              src="/tippyme-logo.png"
+              alt="TippyMe"
+              class="h-7 w-auto shrink-0 object-contain"
+              width="238"
+              height="77"
               decoding="async"
             >
-            <span class="text-base font-bold leading-none tracking-tight text-cheer-ink">
-              TippyMe
-            </span>
           </NuxtLink>
           <p class="mt-3 text-sm leading-relaxed text-cheer-ink/60">
             One link for everyone who wants to support your work.

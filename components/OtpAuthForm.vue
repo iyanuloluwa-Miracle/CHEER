@@ -36,7 +36,7 @@
           required
           placeholder="you@example.com"
           :disabled="pending"
-          class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base text-cheer-ink placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
+          class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-base text-cheer-ink placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
         >
       </div>
 
@@ -57,7 +57,7 @@
             required
             placeholder="••••••"
             :disabled="pending"
-            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-center text-2xl tracking-[0.35em] text-cheer-ink placeholder:tracking-[0.35em] placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
+            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-center text-2xl tracking-[0.35em] text-cheer-ink placeholder:tracking-[0.35em] placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
           >
         </div>
 
@@ -101,7 +101,7 @@
             minlength="8"
             placeholder="At least 8 characters"
             :disabled="pending"
-            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base text-cheer-ink placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
+            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-base text-cheer-ink placeholder:text-cheer-ink/35 transition-colors duration-200 focus:border-cheer-leaf/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cheer-leaf/30 disabled:opacity-60"
           >
         </div>
 

@@ -44,6 +44,9 @@ export class BachsPaymentProvider implements PaymentProviderPort {
 
     // reference: TippyMe tip id (unique per org, max 128) — docs
     // Idempotency-Key: stable internal payment reference — docs
+    const destination = input.bachsConnectAccountId?.trim();
+    const platformFee = input.platformFee?.trim();
+
     const session = await this.http.createCheckoutSession(
       {
         pricing: {
@@ -58,8 +61,17 @@ export class BachsPaymentProvider implements PaymentProviderPort {
           tip_id: input.tipId,
           payment_transaction_id: input.paymentTransactionId,
           creator_username: input.creatorUsername,
+          ...(destination
+            ? { bachs_connect_account_id: destination }
+            : {}),
           ...(input.metadata ?? {}),
         },
+        ...(destination
+          ? {
+              transfer_data: { destination },
+              ...(platformFee ? { platform_fee: platformFee } : {}),
+            }
+          : {}),
       },
       input.internalReference.slice(0, 255),
     );

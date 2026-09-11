@@ -10,7 +10,7 @@
 
     <div class="relative flex justify-center px-4 pt-4 sm:px-4 sm:pt-5">
       <div
-        class="pointer-events-auto w-full border border-black/10 bg-white shadow-sm sm:w-fit sm:max-w-[calc(100vw-2rem)] sm:rounded-full"
+        class="pointer-events-auto w-full border border-cheer-leaf/15 bg-white shadow-sm shadow-cheer-leaf/5 sm:w-fit sm:max-w-[calc(100vw-2rem)] sm:rounded-full"
         :class="menuOpen ? 'rounded-2xl' : 'rounded-full'"
       >
         <div
@@ -26,7 +26,7 @@
               src="/cheers-logo-nav.png"
               alt=""
               aria-hidden="true"
-              class="h-5 w-auto shrink-0 object-contain"
+              class="h-5 w-auto shrink-0 object-contain cheer-logo-tint"
               width="17"
               height="24"
               decoding="async"

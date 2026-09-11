@@ -32,7 +32,7 @@
       class="rounded-2xl border border-black/10 bg-white p-6 shadow-sm sm:p-8"
     >
       <label for="ob-username" class="block text-sm text-cheer-ink">Username</label>
-      <div class="mt-1.5 flex items-center gap-2 rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 focus-within:border-cheer-leaf/40 focus-within:ring-2 focus-within:ring-cheer-leaf/30">
+      <div class="mt-1.5 flex items-center gap-2 rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 focus-within:border-cheer-leaf/40 focus-within:ring-2 focus-within:ring-cheer-leaf/30">
         <span class="shrink-0 text-sm text-cheer-ink/45">/</span>
         <input
           id="ob-username"
@@ -91,22 +91,38 @@
             type="text"
             maxlength="80"
             required
-            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base outline-none focus:border-cheer-leaf/40 focus:ring-2 focus:ring-cheer-leaf/30"
+            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-base outline-none focus:border-cheer-leaf/40 focus:ring-2 focus:ring-cheer-leaf/30"
             placeholder="How supporters see you"
             :disabled="pending"
           >
         </div>
         <div>
-          <label for="ob-bio" class="block text-sm text-cheer-ink">Bio</label>
+          <div class="flex items-center justify-between gap-2">
+            <label for="ob-bio" class="block text-sm text-cheer-ink">Bio</label>
+            <button
+              type="button"
+              class="text-xs font-semibold text-cheer-leaf hover:underline disabled:opacity-50"
+              :disabled="pending || aiBusy"
+              @click="polishBio"
+            >
+              {{ aiBusy ? 'Polishing…' : 'Polish with AI' }}
+            </button>
+          </div>
           <textarea
             id="ob-bio"
             v-model="bio"
             rows="3"
             maxlength="500"
-            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base outline-none focus:border-cheer-leaf/40 focus:ring-2 focus:ring-cheer-leaf/30"
+            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-base outline-none focus:border-cheer-leaf/40 focus:ring-2 focus:ring-cheer-leaf/30"
             placeholder="A short line about your work"
             :disabled="pending"
           />
+          <p
+            v-if="aiHint"
+            class="mt-1 text-xs text-cheer-ink/50"
+          >
+            {{ aiHint }}
+          </p>
         </div>
         <div>
           <p class="block text-sm text-cheer-ink">Profile photo</p>
@@ -160,7 +176,7 @@
         >
           <select
             v-model="link.platform"
-            class="rounded-xl border border-black/10 bg-[#faf8f4] px-3 py-2.5 text-sm"
+            class="rounded-xl border border-black/10 bg-[#f7f4ff] px-3 py-2.5 text-sm"
             :disabled="pending"
           >
             <option
@@ -175,7 +191,7 @@
             v-model="link.url"
             type="url"
             placeholder="https://"
-            class="min-w-0 flex-1 rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-cheer-leaf/30"
+            class="min-w-0 flex-1 rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-cheer-leaf/30"
             :disabled="pending"
           >
           <button
@@ -230,7 +246,7 @@
           <select
             id="ob-currency"
             v-model="currency"
-            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base"
+            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-base"
             :disabled="pending"
           >
             <option
@@ -249,7 +265,7 @@
             v-model="supportMessage"
             rows="3"
             maxlength="500"
-            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base outline-none focus:ring-2 focus:ring-cheer-leaf/30"
+            class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-base outline-none focus:ring-2 focus:ring-cheer-leaf/30"
             placeholder="Thanks for supporting my work…"
             :disabled="pending"
           />
@@ -263,7 +279,7 @@
               v-model="tipAmounts[i]"
               type="text"
               inputmode="decimal"
-              class="w-28 rounded-xl border border-black/10 bg-[#faf8f4] px-3 py-2 text-sm"
+              class="w-28 rounded-xl border border-black/10 bg-[#f7f4ff] px-3 py-2 text-sm"
               :disabled="pending"
             >
           </div>
@@ -374,6 +390,8 @@ const currency = ref('NGN');
 const tipAmounts = ref(['1000.00', '2500.00', '5000.00']);
 const socialLinks = ref<{ platform: SocialPlatform; url: string }[]>([]);
 const createdProfile = ref<CreatorProfile | null>(null);
+const aiBusy = ref(false);
+const aiHint = ref<string | null>(null);
 
 const platforms: SocialPlatform[] = [
   'X',
@@ -557,6 +575,29 @@ function goSupport() {
     }
   }
   step.value = 'support';
+}
+
+async function polishBio() {
+  aiBusy.value = true;
+  aiHint.value = null;
+  try {
+    const result = await api.polishBio({
+      displayName: displayName.value.trim() || username.value,
+      draft: bio.value,
+    });
+    bio.value = result.bio;
+    if (result.supportCta) {
+      supportMessage.value = result.supportCta;
+    }
+    aiHint.value =
+      result.source === 'cencori'
+        ? 'Polished with Cencori AI.'
+        : 'Local AI assist used (add CENCORI_API_KEY for live Cencori).';
+  } catch (err) {
+    aiHint.value = mapError(err);
+  } finally {
+    aiBusy.value = false;
+  }
 }
 
 function mapError(err: unknown): string {

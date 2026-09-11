@@ -23,7 +23,7 @@
           class="motion-cta rounded-2xl border px-3 py-3.5 text-sm font-bold tabular-nums transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2"
           :class="
             selectedPreset === preset && !useCustom
-              ? 'border-cheer-leaf bg-cheer-leaf text-white shadow-[0_12px_28px_-12px_rgba(31,107,74,0.55)]'
+              ? 'border-cheer-leaf bg-cheer-leaf text-white shadow-[0_12px_28px_-12px_rgba(147, 98, 255,0.55)]'
               : 'border-black/8 bg-cheer-sand/70 text-cheer-ink hover:border-cheer-leaf/35 hover:bg-white'
           "
           :aria-pressed="selectedPreset === preset && !useCustom"
@@ -36,7 +36,7 @@
           class="motion-cta rounded-2xl border px-3 py-3.5 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2"
           :class="
             useCustom
-              ? 'border-cheer-leaf bg-cheer-leaf text-white shadow-[0_12px_28px_-12px_rgba(31,107,74,0.55)]'
+              ? 'border-cheer-leaf bg-cheer-leaf text-white shadow-[0_12px_28px_-12px_rgba(147, 98, 255,0.55)]'
               : 'border-black/8 bg-cheer-sand/70 text-cheer-ink hover:border-cheer-leaf/35 hover:bg-white'
           "
           :aria-pressed="useCustom"
@@ -168,7 +168,7 @@
 
     <button
       type="submit"
-      class="motion-cta motion-cta-primary inline-flex w-full items-center justify-center rounded-full bg-cheer-leaf px-6 py-4 text-base font-bold text-white shadow-[0_16px_36px_-14px_rgba(31,107,74,0.55)] transition hover:bg-cheer-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
+      class="motion-cta motion-cta-primary inline-flex w-full items-center justify-center rounded-full bg-cheer-leaf px-6 py-4 text-base font-bold text-white shadow-[0_16px_36px_-14px_rgba(147, 98, 255,0.55)] transition hover:bg-cheer-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
       :disabled="pending || !resolvedAmount || !supporterEmail.trim()"
       :aria-busy="pending"
     >

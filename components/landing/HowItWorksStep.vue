@@ -39,7 +39,7 @@
       >
         <div
           class="aspect-[4/3] w-full"
-          :class="step.visualTheme === 'dark' ? 'bg-cheer-ink' : 'bg-[#faf8f4]'"
+          :class="step.visualTheme === 'dark' ? 'bg-cheer-ink' : 'bg-white'"
           aria-hidden="true"
         >
           <div class="flex h-full flex-col p-5 sm:p-6">

@@ -3,16 +3,16 @@
     class="relative flex h-full w-[17.5rem] shrink-0 flex-col overflow-hidden text-white"
     style="
       background:
-        radial-gradient(ellipse 90% 60% at 0% 0%, rgba(200, 240, 221, 0.16), transparent 55%),
-        radial-gradient(ellipse 70% 50% at 100% 100%, rgba(31, 107, 74, 0.45), transparent 55%),
-        linear-gradient(165deg, #132920 0%, #0f1c17 48%, #0c1713 100%);
+        radial-gradient(ellipse 90% 60% at 0% 0%, rgba(238, 230, 255, 0.16), transparent 55%),
+        radial-gradient(ellipse 70% 50% at 100% 100%, rgba(147, 98, 255, 0.45), transparent 55%),
+        linear-gradient(165deg, #3b1d7a 0%, #1a1228 48%, #1a0f33 100%);
     "
     aria-label="Dashboard sidebar"
   >
     <div
       class="pointer-events-none absolute inset-0 opacity-[0.18]"
       style="
-        background-image: radial-gradient(rgba(200, 240, 221, 0.35) 1px, transparent 1px);
+        background-image: radial-gradient(rgba(238, 230, 255, 0.35) 1px, transparent 1px);
         background-size: 18px 18px;
       "
       aria-hidden="true"
@@ -22,21 +22,17 @@
       <NuxtLink
         to="/"
         aria-label="TippyMe home"
-        class="inline-flex items-center gap-2.5 rounded-sm transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-mint focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1c17]"
+        class="inline-flex items-center gap-2.5 rounded-sm transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-mint focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1228]"
       >
-        <span
-          class="flex h-9 w-9 items-center justify-center rounded-xl bg-cheer-mint/15 ring-1 ring-cheer-mint/25"
+        <img
+          src="/tippyme-mark.png"
+          alt=""
+          aria-hidden="true"
+          class="h-9 w-9 rounded-xl object-contain"
+          width="77"
+          height="77"
+          decoding="async"
         >
-          <img
-            src="/cheers-logo-nav.png"
-            alt=""
-            aria-hidden="true"
-            class="h-5 w-auto brightness-0 invert"
-            width="17"
-            height="24"
-            decoding="async"
-          />
-        </span>
         <span class="text-lg font-bold leading-none tracking-tight">
           TippyMe
         </span>
@@ -52,10 +48,10 @@
         v-for="link in primaryLinks"
         :key="link.to"
         :to="link.to"
-        class="group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-mint focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1c17]"
+        class="group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-mint focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1228]"
         :class="
           isActive(link.to)
-            ? 'bg-cheer-mint text-cheer-ink shadow-[0_8px_24px_-10px_rgba(200,240,221,0.7)]'
+            ? 'bg-cheer-mint text-cheer-ink shadow-[0_8px_24px_-10px_rgba(238, 230, 255,0.7)]'
             : 'text-white/65 hover:bg-white/[0.06] hover:text-white'
         "
         @click="emit('navigate')"
@@ -99,7 +95,7 @@
       <NuxtLink
         v-if="publicPath"
         :to="publicPath"
-        class="group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-white/65 transition-all duration-200 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-mint focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1c17]"
+        class="group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-white/65 transition-all duration-200 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-mint focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1228]"
         @click="emit('navigate')"
       >
         <span
@@ -153,7 +149,7 @@
       </div>
       <button
         type="button"
-        class="motion-cta mt-4 w-full rounded-full border border-white/15 bg-white/[0.06] px-4 py-2.5 text-sm font-semibold text-white transition hover:border-cheer-mint/40 hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-mint focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1c17] disabled:opacity-60"
+        class="motion-cta mt-4 w-full rounded-full border border-white/15 bg-white/[0.06] px-4 py-2.5 text-sm font-semibold text-white transition hover:border-cheer-mint/40 hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-mint focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1228] disabled:opacity-60"
         :disabled="loggingOut"
         @click="onLogout"
       >

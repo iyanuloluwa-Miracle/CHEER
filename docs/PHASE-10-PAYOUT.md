@@ -57,13 +57,15 @@ Bachs can schedule weekly payouts including `friday` via `weekly_payout_days` on
 
 ---
 
-## Future implementation checklist (not MVP)
+## Future implementation checklist (Connect demo shipped)
 
-1. Enable platform `connect`; create recipient accounts; hosted onboarding + payout destinations.
-2. Tip checkout with destination charge (or collect + transfer) tied to `bachsAccountId`.
+Shipped for hackathon demo (see also `docs/DEMO-SCRIPT.md`):
+
+1. ~~Enable platform `connect`; create recipient accounts; hosted onboarding~~ — `POST /api/creators/me/connect/onboard` (stub when no Bachs key).
+2. ~~Tip checkout with destination charge tied to `bachsAccountId`~~ — `transfer_data` + `platform_fee` when linked.
 3. Optionally read Bachs balances / transfer list for dashboard (never invent TippyMe balances).
-4. Optionally set Bachs payout schedules (e.g. weekly friday) on connected accounts.
-5. Only then consider TippyMe UX that mirrors real Bachs withdrawal/schedule state — still no TippyMe wallet.
+4. ~~Optionally set Bachs payout schedules (e.g. weekly friday)~~ — `POST /api/creators/me/connect/friday-payout`.
+5. TippyMe UX mirrors Connect readiness only — still no TippyMe wallet.
 
 ---
 

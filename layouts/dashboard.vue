@@ -1,18 +1,9 @@
 <template>
-  <div
-    class="relative flex min-h-dvh"
-    style="
-      background-color: #efeae1;
-      background-image:
-        radial-gradient(ellipse 80% 50% at 0% 0%, rgba(200, 240, 221, 0.55), transparent 55%),
-        radial-gradient(ellipse 55% 40% at 100% 10%, rgba(31, 107, 74, 0.1), transparent 50%),
-        linear-gradient(180deg, #f6f2ea 0%, #ebe5da 100%);
-    "
-  >
+  <div class="cheer-page-atmosphere relative flex min-h-dvh">
     <div
       class="pointer-events-none absolute inset-0 opacity-[0.22]"
       style="
-        background-image: radial-gradient(rgba(15, 28, 23, 0.07) 1px, transparent 1px);
+        background-image: radial-gradient(rgba(147, 98, 255, 0.12) 1px, transparent 1px);
         background-size: 22px 22px;
       "
       aria-hidden="true"
@@ -44,11 +35,11 @@
 
     <div class="relative z-0 flex min-w-0 flex-1 flex-col">
       <header
-        class="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-black/8 bg-[#f6f2ea]/90 px-4 backdrop-blur-md md:hidden"
+        class="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-cheer-leaf/10 bg-white/90 px-4 backdrop-blur-md md:hidden"
       >
         <button
           type="button"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-full text-cheer-ink transition hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf"
+          class="inline-flex h-9 w-9 items-center justify-center rounded-full text-cheer-ink transition hover:bg-cheer-mint/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf"
           aria-label="Open navigation"
           @click="mobileOpen = true"
         >
@@ -69,11 +60,11 @@
           src="/cheers-logo-nav.png"
           alt=""
           aria-hidden="true"
-          class="h-5 w-auto"
+          class="h-5 w-auto cheer-logo-tint"
           width="17"
           height="24"
           decoding="async"
-        />
+        >
         <span class="text-sm font-bold tracking-tight text-cheer-ink">
           TippyMe
         </span>

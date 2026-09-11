@@ -13,6 +13,10 @@ export interface BachsCreateCheckoutSessionBody {
   cancel_url: string;
   reference: string;
   metadata?: Record<string, string>;
+  /** Destination charge — seller Connect account receives sale minus platform_fee. */
+  transfer_data?: { destination: string; amount?: string };
+  /** Platform cut as decimal string (same currency precision as amount). */
+  platform_fee?: string;
 }
 
 /** Documented create-checkout response fields we rely on. */
@@ -23,6 +27,7 @@ export interface BachsCreateCheckoutSessionResponse {
   expires_at?: string;
   created_at?: string;
   reference?: string | null;
+  platform_fee?: string;
 }
 
 /** Subset of retrieve-checkout fields used for verification. */
@@ -40,6 +45,61 @@ export interface BachsCheckoutSessionResponse {
     payment_id?: string;
     charge_id?: string;
   } | null;
+}
+
+export interface BachsCreateConnectedAccountBody {
+  contact_email: string;
+  display_name: string;
+  country: string;
+  entity_type?: 'individual' | 'company';
+  first_name?: string;
+  last_name?: string;
+  configuration?: {
+    recipient?: {
+      capabilities?: {
+        payouts?: { requested: boolean };
+        transfers?: { requested: boolean };
+      };
+    };
+  };
+  responsibilities?: {
+    fees?: { collector: 'bachs' | 'platform' };
+  };
+  metadata?: Record<string, string>;
+}
+
+export interface BachsConnectedAccountResponse {
+  id: string;
+  name?: string;
+  country?: string;
+  enabled_capabilities?: string[];
+  capabilities?: Record<
+    string,
+    { status?: string; requested?: boolean } | undefined
+  >;
+  is_active?: boolean;
+}
+
+export interface BachsCreateAccountLinkBody {
+  type: 'onboarding' | 'update';
+  refresh_url: string;
+  return_url: string;
+}
+
+export interface BachsAccountLinkResponse {
+  id: string;
+  account: string;
+  type: string;
+  url: string;
+  expires_at?: string;
+  previous_link_superseded?: boolean;
+}
+
+export interface BachsBalanceSettingsBody {
+  payout_schedule?: {
+    interval: 'manual' | 'instant' | 'daily' | 'weekly' | 'monthly';
+    weekly_payout_days?: string[];
+  };
 }
 
 interface BachsErrorBody {
@@ -96,6 +156,57 @@ export class BachsHttpClient {
     );
   }
 
+  async createConnectedAccount(
+    body: BachsCreateConnectedAccountBody,
+    idempotencyKey: string,
+  ): Promise<BachsConnectedAccountResponse> {
+    return this.request<BachsConnectedAccountResponse>('POST', '/accounts', {
+      body,
+      idempotencyKey,
+      expectedStatuses: [200, 201],
+    });
+  }
+
+  async getConnectedAccount(
+    accountId: string,
+  ): Promise<BachsConnectedAccountResponse> {
+    return this.request<BachsConnectedAccountResponse>(
+      'GET',
+      `/accounts/${encodeURIComponent(accountId)}`,
+      { expectedStatuses: [200] },
+    );
+  }
+
+  async createAccountLink(
+    accountId: string,
+    body: BachsCreateAccountLinkBody,
+  ): Promise<BachsAccountLinkResponse> {
+    return this.request<BachsAccountLinkResponse>(
+      'POST',
+      `/accounts/${encodeURIComponent(accountId)}/account-links`,
+      {
+        body,
+        expectedStatuses: [200, 201],
+      },
+    );
+  }
+
+  /**
+   * Best-effort Friday weekly payout schedule on a Connect balance.
+   * Failures are non-fatal — TippyMe still records fridayPayoutEnabled locally
+   * when the caller chooses to.
+   */
+  async updateBalanceSettings(
+    accountId: string,
+    body: BachsBalanceSettingsBody,
+  ): Promise<unknown> {
+    return this.request('POST', '/balance_settings', {
+      body,
+      expectedStatuses: [200, 201],
+      accountId,
+    });
+  }
+
   private async request<T>(
     method: 'GET' | 'POST',
     path: string,
@@ -103,6 +214,7 @@ export class BachsHttpClient {
       body?: unknown;
       idempotencyKey?: string;
       expectedStatuses: number[];
+      accountId?: string;
     },
   ): Promise<T> {
     const url = `${this.baseUrl()}${BACHS_API_VERSION_PREFIX}${path}`;
@@ -115,6 +227,9 @@ export class BachsHttpClient {
     }
     if (opts.idempotencyKey) {
       headers['Idempotency-Key'] = opts.idempotencyKey;
+    }
+    if (opts.accountId) {
+      headers['X-Account-Id'] = opts.accountId;
     }
 
     let response: Response;

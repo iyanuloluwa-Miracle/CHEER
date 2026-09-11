@@ -16,6 +16,7 @@ import { toCreatorProfileDto } from './creators.types';
 import {
   toCreatorTipDto,
   toPublicSupporterNoteDto,
+  toSupportGoalDto,
   utcMonthBounds,
   utcWeekBounds,
   type CreatorDashboardDto,
@@ -102,23 +103,29 @@ export class CreatorsService {
     }
 
     // Notes only — weekly tip totals stay private on the creator dashboard.
-    const recentNotes = await this.prisma.tip.findMany({
-      where: {
-        creatorId: profile.id,
-        status: TipStatus.PAID,
-        message: { not: null },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: PUBLIC_NOTES_LIMIT,
-      select: {
-        amount: true,
-        currency: true,
-        message: true,
-        isAnonymous: true,
-        supporterName: true,
-        createdAt: true,
-      },
-    });
+    const [recentNotes, lifetimeAgg] = await Promise.all([
+      this.prisma.tip.findMany({
+        where: {
+          creatorId: profile.id,
+          status: TipStatus.PAID,
+          message: { not: null },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: PUBLIC_NOTES_LIMIT,
+        select: {
+          amount: true,
+          currency: true,
+          message: true,
+          isAnonymous: true,
+          supporterName: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.tip.aggregate({
+        where: { creatorId: profile.id, status: TipStatus.PAID },
+        _sum: { amount: true },
+      }),
+    ]);
 
     const recentSupporterNotes = recentNotes
       .map((tip) => toPublicSupporterNoteDto(tip as never))
@@ -136,6 +143,7 @@ export class CreatorsService {
         weekStart: week.weekStart,
         weekEnd: week.weekEnd,
       },
+      supportGoal: toSupportGoalDto(profile, lifetimeAgg._sum.amount),
       recentSupporterNotes,
     };
   }
@@ -297,6 +305,19 @@ export class CreatorsService {
         dto.suggestedTipAmounts,
       );
     }
+    if (dto.goalTitle !== undefined) {
+      data.goalTitle =
+        dto.goalTitle === null ? null : this.requireValidGoalTitle(dto.goalTitle);
+    }
+    if (dto.goalTargetAmount !== undefined) {
+      data.goalTargetAmount =
+        dto.goalTargetAmount === null
+          ? null
+          : this.requireValidGoalAmount(dto.goalTargetAmount);
+    }
+    if (dto.goalActive !== undefined) {
+      data.goalActive = Boolean(dto.goalActive);
+    }
 
     const updated = await this.prisma.creatorProfile.update({
       where: { id: profile.id },
@@ -368,6 +389,10 @@ export class CreatorsService {
         avatarUrl: true,
         currency: true,
         bachsAccountId: true,
+        fridayPayoutEnabled: true,
+        goalTitle: true,
+        goalTargetAmount: true,
+        goalActive: true,
       },
     });
     if (!profile) {
@@ -433,6 +458,13 @@ export class CreatorsService {
       }),
     ]);
 
+    const successfulTipCount = lifetimeAgg._count._all;
+    const lifetimeViewCount = lifetimeViews;
+    const conversionRate =
+      lifetimeViewCount > 0
+        ? Math.min(1, successfulTipCount / lifetimeViewCount)
+        : null;
+
     return {
       currency: profile.currency,
       username: profile.username,
@@ -444,7 +476,7 @@ export class CreatorsService {
         successfulSupport: decimalToAmountString(
           lifetimeAgg._sum.amount ?? new Prisma.Decimal(0),
         ),
-        successfulTipCount: lifetimeAgg._count._all,
+        successfulTipCount,
         periodSupport: decimalToAmountString(
           periodAgg._sum.amount ?? new Prisma.Decimal(0),
         ),
@@ -453,14 +485,26 @@ export class CreatorsService {
         periodLabel,
       },
       linkViews: {
-        lifetime: lifetimeViews,
+        lifetime: lifetimeViewCount,
         thisWeek: weekViews,
       },
+      conversion: {
+        viewsToTipsRate: conversionRate,
+        /** Percentage 0–100 for UI, null when no views. */
+        viewsToTipsPercent:
+          conversionRate == null
+            ? null
+            : Math.round(conversionRate * 1000) / 10,
+      },
+      supportGoal: toSupportGoalDto(profile, lifetimeAgg._sum.amount),
       recentTips: recentTips.map(toCreatorTipDto),
       recentMessages: recentMessages
         .filter((t) => Boolean(t.message?.trim()))
         .map(toCreatorTipDto),
-      settlement: buildSettlementStatus(profile.bachsAccountId),
+      settlement: buildSettlementStatus({
+        bachsAccountId: profile.bachsAccountId,
+        fridayPayoutEnabled: profile.fridayPayoutEnabled,
+      }),
     };
   }
 
@@ -632,6 +676,38 @@ export class CreatorsService {
       );
     }
     return message;
+  }
+
+  private requireValidGoalTitle(raw: string): string | null {
+    const title = raw.trim();
+    if (!title) return null;
+    if (title.length > 80) {
+      throw new ApiError(
+        400,
+        'INVALID_GOAL_TITLE',
+        'Goal title must be at most 80 characters.',
+      );
+    }
+    return title;
+  }
+
+  private requireValidGoalAmount(raw: string): Prisma.Decimal {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 100) {
+      throw new ApiError(
+        400,
+        'INVALID_GOAL_AMOUNT',
+        'Goal target must be at least 100.00.',
+      );
+    }
+    if (n > 100_000_000) {
+      throw new ApiError(
+        400,
+        'INVALID_GOAL_AMOUNT',
+        'Goal target is too large.',
+      );
+    }
+    return new Prisma.Decimal(n.toFixed(2));
   }
 
   private requireValidCurrency(raw: string): AllowedCurrency {

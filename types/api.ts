@@ -40,6 +40,9 @@ export interface CreatorProfile {
   currency: string;
   suggestedTipAmounts: string[];
   isActive: boolean;
+  goalTitle: string | null;
+  goalTargetAmount: string | null;
+  goalActive: boolean;
   socialLinks: CreatorSocialLink[];
   publicPath: string;
   createdAt: string;
@@ -67,7 +70,17 @@ export interface PublicSupporterNote {
 export interface PublicCreatorPage {
   profile: CreatorProfile;
   tipsThisWeek: TipsThisWeek;
+  supportGoal: SupportGoal | null;
   recentSupporterNotes: PublicSupporterNote[];
+}
+
+export interface SupportGoal {
+  active: boolean;
+  title: string;
+  targetAmount: string;
+  raisedAmount: string;
+  currency: string;
+  percent: number;
 }
 
 export interface UsernameAvailability {
@@ -89,6 +102,7 @@ export interface PublicTip {
   amount: string;
   currency: string;
   message: string | null;
+  aiThankYouMessage: string | null;
   isAnonymous: boolean;
   supporterName: string | null;
   creator: {
@@ -163,6 +177,11 @@ export interface CreatorDashboard {
     lifetime: number;
     thisWeek: number;
   };
+  conversion: {
+    viewsToTipsRate: number | null;
+    viewsToTipsPercent: number | null;
+  };
+  supportGoal: SupportGoal | null;
   recentTips: CreatorTip[];
   recentMessages: CreatorTip[];
   settlement: CreatorSettlementStatus;
@@ -173,7 +192,8 @@ export interface CreatorSettlementStatus {
   bachsConnectAccountId: string | null;
   tippyHoldsWithdrawableBalance: false;
   tippyInitiatedPayoutAvailable: false;
-  automatedFridayPayout: 'FUTURE_CAPABILITY';
+  automatedFridayPayout: 'NOT_ENABLED' | 'CONFIGURED' | 'FUTURE_CAPABILITY';
+  destinationChargesEnabled: boolean;
   message: string;
 }
 

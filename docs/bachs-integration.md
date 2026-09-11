@@ -208,13 +208,14 @@ Docs: [Payment method support](https://docs.bachs.io/guides/payments/payment-met
 
 Platform must have active `connect` ([Become a platform](https://docs.bachs.io/connect/become-a-platform.md)). Creators as recipients request `transfers` + `payouts` under the recipient persona.
 
-### TippyMe MVP status (Phase 10)
+### TippyMe status (Connect settlement shipped for demo)
 
-- Tip checkout does **not** yet use `transfer_data.destination` or Connect transfers.
-- TippyMe does **not** expose a withdrawable wallet or Tippy-initiated payout API.
-- Dashboard tip totals are TippyMe records only.
-- **Automatic scheduled payout — future capability.**
-- Details: `docs/PHASE-10-PAYOUT.md`.
+- Creators can start Bachs Connect onboarding from the dashboard (`POST /api/creators/me/connect/onboard`).
+- When `BACHS_API_KEY` is unset, TippyMe stores an honest stub `acct_stub_…` so demos still close the loop.
+- Tip checkout includes `transfer_data.destination` + `platform_fee` when `bachsAccountId` is linked.
+- Friday weekly payout can be requested via `POST /api/creators/me/connect/friday-payout` (Bachs `balance_settings` best-effort).
+- TippyMe still does **not** expose a withdrawable TippyMe wallet.
+- Demo script: `docs/DEMO-SCRIPT.md`.
 
 **UNKNOWN — NEEDS VERIFICATION:** Whether the TippyMe Bachs sandbox org already has `connect` enabled.
 

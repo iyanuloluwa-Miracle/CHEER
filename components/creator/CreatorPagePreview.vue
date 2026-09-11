@@ -6,9 +6,9 @@
       class="relative px-6 pb-8 pt-10"
       style="
         background:
-          radial-gradient(ellipse 80% 60% at 10% 0%, rgba(200, 240, 221, 0.7), transparent 55%),
-          radial-gradient(ellipse 70% 50% at 100% 10%, rgba(31, 107, 74, 0.1), transparent 50%),
-          #faf8f4;
+          radial-gradient(ellipse 80% 60% at 10% 0%, rgba(238, 230, 255, 0.7), transparent 55%),
+          radial-gradient(ellipse 70% 50% at 100% 10%, rgba(147, 98, 255, 0.1), transparent 50%),
+          #f7f4ff;
       "
     >
       <div class="flex flex-col items-center text-center">
@@ -52,7 +52,7 @@
         <span
           v-for="amount in tipAmounts"
           :key="amount"
-          class="rounded-full border border-black/10 bg-[#faf8f4] px-3.5 py-1.5 text-sm font-semibold text-cheer-ink"
+          class="rounded-full border border-black/10 bg-[#f7f4ff] px-3.5 py-1.5 text-sm font-semibold text-cheer-ink"
         >
           {{ formatAmount(amount) }}
         </span>

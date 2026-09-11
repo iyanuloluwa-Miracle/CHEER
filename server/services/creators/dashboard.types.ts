@@ -4,6 +4,7 @@ import type {
   Tip,
   TipStatus,
 } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { decimalToAmountString } from '../tips/tips.types';
 import type { CreatorProfileDto } from './creators.types';
 import type { CreatorSettlementStatusDto } from './settlement.types';
@@ -45,10 +46,53 @@ export interface CreatorDashboardDto {
     lifetime: number;
     thisWeek: number;
   };
+  conversion: {
+    viewsToTipsRate: number | null;
+    viewsToTipsPercent: number | null;
+  };
+  supportGoal: SupportGoalDto | null;
   recentTips: CreatorTipDto[];
   recentMessages: CreatorTipDto[];
   /** Bachs Connect / payout readiness — never a TippyMe wallet. */
   settlement: CreatorSettlementStatusDto;
+}
+
+export interface SupportGoalDto {
+  active: boolean;
+  title: string;
+  targetAmount: string;
+  raisedAmount: string;
+  currency: string;
+  /** 0–100 */
+  percent: number;
+}
+
+export function toSupportGoalDto(
+  profile: {
+    currency: string;
+    goalTitle: string | null;
+    goalTargetAmount: Prisma.Decimal | null;
+    goalActive: boolean;
+  },
+  raised: Prisma.Decimal | null | undefined,
+): SupportGoalDto | null {
+  if (!profile.goalActive || !profile.goalTitle || !profile.goalTargetAmount) {
+    return null;
+  }
+  const target = Number(profile.goalTargetAmount.toFixed(2));
+  const raisedNum = Number(
+    (raised ?? new Prisma.Decimal(0)).toFixed(2),
+  );
+  const percent =
+    target > 0 ? Math.min(100, Math.round((raisedNum / target) * 1000) / 10) : 0;
+  return {
+    active: true,
+    title: profile.goalTitle,
+    targetAmount: profile.goalTargetAmount.toFixed(2),
+    raisedAmount: (raised ?? new Prisma.Decimal(0)).toFixed(2),
+    currency: profile.currency,
+    percent,
+  };
 }
 
 export interface CreatorTipsPageDto {
@@ -175,6 +219,7 @@ export interface TipsThisWeekDto {
 export interface PublicCreatorPageDto {
   profile: CreatorProfileDto;
   tipsThisWeek: TipsThisWeekDto;
+  supportGoal: SupportGoalDto | null;
   recentSupporterNotes: PublicSupporterNoteDto[];
 }
 

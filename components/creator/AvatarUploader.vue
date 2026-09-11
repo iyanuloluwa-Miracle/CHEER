@@ -8,8 +8,8 @@
           roundedClass,
           sizeClass,
           variant === 'dark'
-            ? 'bg-cheer-mint text-cheer-ink shadow-[0_12px_32px_-12px_rgba(200,240,221,0.8)] focus-visible:ring-cheer-mint focus-visible:ring-offset-[#134032]'
-            : 'bg-cheer-mint/40 text-cheer-ink ring-1 ring-black/10 focus-visible:ring-cheer-leaf focus-visible:ring-offset-[#faf8f4]',
+            ? 'bg-cheer-mint text-cheer-ink shadow-[0_12px_32px_-12px_rgba(238, 230, 255,0.8)] focus-visible:ring-cheer-mint focus-visible:ring-offset-[#3b1d7a]'
+            : 'bg-cheer-mint/40 text-cheer-ink ring-1 ring-black/10 focus-visible:ring-cheer-leaf focus-visible:ring-offset-[#f7f4ff]',
         ]"
         :disabled="disabled || uploading"
         :aria-label="ariaLabel"

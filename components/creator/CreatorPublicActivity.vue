@@ -1,6 +1,6 @@
 <template>
   <section
-    class="overflow-hidden rounded-[1.75rem] border border-black/6 bg-white/90 shadow-[0_20px_50px_-36px_rgba(15,28,23,0.3)]"
+    class="overflow-hidden rounded-[1.75rem] border border-black/6 bg-white/90 shadow-[0_20px_50px_-36px_rgba(26, 18, 40,0.3)]"
     aria-labelledby="supporter-notes-heading"
   >
     <div class="border-b border-black/6 px-5 py-5 sm:px-7 sm:py-6">

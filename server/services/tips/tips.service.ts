@@ -15,6 +15,7 @@ import {
   bachsPublicMessage,
 } from '../payments/bachs/bachs.errors';
 import { PaymentsService } from '../payments/payments.service';
+import { computePlatformFee } from '../creators/connect.service';
 import { amountValidationMessage, validateTipAmount } from './amount';
 import { sanitizeSupporterName, sanitizeTipMessage } from './message';
 import type { CreateTipInput, PublicTipDto } from './tips.types';
@@ -54,6 +55,7 @@ export class TipsService {
         avatarUrl: true,
         currency: true,
         isActive: true,
+        bachsAccountId: true,
       },
     });
 
@@ -172,6 +174,11 @@ export class TipsService {
 
     let init;
     try {
+      const destination = creator.bachsAccountId?.trim() || null;
+      const platformFee = destination
+        ? computePlatformFee(amountResult.amount)
+        : null;
+
       init = await this.payments.initializePayment({
         tipId,
         paymentTransactionId: paymentId,
@@ -183,9 +190,12 @@ export class TipsService {
         cancelUrl: `${appUrl}/${creator.username}`,
         customerEmail: supporterEmail,
         customerName,
+        bachsConnectAccountId: destination,
+        platformFee,
         metadata: {
           tip_id: tipId,
           creator_username: creator.username,
+          ...(destination ? { settled_via: 'destination_charge' } : {}),
         },
       });
     } catch (err) {

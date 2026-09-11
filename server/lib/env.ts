@@ -8,10 +8,14 @@ export type ServerEnv = {
   BACHS_API_KEY?: string;
   BACHS_API_BASE_URL?: string;
   BACHS_WEBHOOK_SECRET?: string;
+  BACHS_PLATFORM_FEE_PERCENT?: string;
   SENDBYTE_API_KEY?: string;
   SENDBYTE_WEBHOOK_SECRET?: string;
   SENDBYTE_FROM_EMAIL?: string;
   BYTESHIP_API_KEY?: string;
+  CENCORI_API_KEY?: string;
+  CENCORI_API_BASE_URL?: string;
+  CENCORI_MODEL?: string;
   LOG_FORMAT?: string;
   ERROR_MONITORING_DSN?: string;
 };
@@ -163,6 +167,11 @@ export function getServerEnv(): ServerEnv {
         (config.bachsWebhookSecret as string) ||
         process.env.BACHS_WEBHOOK_SECRET
       )?.trim() || undefined,
+    BACHS_PLATFORM_FEE_PERCENT:
+      (
+        (config.bachsPlatformFeePercent as string) ||
+        process.env.BACHS_PLATFORM_FEE_PERCENT
+      )?.trim() || '5',
     SENDBYTE_API_KEY:
       (
         (config.sendbyteApiKey as string) || process.env.SENDBYTE_API_KEY
@@ -180,6 +189,17 @@ export function getServerEnv(): ServerEnv {
       (
         (config.byteshipApiKey as string) || process.env.BYTESHIP_API_KEY
       )?.trim() || undefined,
+    CENCORI_API_KEY:
+      (
+        (config.cencoriApiKey as string) || process.env.CENCORI_API_KEY
+      )?.trim() || undefined,
+    CENCORI_API_BASE_URL:
+      (
+        (config.cencoriApiBaseUrl as string) || process.env.CENCORI_API_BASE_URL
+      )?.trim() || undefined,
+    CENCORI_MODEL:
+      ((config.cencoriModel as string) || process.env.CENCORI_MODEL)?.trim() ||
+      undefined,
     LOG_FORMAT:
       ((config.logFormat as string) || process.env.LOG_FORMAT)?.trim() ||
       undefined,

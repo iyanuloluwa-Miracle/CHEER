@@ -7,6 +7,7 @@ export interface PublicTipDto {
   amount: string;
   currency: string;
   message: string | null;
+  aiThankYouMessage: string | null;
   isAnonymous: boolean;
   supporterName: string | null;
   creator: {
@@ -44,6 +45,7 @@ export function toPublicTipDto(
     amount: decimalToAmountString(tip.amount),
     currency: tip.currency,
     message: tip.message,
+    aiThankYouMessage: tip.aiThankYouMessage ?? null,
     isAnonymous: tip.isAnonymous,
     supporterName: tip.isAnonymous ? null : tip.supporterName,
     creator: {

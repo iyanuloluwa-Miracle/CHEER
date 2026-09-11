@@ -19,11 +19,16 @@ export default defineNuxtConfig({
     bachsApiBaseUrl:
       process.env.BACHS_API_BASE_URL || 'https://sandbox-api.bachs.io',
     bachsWebhookSecret: process.env.BACHS_WEBHOOK_SECRET || '',
+    bachsPlatformFeePercent: process.env.BACHS_PLATFORM_FEE_PERCENT || '5',
     sendbyteApiKey: process.env.SENDBYTE_API_KEY || '',
     sendbyteWebhookSecret: process.env.SENDBYTE_WEBHOOK_SECRET || '',
     sendbyteFromEmail:
       process.env.SENDBYTE_FROM_EMAIL || 'TippyMe <noreply@example.com>',
     byteshipApiKey: process.env.BYTESHIP_API_KEY || '',
+    cencoriApiKey: process.env.CENCORI_API_KEY || '',
+    cencoriApiBaseUrl:
+      process.env.CENCORI_API_BASE_URL || 'https://api.cencori.com/v1',
+    cencoriModel: process.env.CENCORI_MODEL || 'gpt-4o-mini',
     logFormat: process.env.LOG_FORMAT || '',
     errorMonitoringDsn: process.env.ERROR_MONITORING_DSN || '',
     public: {
@@ -46,7 +51,7 @@ export default defineNuxtConfig({
             'One link for everyone who wants to support your work. TippyMe gives you a simple page to receive support and messages.',
         },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'theme-color', content: '#1f6b4a' },
+        { name: 'theme-color', content: '#9362ff' },
       ],
       link: [
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },

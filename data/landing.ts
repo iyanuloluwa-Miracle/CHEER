@@ -27,7 +27,7 @@ export const problemSection = {
       title: 'Bank details in chats',
       description:
         'Account numbers get copied into WhatsApp, X, and email — then sit around forever.',
-      illustration: '/problem/bank-chats.png',
+      illustration: '/illustrations/problem-bank.png',
       illustrationAlt: 'Phone chat showing bank account details shared in a message',
     },
     {
@@ -35,7 +35,7 @@ export const problemSection = {
       title: 'Too many tools',
       description:
         'Different platforms for tips, invoices, and messages make it hard for supporters to help.',
-      illustration: '/problem/too-many-tools.png',
+      illustration: '/illustrations/problem-tools.png',
       illustrationAlt: 'Person surrounded by scattered payment apps and tools',
     },
     {
@@ -43,7 +43,7 @@ export const problemSection = {
       title: 'Not only for influencers',
       description:
         'Builders, writers, researchers, and community organizers deserve a simple support page too.',
-      illustration: '/problem/makers.png',
+      illustration: '/illustrations/problem-makers.png',
       illustrationAlt: 'Diverse makers including a developer, writer, and researcher',
     },
   ],
@@ -65,7 +65,7 @@ export const howItWorksSteps: readonly HowItWorksStep[] = [
     visual: 'create',
     visualCaption: 'Preview of creating a TippyMe profile and personal link',
     visualTheme: 'light',
-    illustration: '/cheer-step-one.svg',
+    illustration: '/illustrations/hero.png',
   },
   {
     title: 'Share it anywhere',
@@ -74,7 +74,7 @@ export const howItWorksSteps: readonly HowItWorksStep[] = [
     visual: 'share',
     visualCaption: 'Preview of sharing a TippyMe link across social platforms',
     visualTheme: 'light',
-    illustration: '/Social%20media-bro.svg',
+    illustration: '/illustrations/problem-tools.png',
   },
   {
     title: 'Receive support and messages',
@@ -83,7 +83,7 @@ export const howItWorksSteps: readonly HowItWorksStep[] = [
     visual: 'receive',
     visualCaption: 'Preview of someone sending support through TippyMe',
     visualTheme: 'light',
-    illustration: '/Online%20transactions-bro.svg',
+    illustration: '/illustrations/feature-dashboard.png',
   },
 ] as const;
 
@@ -101,7 +101,7 @@ export const featureItems: readonly FeatureItem[] = [
     title: 'One link, everywhere',
     description:
       'Share a single Tippy page across WhatsApp, X, Instagram, TikTok, LinkedIn, and your site.',
-    illustration: '/features/one-link.png',
+    illustration: '/illustrations/feature-one-link.png',
     illustrationAlt: 'One personal link shared across social platforms',
   },
   {
@@ -109,7 +109,7 @@ export const featureItems: readonly FeatureItem[] = [
     title: 'Support with a message',
     description:
       'Supporters can leave a note with their tip so gratitude stays personal.',
-    illustration: '/features/message.png',
+    illustration: '/illustrations/feature-message.png',
     illustrationAlt: 'Tip with a personal thank-you message',
   },
   {
@@ -117,7 +117,7 @@ export const featureItems: readonly FeatureItem[] = [
     title: 'No account for supporters',
     description:
       'Anyone with your link can choose an amount and continue to secure checkout.',
-    illustration: '/features/no-account.png',
+    illustration: '/illustrations/feature-no-account.png',
     illustrationAlt: 'Supporter sending support without creating an account',
   },
   {
@@ -125,7 +125,7 @@ export const featureItems: readonly FeatureItem[] = [
     title: 'Clear creator dashboard',
     description:
       'See successful support, recent messages, and settlement status in one place.',
-    illustration: '/features/dashboard.png',
+    illustration: '/illustrations/feature-dashboard.png',
     illustrationAlt: 'Creator dashboard showing support totals and messages',
   },
   {
@@ -133,7 +133,7 @@ export const featureItems: readonly FeatureItem[] = [
     title: 'Your suggested amounts',
     description:
       'Set tip presets that fit your audience — plus room for custom amounts.',
-    illustration: '/features/amounts.png',
+    illustration: '/illustrations/feature-amounts.png',
     illustrationAlt: 'Suggested tip amount buttons and custom amount option',
   },
   {
@@ -141,7 +141,7 @@ export const featureItems: readonly FeatureItem[] = [
     title: 'For every kind of maker',
     description:
       'Developers, designers, writers, artists, researchers, podcasters, and African builders.',
-    illustration: '/features/makers.png',
+    illustration: '/illustrations/feature-makers.png',
     illustrationAlt: 'Diverse makers including developers, writers, and creators',
   },
 ] as const;

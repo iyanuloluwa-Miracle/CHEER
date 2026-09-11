@@ -22,6 +22,9 @@ export interface CreatorProfileDto {
   currency: string;
   suggestedTipAmounts: string[];
   isActive: boolean;
+  goalTitle: string | null;
+  goalTargetAmount: string | null;
+  goalActive: boolean;
   socialLinks: CreatorSocialLinkDto[];
   publicPath: string;
   createdAt: string;
@@ -63,6 +66,9 @@ export interface UpdateCreatorSettingsInput {
   supportMessage?: string | null;
   currency?: string;
   suggestedTipAmounts?: string[];
+  goalTitle?: string | null;
+  goalTargetAmount?: string | null;
+  goalActive?: boolean;
 }
 
 export interface ReplaceSocialLinksInput {
@@ -93,6 +99,11 @@ export function toCreatorProfileDto(
     currency: profile.currency,
     suggestedTipAmounts: parseSuggestedTipAmounts(profile.suggestedTipAmounts),
     isActive: profile.isActive,
+    goalTitle: profile.goalTitle ?? null,
+    goalTargetAmount: profile.goalTargetAmount
+      ? profile.goalTargetAmount.toFixed(2)
+      : null,
+    goalActive: Boolean(profile.goalActive),
     socialLinks: links.map((link) => ({
       id: link.id,
       platform: link.platform,

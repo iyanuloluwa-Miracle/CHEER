@@ -1,18 +1,9 @@
 <template>
-  <div
-    class="relative flex min-h-dvh flex-col overflow-hidden"
-    style="
-      background-color: #f7f4ee;
-      background-image:
-        radial-gradient(ellipse 80% 50% at 10% -10%, rgba(200, 240, 221, 0.55), transparent 55%),
-        radial-gradient(ellipse 70% 45% at 100% 0%, rgba(31, 107, 74, 0.08), transparent 50%),
-        radial-gradient(ellipse 60% 40% at 50% 110%, rgba(243, 239, 230, 0.9), transparent 55%);
-    "
-  >
+  <div class="cheer-page-atmosphere relative flex min-h-dvh flex-col overflow-hidden">
     <div
       class="pointer-events-none absolute inset-0 opacity-[0.35]"
       style="
-        background-image: radial-gradient(rgba(15, 28, 23, 0.06) 1px, transparent 1px);
+        background-image: radial-gradient(rgba(147, 98, 255, 0.1) 1px, transparent 1px);
         background-size: 22px 22px;
       "
       aria-hidden="true"
@@ -28,11 +19,11 @@
           src="/cheers-logo-nav.png"
           alt=""
           aria-hidden="true"
-          class="h-5 w-auto shrink-0 object-contain"
+          class="h-5 w-auto shrink-0 object-contain cheer-logo-tint"
           width="17"
           height="24"
           decoding="async"
-        />
+        >
         <span class="text-base font-bold leading-none tracking-tight text-cheer-ink">
           TippyMe
         </span>

@@ -25,7 +25,7 @@
 
     <div
       v-else-if="error"
-      class="mx-auto max-w-md rounded-[1.75rem] border border-black/8 bg-white/90 px-6 py-14 text-center shadow-[0_20px_60px_-40px_rgba(15,28,23,0.35)]"
+      class="mx-auto max-w-md rounded-[1.75rem] border border-black/8 bg-white/90 px-6 py-14 text-center shadow-[0_20px_60px_-40px_rgba(26, 18, 40,0.35)]"
     >
       <div
         class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-cheer-sand text-2xl font-bold text-cheer-ink/40"
@@ -52,21 +52,21 @@
       class="space-y-8 lg:space-y-10"
     >
       <div
-        class="overflow-hidden rounded-[1.75rem] border border-black/6 bg-white shadow-[0_28px_70px_-42px_rgba(15,28,23,0.45)] lg:grid lg:grid-cols-[minmax(17rem,0.92fr)_minmax(0,1.08fr)]"
+        class="overflow-hidden rounded-[1.75rem] border border-black/6 bg-white shadow-[0_28px_70px_-42px_rgba(26, 18, 40,0.45)] lg:grid lg:grid-cols-[minmax(17rem,0.92fr)_minmax(0,1.08fr)]"
       >
         <aside
           class="relative overflow-hidden px-6 py-8 text-white sm:px-8 sm:py-10 lg:px-9 lg:py-11"
           style="
             background:
-              radial-gradient(ellipse 80% 70% at 100% 0%, rgba(200, 240, 221, 0.2), transparent 55%),
-              radial-gradient(ellipse 60% 50% at 0% 100%, rgba(240, 162, 2, 0.1), transparent 50%),
-              linear-gradient(160deg, #1a4f38 0%, #134032 45%, #0f1c17 100%);
+              radial-gradient(ellipse 80% 70% at 100% 0%, rgba(238, 230, 255, 0.2), transparent 55%),
+              radial-gradient(ellipse 60% 50% at 0% 100%, rgba(183, 148, 255, 0.1), transparent 50%),
+              linear-gradient(160deg, #5b2db8 0%, #3b1d7a 45%, #1a1228 100%);
           "
         >
           <div
             class="pointer-events-none absolute inset-0 opacity-[0.16]"
             style="
-              background-image: radial-gradient(rgba(200, 240, 221, 0.45) 1px, transparent 1px);
+              background-image: radial-gradient(rgba(238, 230, 255, 0.45) 1px, transparent 1px);
               background-size: 18px 18px;
             "
             aria-hidden="true"
@@ -75,7 +75,7 @@
           <div class="relative flex flex-col items-center text-center lg:items-start lg:text-left">
             <div class="relative inline-flex">
               <div
-                class="h-24 w-24 overflow-hidden rounded-full bg-cheer-mint shadow-[0_14px_36px_-12px_rgba(200,240,221,0.75)] ring-[5px] ring-white/15 sm:h-28 sm:w-28"
+                class="h-24 w-24 overflow-hidden rounded-full bg-cheer-mint shadow-[0_14px_36px_-12px_rgba(238, 230, 255,0.75)] ring-[5px] ring-white/15 sm:h-28 sm:w-28"
               >
                 <img
                   :src="avatarSrc"
@@ -88,7 +88,7 @@
                 >
               </div>
               <span
-                class="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-cheer-glow ring-[3px] ring-[#134032]"
+                class="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-cheer-glow ring-[3px] ring-[#3b1d7a]"
                 aria-hidden="true"
               />
             </div>
@@ -152,6 +152,30 @@
             </p>
           </header>
 
+          <div
+            v-if="supportGoal"
+            class="mb-7 rounded-2xl border border-cheer-leaf/20 bg-cheer-mint/20 px-4 py-4"
+          >
+            <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cheer-leaf">
+              Support goal
+            </p>
+            <p class="mt-1 text-base font-bold text-cheer-ink">
+              {{ supportGoal.title }}
+            </p>
+            <p class="mt-1 text-sm text-cheer-ink/65">
+              {{ formatGoalMoney(supportGoal.raisedAmount, supportGoal.currency) }}
+              of
+              {{ formatGoalMoney(supportGoal.targetAmount, supportGoal.currency) }}
+              · {{ supportGoal.percent }}%
+            </p>
+            <div class="mt-3 h-2 overflow-hidden rounded-full bg-white/80">
+              <div
+                class="h-full rounded-full bg-cheer-leaf transition-all"
+                :style="{ width: `${Math.min(100, supportGoal.percent)}%` }"
+              />
+            </div>
+          </div>
+
           <SupportForm
             :username="profile.username"
             :display-name="profile.displayName"
@@ -208,6 +232,17 @@ const profile = computed(() => data.value?.profile ?? null);
 const recentSupporterNotes = computed(
   () => data.value?.recentSupporterNotes ?? [],
 );
+const supportGoal = computed(() => data.value?.supportGoal ?? null);
+
+function formatGoalMoney(amount: string, currency: string) {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return amount;
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(n);
+}
 
 const error = computed(() => {
   if (!fetchError.value) return null;

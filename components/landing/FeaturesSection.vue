@@ -21,7 +21,7 @@
           :key="feature.id"
           class="flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm shadow-black/5"
         >
-          <div class="bg-[#faf8f4] px-4 pt-4 sm:px-5 sm:pt-5">
+          <div class="bg-white px-4 pt-4 sm:px-5 sm:pt-5">
             <img
               :src="feature.illustration"
               :alt="feature.illustrationAlt"
@@ -56,7 +56,7 @@
             :key="label"
           >
             <span
-              class="inline-flex rounded-full border border-black/10 bg-[#faf8f4] px-3 py-1.5 text-sm font-medium text-cheer-ink/80"
+              class="inline-flex rounded-full border border-cheer-leaf/20 bg-white px-3 py-1.5 text-sm font-medium text-cheer-ink/80"
             >
               {{ label }}
             </span>

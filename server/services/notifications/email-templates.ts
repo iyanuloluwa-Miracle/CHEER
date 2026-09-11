@@ -14,10 +14,10 @@ export function tipReceivedEmail(params: {
   const html = `
 <!DOCTYPE html>
 <html>
-<body style="font-family: system-ui, sans-serif; color: #0f1c17; line-height: 1.5;">
+<body style="font-family: system-ui, sans-serif; color: #1a1228; line-height: 1.5;">
   <p>${escapeHtml(who)} supported your work.</p>
   <p style="font-size: 22px; font-weight: 700;">${escapeHtml(params.amount)} ${escapeHtml(params.currency)}</p>
-  <p style="color: #4a5c54;">Your Tippy support was received. This is a confirmation only — not a marketing message.</p>
+  <p style="color: #6b5f8a;">Your Tippy support was received. This is a confirmation only — not a marketing message.</p>
 </body>
 </html>`.trim();
   return { subject, text, html };
@@ -34,9 +34,9 @@ export function accountVerifiedEmail(): {
   const html = `
 <!DOCTYPE html>
 <html>
-<body style="font-family: system-ui, sans-serif; color: #0f1c17; line-height: 1.5;">
+<body style="font-family: system-ui, sans-serif; color: #1a1228; line-height: 1.5;">
   <p>Your TippyMe account was verified.</p>
-  <p style="color: #4a5c54;">You can sign in and set up your creator page whenever you are ready.</p>
+  <p style="color: #6b5f8a;">You can sign in and set up your creator page whenever you are ready.</p>
 </body>
 </html>`.trim();
   return { subject, text, html };
@@ -52,10 +52,10 @@ export function securityLoginEmail(params: { method: string; atIso: string }): {
   const html = `
 <!DOCTYPE html>
 <html>
-<body style="font-family: system-ui, sans-serif; color: #0f1c17; line-height: 1.5;">
+<body style="font-family: system-ui, sans-serif; color: #1a1228; line-height: 1.5;">
   <p>New sign-in to your TippyMe account.</p>
-  <p style="color: #4a5c54;">Method: ${escapeHtml(params.method)} · ${escapeHtml(params.atIso)}</p>
-  <p style="color: #4a5c54;">If this was not you, change your password and contact support.</p>
+  <p style="color: #6b5f8a;">Method: ${escapeHtml(params.method)} · ${escapeHtml(params.atIso)}</p>
+  <p style="color: #6b5f8a;">If this was not you, change your password and contact support.</p>
 </body>
 </html>`.trim();
   return { subject, text, html };
@@ -71,7 +71,7 @@ export function otpEmail(code: string): {
   const html = `
 <!DOCTYPE html>
 <html>
-<body style="font-family: system-ui, sans-serif; color: #0f1c17;">
+<body style="font-family: system-ui, sans-serif; color: #1a1228;">
   <p>Your TippyMe verification code is:</p>
   <p style="font-size: 28px; font-weight: 700; letter-spacing: 0.2em;">${escapeHtml(code)}</p>
   <p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p>

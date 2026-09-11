@@ -1,6 +1,6 @@
 <template>
-  <div class="flex min-h-screen flex-col bg-[#f7f4ee]">
-    <header class="border-b border-black/5">
+  <div class="flex min-h-screen flex-col bg-white">
+    <header class="border-b border-cheer-leaf/10">
       <div class="mx-auto flex max-w-md items-center justify-between px-4 py-3">
         <NuxtLink
           to="/"
@@ -11,7 +11,7 @@
             src="/cheers-logo-nav.png"
             alt=""
             aria-hidden="true"
-            class="h-5 w-auto object-contain"
+            class="h-5 w-auto object-contain cheer-logo-tint"
             width="17"
             height="24"
             decoding="async"

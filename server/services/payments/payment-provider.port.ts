@@ -1,10 +1,7 @@
 /**
  * Payment provider port — TippyMe never leaks Bachs-specific types into tips/UI.
- * Phase 6 ships a stub; Phase 7 plugs in Bachs behind this interface.
- *
- * Payout / Connect settlement is intentionally out of scope for this port until
- * TippyMe wires Bachs Connect (see docs/PHASE-10-PAYOUT.md). Do not add a fake
- * TippyMe wallet or withdraw API here.
+ * Connect destination charges are optional on initialize when the creator has
+ * a linked Bachs Connect account. TippyMe never invents a withdrawable wallet.
  */
 
 export type PaymentProviderName = 'DEV_STUB' | 'BACHS';
@@ -22,6 +19,13 @@ export interface InitializePaymentInput {
   customerEmail?: string;
   customerName?: string;
   metadata?: Record<string, string>;
+  /**
+   * Bachs Connect `acct_…` for destination charges.
+   * When set, checkout includes transfer_data.destination + platform_fee.
+   */
+  bachsConnectAccountId?: string | null;
+  /** Platform fee as decimal string (same currency). Computed by TipsService. */
+  platformFee?: string | null;
 }
 
 export interface InitializePaymentResult {

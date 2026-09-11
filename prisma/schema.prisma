@@ -122,8 +122,15 @@ model CreatorProfile {
   /// Suggested tip amounts as decimal strings, e.g. ["1000.00","2500.00","5000.00"]
   suggestedTipAmounts Json?
   isActive       Boolean  @default(true)
-  /// Bachs Connect account id when onboarded (future — see Phase 10)
+  /// Bachs Connect account id when onboarded (see Phase 10 / Connect settlement)
   bachsAccountId String?  @unique
+  /// True when TippyMe requested weekly Friday payout schedule on the Connect balance
+  fridayPayoutEnabled Boolean @default(false)
+  /// Optional public support goal (e.g. "Laptop fund")
+  goalTitle        String?
+  /// Target amount as Decimal — progress is sum of PAID tips
+  goalTargetAmount Decimal? @db.Decimal(18, 2)
+  goalActive       Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -174,6 +181,8 @@ model Tip {
   amount                Decimal   @db.Decimal(18, 2)
   currency              String    @db.Char(3)
   message               String?   @db.Text
+  /// Personalized thank-you generated via Cencori (or local fallback) after PAID
+  aiThankYouMessage     String?   @db.Text
   isAnonymous           Boolean   @default(false)
   /// Shown only when isAnonymous is false
   supporterName         String?

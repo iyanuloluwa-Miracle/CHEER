@@ -35,7 +35,7 @@
     >
       <!-- Identity -->
       <section
-        class="rounded-[1.75rem] border border-black/6 bg-white/85 p-5 shadow-[0_1px_0_rgba(15,28,23,0.04)] backdrop-blur-md sm:p-7"
+        class="rounded-[1.75rem] border border-black/6 bg-white/85 p-5 shadow-[0_1px_0_rgba(26, 18, 40,0.04)] backdrop-blur-md sm:p-7"
         aria-labelledby="identity-heading"
       >
         <h2
@@ -78,26 +78,42 @@
               type="text"
               maxlength="80"
               required
-              class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base outline-none focus:border-cheer-leaf/40 focus:ring-2 focus:ring-cheer-leaf/30"
+              class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-base outline-none focus:border-cheer-leaf/40 focus:ring-2 focus:ring-cheer-leaf/30"
               placeholder="How supporters see you"
               :disabled="identityPending"
             >
           </div>
 
           <div>
-            <label
-              for="edit-bio"
-              class="block text-sm text-cheer-ink"
-            >Bio</label>
+            <div class="flex items-center justify-between gap-2">
+              <label
+                for="edit-bio"
+                class="block text-sm text-cheer-ink"
+              >Bio</label>
+              <button
+                type="button"
+                class="text-xs font-semibold text-cheer-leaf hover:underline disabled:opacity-50"
+                :disabled="identityPending || aiBusy"
+                @click="polishBio"
+              >
+                {{ aiBusy ? 'Polishing…' : 'Polish with AI' }}
+              </button>
+            </div>
             <textarea
               id="edit-bio"
               v-model="bio"
               rows="3"
               maxlength="500"
-              class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base outline-none focus:border-cheer-leaf/40 focus:ring-2 focus:ring-cheer-leaf/30"
+              class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-base outline-none focus:border-cheer-leaf/40 focus:ring-2 focus:ring-cheer-leaf/30"
               placeholder="A short line about your work"
               :disabled="identityPending"
             />
+            <p
+              v-if="aiHint"
+              class="mt-1 text-xs text-cheer-ink/50"
+            >
+              {{ aiHint }}
+            </p>
           </div>
 
           <div>
@@ -105,7 +121,7 @@
               for="edit-username"
               class="block text-sm text-cheer-ink"
             >Username</label>
-            <div class="mt-1.5 flex items-center gap-2 rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 focus-within:border-cheer-leaf/40 focus-within:ring-2 focus-within:ring-cheer-leaf/30">
+            <div class="mt-1.5 flex items-center gap-2 rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 focus-within:border-cheer-leaf/40 focus-within:ring-2 focus-within:ring-cheer-leaf/30">
               <span class="shrink-0 text-sm text-cheer-ink/45">/</span>
               <input
                 id="edit-username"
@@ -160,7 +176,7 @@
 
       <!-- Social -->
       <section
-        class="rounded-[1.75rem] border border-black/6 bg-white/85 p-5 shadow-[0_1px_0_rgba(15,28,23,0.04)] backdrop-blur-md sm:p-7"
+        class="rounded-[1.75rem] border border-black/6 bg-white/85 p-5 shadow-[0_1px_0_rgba(26, 18, 40,0.04)] backdrop-blur-md sm:p-7"
         aria-labelledby="social-heading"
       >
         <h2
@@ -181,7 +197,7 @@
           >
             <select
               v-model="link.platform"
-              class="rounded-xl border border-black/10 bg-[#faf8f4] px-3 py-2.5 text-sm"
+              class="rounded-xl border border-black/10 bg-[#f7f4ff] px-3 py-2.5 text-sm"
               :disabled="socialPending"
             >
               <option
@@ -196,7 +212,7 @@
               v-model="link.url"
               type="url"
               placeholder="https://"
-              class="min-w-0 flex-1 rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-cheer-leaf/30"
+              class="min-w-0 flex-1 rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-cheer-leaf/30"
               :disabled="socialPending"
             >
             <button
@@ -246,7 +262,7 @@
 
       <!-- Support -->
       <section
-        class="rounded-[1.75rem] border border-black/6 bg-white/85 p-5 shadow-[0_1px_0_rgba(15,28,23,0.04)] backdrop-blur-md sm:p-7"
+        class="rounded-[1.75rem] border border-black/6 bg-white/85 p-5 shadow-[0_1px_0_rgba(26, 18, 40,0.04)] backdrop-blur-md sm:p-7"
         aria-labelledby="support-heading"
       >
         <h2
@@ -268,7 +284,7 @@
             <select
               id="edit-currency"
               v-model="currency"
-              class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base"
+              class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-base"
               :disabled="settingsPending"
             >
               <option
@@ -291,7 +307,7 @@
               v-model="supportMessage"
               rows="3"
               maxlength="500"
-              class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#faf8f4] px-3.5 py-2.5 text-base outline-none focus:ring-2 focus:ring-cheer-leaf/30"
+              class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-base outline-none focus:ring-2 focus:ring-cheer-leaf/30"
               placeholder="Thanks for supporting my work…"
               :disabled="settingsPending"
             />
@@ -306,13 +322,60 @@
                 v-model="tipAmounts[i]"
                 type="text"
                 inputmode="decimal"
-                class="w-28 rounded-xl border border-black/10 bg-[#faf8f4] px-3 py-2 text-sm"
+                class="w-28 rounded-xl border border-black/10 bg-[#f7f4ff] px-3 py-2 text-sm"
                 :disabled="settingsPending"
               >
             </div>
             <p class="mt-1 text-xs text-cheer-ink/50">
               Decimal amounts (e.g. 1000.00). Up to 5 amounts.
             </p>
+          </div>
+
+          <div class="rounded-2xl border border-black/8 bg-cheer-sand/50 p-4">
+            <label class="flex items-center gap-2 text-sm font-semibold text-cheer-ink">
+              <input
+                v-model="goalActive"
+                type="checkbox"
+                class="rounded border-black/20"
+                :disabled="settingsPending"
+              >
+              Show a support goal on my public page
+            </label>
+            <div
+              v-if="goalActive"
+              class="mt-3 space-y-3"
+            >
+              <div>
+                <label
+                  for="edit-goal-title"
+                  class="block text-sm text-cheer-ink"
+                >Goal title</label>
+                <input
+                  id="edit-goal-title"
+                  v-model="goalTitle"
+                  type="text"
+                  maxlength="80"
+                  class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-base"
+                  placeholder="e.g. Laptop fund"
+                  :disabled="settingsPending"
+                >
+              </div>
+              <div>
+                <label
+                  for="edit-goal-amount"
+                  class="block text-sm text-cheer-ink"
+                >Target amount</label>
+                <input
+                  id="edit-goal-amount"
+                  v-model="goalTargetAmount"
+                  type="text"
+                  inputmode="decimal"
+                  class="mt-1.5 w-full rounded-xl border border-black/10 bg-[#f7f4ff] px-3.5 py-2.5 text-base"
+                  placeholder="50000.00"
+                  :disabled="settingsPending"
+                >
+              </div>
+            </div>
           </div>
         </div>
 
@@ -396,6 +459,11 @@ const socialLinks = ref<{ platform: SocialPlatform; url: string }[]>([]);
 const supportMessage = ref('');
 const currency = ref('NGN');
 const tipAmounts = ref(['1000.00', '2500.00', '5000.00']);
+const goalActive = ref(false);
+const goalTitle = ref('');
+const goalTargetAmount = ref('');
+const aiBusy = ref(false);
+const aiHint = ref<string | null>(null);
 
 const identityPending = ref(false);
 const identityError = ref<string | null>(null);
@@ -458,6 +526,10 @@ function applyProfile(p: CreatorProfile) {
   if (tipAmounts.value.length > 5) {
     tipAmounts.value = tipAmounts.value.slice(0, 5);
   }
+
+  goalActive.value = Boolean(p.goalActive);
+  goalTitle.value = p.goalTitle ?? '';
+  goalTargetAmount.value = p.goalTargetAmount ?? '';
 
   publicPath.value = p.publicPath;
   avatarUrlState.value = p.avatarUrl;
@@ -629,6 +701,11 @@ async function saveSettings() {
       supportMessage: supportMessage.value.trim() || null,
       currency: currency.value,
       suggestedTipAmounts: amounts,
+      goalActive: goalActive.value,
+      goalTitle: goalActive.value ? goalTitle.value.trim() || null : null,
+      goalTargetAmount: goalActive.value
+        ? goalTargetAmount.value.trim() || null
+        : null,
     });
     applyProfile(updated);
     settingsSuccess.value = 'Support settings saved.';
@@ -636,6 +713,29 @@ async function saveSettings() {
     settingsError.value = mapError(err);
   } finally {
     settingsPending.value = false;
+  }
+}
+
+async function polishBio() {
+  aiBusy.value = true;
+  aiHint.value = null;
+  try {
+    const result = await api.polishBio({
+      displayName: displayName.value.trim() || username.value,
+      draft: bio.value,
+    });
+    bio.value = result.bio;
+    if (result.supportCta && !supportMessage.value.trim()) {
+      supportMessage.value = result.supportCta;
+    }
+    aiHint.value =
+      result.source === 'cencori'
+        ? 'Polished with Cencori AI — review before saving.'
+        : 'Local AI assist used (add CENCORI_API_KEY for live Cencori).';
+  } catch (err) {
+    aiHint.value = mapError(err);
+  } finally {
+    aiBusy.value = false;
   }
 }
 </script>

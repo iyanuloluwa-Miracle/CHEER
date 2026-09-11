@@ -11,6 +11,7 @@ Live runtime: single Nuxt 3 + Nitro app at the repo root — SSR pages and `/api
 | [aib-stack.md](./aib-stack.md) | Africa Is Building Ship 2026 / AIB Stack research |
 | [architecture.md](./architecture.md) | System architecture & security boundaries |
 | [product-requirements.md](./product-requirements.md) | MVP product requirements |
+| [DEMO-SCRIPT.md](./DEMO-SCRIPT.md) | 90-second hackathon live demo path |
 | [bachs-integration.md](./bachs-integration.md) | Bachs payments research |
 | [sendbyte-integration.md](./sendbyte-integration.md) | SendByte email / OTP research |
 | [outray-development.md](./outray-development.md) | OutRay local webhook tunnels |
