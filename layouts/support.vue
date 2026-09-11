@@ -11,12 +11,12 @@
             src="/cheers-logo-nav.png"
             alt=""
             aria-hidden="true"
-            class="h-5 w-auto object-contain cheer-logo-tint"
-            width="17"
-            height="24"
+            class="h-5 w-auto shrink-0 object-contain"
+            width="14"
+            height="20"
             decoding="async"
           >
-          <span class="text-sm font-bold tracking-tight text-cheer-ink">TippyMe</span>
+          <span class="text-sm font-bold leading-none tracking-tight text-cheer-ink">TippyMe</span>
         </NuxtLink>
       </div>
     </header>

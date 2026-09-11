@@ -56,18 +56,20 @@
             <path d="M4 7h16M4 12h16M4 17h16" />
           </svg>
         </button>
-        <img
-          src="/cheers-logo-nav.png"
-          alt=""
-          aria-hidden="true"
-          class="h-5 w-auto cheer-logo-tint"
-          width="17"
-          height="24"
-          decoding="async"
-        >
-        <span class="text-sm font-bold tracking-tight text-cheer-ink">
-          TippyMe
-        </span>
+        <div class="inline-flex items-center gap-2">
+          <img
+            src="/cheers-logo-nav.png"
+            alt=""
+            aria-hidden="true"
+            class="h-5 w-auto shrink-0 object-contain"
+            width="14"
+            height="20"
+            decoding="async"
+          >
+          <span class="text-sm font-bold leading-none tracking-tight text-cheer-ink">
+            TippyMe
+          </span>
+        </div>
       </header>
 
       <main class="relative min-h-0 w-full flex-1 overflow-y-auto">

@@ -19,8 +19,8 @@
           src="/cheers-logo-nav.png"
           alt=""
           aria-hidden="true"
-          class="h-5 w-auto shrink-0 object-contain cheer-logo-tint"
-          width="17"
+          class="h-6 w-auto shrink-0 object-contain"
+          width="16"
           height="24"
           decoding="async"
         >

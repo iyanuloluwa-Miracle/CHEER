@@ -22,22 +22,18 @@
         <NuxtLink
           to="/"
           aria-label="TippyMe home"
-          class="inline-flex items-center gap-2.5 rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2"
+          class="inline-flex items-center gap-2 rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cheer-leaf focus-visible:ring-offset-2"
         >
-          <span
-            class="flex h-8 w-8 items-center justify-center rounded-xl bg-cheer-leaf shadow-sm"
+          <img
+            src="/cheers-logo-nav.png"
+            alt=""
+            aria-hidden="true"
+            class="h-6 w-auto shrink-0 object-contain"
+            width="16"
+            height="24"
+            decoding="async"
           >
-            <img
-              src="/cheers-logo-nav.png"
-              alt=""
-              aria-hidden="true"
-              class="h-4 w-auto brightness-0 invert"
-              width="14"
-              height="20"
-              decoding="async"
-            >
-          </span>
-          <span class="text-base font-bold tracking-tight text-cheer-ink">TippyMe</span>
+          <span class="text-base font-bold leading-none tracking-tight text-cheer-ink">TippyMe</span>
         </NuxtLink>
 
         <NuxtLink

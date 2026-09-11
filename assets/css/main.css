@@ -245,10 +245,6 @@ body {
       radial-gradient(ellipse 60% 45% at 95% 0%, rgba(147, 98, 255, 0.12), transparent 50%);
   }
 
-  /* Shift legacy green logo assets toward brand purple */
-  .cheer-logo-tint {
-    filter: hue-rotate(95deg) saturate(1.35) brightness(1.05);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

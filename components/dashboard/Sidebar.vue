@@ -28,9 +28,9 @@
           src="/tippyme-mark.png"
           alt=""
           aria-hidden="true"
-          class="h-9 w-9 rounded-xl object-contain"
-          width="77"
-          height="77"
+          class="h-7 w-auto shrink-0 object-contain brightness-0 invert"
+          width="19"
+          height="28"
           decoding="async"
         >
         <span class="text-lg font-bold leading-none tracking-tight">
