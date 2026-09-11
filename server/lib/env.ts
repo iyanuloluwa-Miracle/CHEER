@@ -96,12 +96,19 @@ export function getServerEnv(): ServerEnv {
     (config.authSecret as string) || process.env.AUTH_SECRET || '';
   let otpHashPepper =
     (config.otpHashPepper as string) || process.env.OTP_HASH_PEPPER || '';
+  // Prefer process.env over baked runtimeConfig. Docker builds often embed
+  // `http://localhost:3000` into config.apiUrl; Nuxt only overrides that key
+  // via NUXT_API_URL, so a plain API_URL at runtime was ignored.
   let appUrl =
-    (publicConfig.appUrl as string) ||
     process.env.APP_URL ||
     process.env.NUXT_PUBLIC_APP_URL ||
+    (publicConfig.appUrl as string) ||
     '';
-  let apiUrl = (config.apiUrl as string) || process.env.API_URL || '';
+  let apiUrl =
+    process.env.API_URL ||
+    process.env.NUXT_API_URL ||
+    (config.apiUrl as string) ||
+    '';
 
   if (!production) {
     if (!databaseUrl) {
@@ -140,6 +147,10 @@ export function getServerEnv(): ServerEnv {
       throw new Error(
         'Environment validation failed: APP_URL must use https:// in production.',
       );
+    }
+    // Drop build-time http://localhost defaults so we fall back to APP_URL.
+    if (apiUrl && !apiUrl.startsWith('https://')) {
+      apiUrl = '';
     }
     apiUrl = requireNonEmpty('API_URL', apiUrl || appUrl);
     if (!apiUrl.startsWith('https://')) {

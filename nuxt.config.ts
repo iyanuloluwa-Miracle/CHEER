@@ -14,7 +14,9 @@ export default defineNuxtConfig({
     databaseUrl: process.env.DATABASE_URL || '',
     authSecret: process.env.AUTH_SECRET || '',
     otpHashPepper: process.env.OTP_HASH_PEPPER || '',
-    apiUrl: process.env.API_URL || process.env.APP_URL || 'http://localhost:3000',
+    // Empty default so Docker/build does not bake http://localhost into the image.
+    // Runtime: set API_URL or NUXT_API_URL (https in production).
+    apiUrl: process.env.API_URL || process.env.APP_URL || process.env.NUXT_API_URL || '',
     bachsApiKey: process.env.BACHS_API_KEY || '',
     bachsApiBaseUrl:
       process.env.BACHS_API_BASE_URL || 'https://sandbox-api.bachs.io',
