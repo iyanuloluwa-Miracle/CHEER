@@ -146,19 +146,35 @@ export const featureItems: readonly FeatureItem[] = [
   },
 ] as const;
 
-export const audienceLabels: readonly string[] = [
-  'Developers',
-  'Creators',
-  'Designers',
-  'Writers',
-  'Artists',
-  'Open-source contributors',
-  'Researchers',
-  'Podcasters',
-  'Community builders',
-  'Indie hackers',
-  'African builders',
+/** Audience avatars for the hero DiceBear scatter (kept inset so they don’t clip). */
+export const audienceItems = [
+  { label: 'Developers', seed: 'tippy-developers', top: '4%', left: '10%', size: 48, delay: '0s' },
+  { label: 'Creators', seed: 'tippy-creators', top: '6%', left: '90%', size: 44, delay: '0.35s' },
+  { label: 'Designers', seed: 'tippy-designers', top: '30%', left: '6%', size: 42, delay: '0.7s' },
+  { label: 'Writers', seed: 'tippy-writers', top: '26%', left: '94%', size: 44, delay: '1.05s' },
+  { label: 'Artists', seed: 'tippy-artists', top: '56%', left: '8%', size: 40, delay: '0.2s' },
+  {
+    label: 'Open-source contributors',
+    seed: 'tippy-opensource',
+    top: '52%',
+    left: '92%',
+    size: 46,
+    delay: '0.55s',
+  },
+  { label: 'Researchers', seed: 'tippy-researchers', top: '78%', left: '12%', size: 40, delay: '1.25s' },
+  { label: 'Podcasters', seed: 'tippy-podcasters', top: '80%', left: '88%', size: 42, delay: '0.9s' },
+  {
+    label: 'Community builders',
+    seed: 'tippy-community',
+    top: '42%',
+    left: '4%',
+    size: 44,
+    delay: '1.4s',
+  },
+  { label: 'Indie hackers', seed: 'tippy-indie', top: '68%', left: '96%', size: 40, delay: '0.3s' },
 ] as const;
+
+export const audienceLabels: readonly string[] = audienceItems.map((item) => item.label);
 
 export const trustSection = {
   id: 'trust',

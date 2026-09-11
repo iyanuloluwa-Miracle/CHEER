@@ -42,35 +42,13 @@
           </div>
         </li>
       </ul>
-
-      <div class="mt-8 sm:mt-10">
-        <p class="text-center text-xs font-semibold uppercase tracking-widest text-cheer-ink/45">
-          Made for
-        </p>
-        <ul
-          class="mt-4 flex flex-wrap justify-center gap-2"
-          aria-label="Audiences TippyMe is built for"
-        >
-          <li
-            v-for="label in audience"
-            :key="label"
-          >
-            <span
-              class="inline-flex rounded-full border border-cheer-leaf/20 bg-white px-3 py-1.5 text-sm font-medium text-cheer-ink/80"
-            >
-              {{ label }}
-            </span>
-          </li>
-        </ul>
-      </div>
     </UiRevealOnScroll>
   </section>
 </template>
 
 <script setup lang="ts">
-import { audienceLabels, featureItems, featuresSection } from '~/data/landing';
+import { featureItems, featuresSection } from '~/data/landing';
 
 const section = featuresSection;
 const features = featureItems;
-const audience = audienceLabels;
 </script>

@@ -1,10 +1,16 @@
 <template>
   <section class="flex flex-col items-center">
-    <LandingHeroContent
-      :title="content.title"
-      :description="content.description"
-      :primary-cta="content.primaryCta"
-    />
+    <div class="relative w-full overflow-hidden px-2 sm:px-4 lg:min-h-[22rem] lg:px-8">
+      <LandingHeroAudienceScatter />
+      <div class="relative z-10 mx-auto max-w-3xl">
+        <LandingHeroContent
+          :title="content.title"
+          :description="content.description"
+          :primary-cta="content.primaryCta"
+        />
+        <LandingHeroAudienceMobile />
+      </div>
+    </div>
     <LandingHeroProductVisual />
   </section>
 </template>
