@@ -1,12 +1,13 @@
-import {
-  AuditAction,
-  OtpPurpose,
-  type User,
-} from '@prisma/client';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import type { NeonDatabase } from 'drizzle-orm/neon-serverless';
 import * as bcrypt from 'bcryptjs';
 import { ApiError } from '../lib/errors';
 import { getServerEnv } from '../lib/env';
-import { usePrisma } from '../lib/prisma';
+import { useDb } from '../db';
+import { auditLogs, otpChallenges, users } from '../db/schema';
+import type * as schema from '../db/schema';
+import type { User } from '../db/schema';
+import { AuditAction, OtpPurpose } from '../db/enums';
 import { signAccessToken } from '../lib/auth';
 import { TransactionalNotificationsService } from './notifications/transactional-notifications.service';
 import {
@@ -29,9 +30,11 @@ import type {
 
 const BCRYPT_ROUNDS = 12;
 
+type TransactionDb = NeonDatabase<typeof schema>;
+
 export class AuthService {
   constructor(
-    private readonly prisma = usePrisma(),
+    private readonly db = useDb(),
     private readonly notifications = new TransactionalNotificationsService(),
   ) {}
 
@@ -43,7 +46,9 @@ export class AuthService {
     const purpose = OtpPurpose.EMAIL_VERIFICATION;
     const pepper = this.requirePepper();
 
-    const existing = await this.prisma.user.findUnique({ where: { email } });
+    const existing = await this.db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
     if (existing?.emailVerifiedAt && existing.passwordHash) {
       throw new ApiError(
         409,
@@ -52,10 +57,17 @@ export class AuthService {
       );
     }
 
-    const recent = await this.prisma.otpChallenge.findFirst({
-      where: { email, purpose },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [recent] = await this.db
+      .select()
+      .from(otpChallenges)
+      .where(
+        and(
+          eq(otpChallenges.email, email),
+          eq(otpChallenges.purpose, purpose),
+        ),
+      )
+      .orderBy(desc(otpChallenges.createdAt))
+      .limit(1);
 
     if (recent) {
       const elapsed = Date.now() - recent.createdAt.getTime();
@@ -74,43 +86,44 @@ export class AuthService {
 
     let user = existing;
     if (!user) {
-      user = await this.prisma.user.create({ data: { email } });
-      await this.prisma.auditLog.create({
-        data: {
-          actorUserId: user.id,
-          action: AuditAction.USER_CREATED,
-          entityType: 'User',
-          entityId: user.id,
-          metadata: { source: 'signup_otp_request' },
-          ipAddress: meta?.ipAddress,
-          userAgent: meta?.userAgent,
-        },
+      [user] = await this.db.insert(users).values({ email }).returning();
+      await this.db.insert(auditLogs).values({
+        actorUserId: user.id,
+        action: AuditAction.USER_CREATED,
+        entityType: 'User',
+        entityId: user.id,
+        metadata: { source: 'signup_otp_request' },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
       });
     }
 
-    await this.prisma.otpChallenge.updateMany({
-      where: {
-        email,
-        purpose,
-        consumedAt: null,
-      },
-      data: { consumedAt: new Date() },
-    });
+    await this.db
+      .update(otpChallenges)
+      .set({ consumedAt: new Date() })
+      .where(
+        and(
+          eq(otpChallenges.email, email),
+          eq(otpChallenges.purpose, purpose),
+          isNull(otpChallenges.consumedAt),
+        ),
+      );
 
     const code = generateOtpCode();
     const codeHash = hashOtp(code, pepper);
     const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-    const challenge = await this.prisma.otpChallenge.create({
-      data: {
+    const [challenge] = await this.db
+      .insert(otpChallenges)
+      .values({
         userId: user.id,
         email,
         codeHash,
         purpose,
         expiresAt,
         maxAttempts: OTP_MAX_ATTEMPTS,
-      },
-    });
+      })
+      .returning();
 
     try {
       await this.notifications.notifyOtp({
@@ -121,10 +134,10 @@ export class AuthService {
         purpose,
       });
     } catch (err) {
-      await this.prisma.otpChallenge.update({
-        where: { id: challenge.id },
-        data: { consumedAt: new Date() },
-      });
+      await this.db
+        .update(otpChallenges)
+        .set({ consumedAt: new Date() })
+        .where(eq(otpChallenges.id, challenge.id));
       console.warn(`OTP email delivery failed for challenge=${challenge.id}`);
       throw err;
     }
@@ -155,10 +168,17 @@ export class AuthService {
       );
     }
 
-    const challenge = await this.prisma.otpChallenge.findFirst({
-      where: { email, purpose },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [challenge] = await this.db
+      .select()
+      .from(otpChallenges)
+      .where(
+        and(
+          eq(otpChallenges.email, email),
+          eq(otpChallenges.purpose, purpose),
+        ),
+      )
+      .orderBy(desc(otpChallenges.createdAt))
+      .limit(1);
 
     if (!challenge) {
       await this.recordLoginFailure(null, email, 'NO_CHALLENGE', meta);
@@ -204,10 +224,11 @@ export class AuthService {
     const valid = verifyOtpHash(code, challenge.codeHash, pepper);
 
     if (!valid) {
-      const updated = await this.prisma.otpChallenge.update({
-        where: { id: challenge.id },
-        data: { attemptCount: { increment: 1 } },
-      });
+      const [updated] = await this.db
+        .update(otpChallenges)
+        .set({ attemptCount: sql`${otpChallenges.attemptCount} + 1` })
+        .where(eq(otpChallenges.id, challenge.id))
+        .returning();
 
       await this.recordLoginFailure(
         challenge.userId,
@@ -234,46 +255,51 @@ export class AuthService {
     const now = new Date();
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-    const user = await this.prisma.$transaction(async (tx) => {
-      await tx.otpChallenge.update({
-        where: { id: challenge.id },
-        data: { consumedAt: now },
-      });
+    const user = await this.db.transaction(async (tx: TransactionDb) => {
+      await tx
+        .update(otpChallenges)
+        .set({ consumedAt: now })
+        .where(eq(otpChallenges.id, challenge.id));
 
-      const verified = await tx.user.update({
-        where: challenge.userId ? { id: challenge.userId } : { email },
-        data: {
+      const [verified] = await tx
+        .update(users)
+        .set({
           emailVerifiedAt: now,
           passwordHash,
-        },
-        include: { creatorProfile: { select: { id: true } } },
+        })
+        .where(
+          challenge.userId
+            ? eq(users.id, challenge.userId)
+            : eq(users.email, email),
+        )
+        .returning();
+
+      await tx.insert(auditLogs).values({
+        actorUserId: verified.id,
+        action: AuditAction.EMAIL_VERIFIED,
+        entityType: 'User',
+        entityId: verified.id,
+        metadata: { purpose, challengeId: challenge.id },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
       });
 
-      await tx.auditLog.create({
-        data: {
-          actorUserId: verified.id,
-          action: AuditAction.EMAIL_VERIFIED,
-          entityType: 'User',
-          entityId: verified.id,
-          metadata: { purpose, challengeId: challenge.id },
-          ipAddress: meta?.ipAddress,
-          userAgent: meta?.userAgent,
-        },
+      await tx.insert(auditLogs).values({
+        actorUserId: verified.id,
+        action: AuditAction.LOGIN_SUCCESS,
+        entityType: 'User',
+        entityId: verified.id,
+        metadata: { method: 'signup_otp' },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
       });
 
-      await tx.auditLog.create({
-        data: {
-          actorUserId: verified.id,
-          action: AuditAction.LOGIN_SUCCESS,
-          entityType: 'User',
-          entityId: verified.id,
-          metadata: { method: 'signup_otp' },
-          ipAddress: meta?.ipAddress,
-          userAgent: meta?.userAgent,
-        },
+      const verifiedWithProfile = await tx.query.users.findFirst({
+        where: eq(users.id, verified.id),
+        with: { creatorProfile: { columns: { id: true } } },
       });
 
-      return verified;
+      return verifiedWithProfile!;
     });
 
     const accessToken = await signAccessToken({
@@ -304,9 +330,9 @@ export class AuthService {
     meta?: { ipAddress?: string; userAgent?: string },
   ): Promise<{ response: VerifyOtpResponse; accessToken: string }> {
     const email = normalizeEmail(emailRaw);
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-      include: { creatorProfile: { select: { id: true } } },
+    const user = await this.db.query.users.findFirst({
+      where: eq(users.email, email),
+      with: { creatorProfile: { columns: { id: true } } },
     });
 
     if (!user?.passwordHash || !user.emailVerifiedAt) {
@@ -338,8 +364,9 @@ export class AuthService {
       );
     }
 
-    const loginAudit = await this.prisma.auditLog.create({
-      data: {
+    const [loginAudit] = await this.db
+      .insert(auditLogs)
+      .values({
         actorUserId: user.id,
         action: AuditAction.LOGIN_SUCCESS,
         entityType: 'User',
@@ -347,8 +374,8 @@ export class AuthService {
         metadata: { method: 'password' },
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
-      },
-    });
+      })
+      .returning();
 
     const accessToken = await signAccessToken({
       sub: user.id,
@@ -378,9 +405,9 @@ export class AuthService {
   }
 
   async getUserById(userId: string): Promise<PublicUser | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: { creatorProfile: { select: { id: true } } },
+    const user = await this.db.query.users.findFirst({
+      where: eq(users.id, userId),
+      with: { creatorProfile: { columns: { id: true } } },
     });
     if (!user) return null;
     return this.toPublicUser(user);
@@ -411,16 +438,14 @@ export class AuthService {
     reason: string,
     meta?: { ipAddress?: string; userAgent?: string },
   ) {
-    await this.prisma.auditLog.create({
-      data: {
-        actorUserId: userId ?? undefined,
-        action: AuditAction.LOGIN_FAILURE,
-        entityType: 'User',
-        entityId: userId ?? undefined,
-        metadata: { email, reason },
-        ipAddress: meta?.ipAddress,
-        userAgent: meta?.userAgent,
-      },
+    await this.db.insert(auditLogs).values({
+      actorUserId: userId ?? null,
+      action: AuditAction.LOGIN_FAILURE,
+      entityType: 'User',
+      entityId: userId ?? null,
+      metadata: { email, reason },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
     });
   }
 }

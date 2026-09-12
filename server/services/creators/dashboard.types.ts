@@ -3,8 +3,8 @@ import type {
   PaymentTransaction,
   Tip,
   TipStatus,
-} from '@prisma/client';
-import { Prisma } from '@prisma/client';
+} from '../../db/schema';
+import Decimal from 'decimal.js';
 import { decimalToAmountString } from '../tips/tips.types';
 import type { CreatorProfileDto } from './creators.types';
 import type { CreatorSettlementStatusDto } from './settlement.types';
@@ -71,25 +71,25 @@ export function toSupportGoalDto(
   profile: {
     currency: string;
     goalTitle: string | null;
-    goalTargetAmount: Prisma.Decimal | null;
+    goalTargetAmount: string | null;
     goalActive: boolean;
   },
-  raised: Prisma.Decimal | null | undefined,
+  raised: Decimal | string | null | undefined,
 ): SupportGoalDto | null {
   if (!profile.goalActive || !profile.goalTitle || !profile.goalTargetAmount) {
     return null;
   }
-  const target = Number(profile.goalTargetAmount.toFixed(2));
+  const target = Number(decimalToAmountString(profile.goalTargetAmount));
   const raisedNum = Number(
-    (raised ?? new Prisma.Decimal(0)).toFixed(2),
+    decimalToAmountString(raised ?? new Decimal(0)),
   );
   const percent =
     target > 0 ? Math.min(100, Math.round((raisedNum / target) * 1000) / 10) : 0;
   return {
     active: true,
     title: profile.goalTitle,
-    targetAmount: profile.goalTargetAmount.toFixed(2),
-    raisedAmount: (raised ?? new Prisma.Decimal(0)).toFixed(2),
+    targetAmount: decimalToAmountString(profile.goalTargetAmount),
+    raisedAmount: decimalToAmountString(raised ?? new Decimal(0)),
     currency: profile.currency,
     percent,
   };
@@ -235,4 +235,3 @@ export function toPublicSupporterNoteDto(tip: Tip): PublicSupporterNoteDto | nul
     createdAt: tip.createdAt.toISOString(),
   };
 }
-

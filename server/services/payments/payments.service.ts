@@ -1,12 +1,19 @@
+import { eq } from 'drizzle-orm';
+import { useDb, isUniqueViolation } from '../../db';
 import {
   AuditAction,
   PaymentProvider,
   PaymentStatus,
-  Prisma,
   TipStatus,
-} from '@prisma/client';
+} from '../../db/enums';
+import type { PaymentStatus as PaymentStatusT, TipStatus as TipStatusT } from '../../db/schema';
+import {
+  auditLogs,
+  paymentTransactions,
+  tips,
+  webhookEvents,
+} from '../../db/schema';
 import { getServerEnv } from '../../lib/env';
-import { usePrisma } from '../../lib/prisma';
 import { decimalToAmountString } from '../tips/tips.types';
 import type {
   HandleWebhookInput,
@@ -29,8 +36,8 @@ export interface PublicPaymentStatusDto {
   id: string;
   paymentId: string;
   tipId: string;
-  tipStatus: TipStatus;
-  paymentStatus: PaymentStatus;
+  tipStatus: TipStatusT;
+  paymentStatus: PaymentStatusT;
   amount: string;
   currency: string;
   paid: boolean;
@@ -60,9 +67,10 @@ export function createPaymentProvider(): PaymentProviderPort {
  * Authoritative webhook fulfilment lives in WebhookFulfilmentService (Phase 8).
  */
 export class PaymentsService {
+  private readonly db = useDb();
+
   constructor(
     private readonly provider: PaymentProviderPort = createPaymentProvider(),
-    private readonly prisma = usePrisma(),
   ) {}
 
   get providerName() {
@@ -90,18 +98,22 @@ export class PaymentsService {
   async getPublicPaymentStatus(
     id: string,
   ): Promise<PublicPaymentStatusDto | null> {
-    const payment = await this.prisma.paymentTransaction.findUnique({
-      where: { id },
-      include: { tip: true },
+    const payment = await this.db.query.paymentTransactions.findFirst({
+      where: eq(paymentTransactions.id, id),
     });
 
-    if (payment?.tip) {
-      return this.toStatusDto(payment, payment.tip);
+    if (payment) {
+      const tip = await this.db.query.tips.findFirst({
+        where: eq(tips.paymentTransactionId, payment.id),
+      });
+      if (tip) {
+        return this.toStatusDto(payment, tip);
+      }
     }
 
-    const tip = await this.prisma.tip.findUnique({
-      where: { id },
-      include: { paymentTransaction: true },
+    const tip = await this.db.query.tips.findFirst({
+      where: eq(tips.id, id),
+      with: { paymentTransaction: true },
     });
 
     if (tip?.paymentTransaction) {
@@ -140,62 +152,55 @@ export class PaymentsService {
     }
 
     try {
-      await this.prisma.$transaction(async (tx) => {
+      await this.db.transaction(async (tx) => {
         if (params.providerEventId) {
-          await tx.webhookEvent.create({
-            data: {
-              providerEventId: params.providerEventId,
-              provider:
-                tip.paymentTransaction?.provider ??
-                (this.provider.name === 'BACHS'
-                  ? PaymentProvider.BACHS
-                  : PaymentProvider.DEV_SEED),
-              eventType: params.eventType ?? 'unknown',
-              payload: {
-                status: params.verification.status,
-                providerReference: params.verification.providerReference,
-              },
-              processedAt: new Date(),
+          await tx.insert(webhookEvents).values({
+            providerEventId: params.providerEventId,
+            provider:
+              tip.paymentTransaction?.provider ??
+              (this.provider.name === 'BACHS'
+                ? PaymentProvider.BACHS
+                : PaymentProvider.DEV_SEED),
+            eventType: params.eventType ?? 'unknown',
+            payload: {
+              status: params.verification.status,
+              providerReference: params.verification.providerReference,
             },
+            processedAt: new Date(),
           });
         }
 
         if (tip.paymentTransactionId) {
-          await tx.paymentTransaction.update({
-            where: { id: tip.paymentTransactionId },
-            data: {
+          await tx
+            .update(paymentTransactions)
+            .set({
               status: mapped.paymentStatus,
               providerReference:
                 params.verification.providerReference ||
                 tip.paymentTransaction?.providerReference,
               rawProviderStatus: params.verification.rawStatus,
-            },
-          });
+            })
+            .where(eq(paymentTransactions.id, tip.paymentTransactionId));
         }
 
-        await tx.tip.update({
-          where: { id: tip.id },
-          data: { status: mapped.tipStatus },
-        });
+        await tx
+          .update(tips)
+          .set({ status: mapped.tipStatus })
+          .where(eq(tips.id, tip.id));
 
-        await tx.auditLog.create({
-          data: {
-            action: AuditAction.TIP_STATUS_CHANGED,
-            entityType: 'Tip',
-            entityId: tip.id,
-            metadata: {
-              to: mapped.tipStatus,
-              via: params.eventType ?? 'verify',
-              providerReference: params.verification.providerReference,
-            },
+        await tx.insert(auditLogs).values({
+          action: AuditAction.TIP_STATUS_CHANGED,
+          entityType: 'Tip',
+          entityId: tip.id,
+          metadata: {
+            to: mapped.tipStatus,
+            via: params.eventType ?? 'verify',
+            providerReference: params.verification.providerReference,
           },
         });
       });
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
+      if (isUniqueViolation(err)) {
         return { updated: false, tipId: tip.id };
       }
       throw err;
@@ -207,11 +212,11 @@ export class PaymentsService {
   private toStatusDto(
     payment: {
       id: string;
-      status: PaymentStatus;
-      amount: Prisma.Decimal;
+      status: PaymentStatusT;
+      amount: string;
       currency: string;
     },
-    tip: { id: string; status: TipStatus },
+    tip: { id: string; status: TipStatusT },
   ): PublicPaymentStatusDto {
     return {
       id: payment.id,
@@ -230,20 +235,23 @@ export class PaymentsService {
     providerReference?: string;
   }) {
     if (params.tipId) {
-      return this.prisma.tip.findUnique({
-        where: { id: params.tipId },
-        include: { paymentTransaction: true },
+      return this.db.query.tips.findFirst({
+        where: eq(tips.id, params.tipId),
+        with: { paymentTransaction: true },
       });
     }
 
     if (params.providerReference) {
-      const payment = await this.prisma.paymentTransaction.findFirst({
-        where: { providerReference: params.providerReference },
-        include: {
-          tip: { include: { paymentTransaction: true } },
-        },
+      const payment = await this.db.query.paymentTransactions.findFirst({
+        where: eq(paymentTransactions.providerReference, params.providerReference),
       });
-      return payment?.tip ?? null;
+
+      if (!payment) return null;
+
+      return this.db.query.tips.findFirst({
+        where: eq(tips.paymentTransactionId, payment.id),
+        with: { paymentTransaction: true },
+      });
     }
 
     return null;

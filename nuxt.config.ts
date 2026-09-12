@@ -77,16 +77,16 @@ export default defineNuxtConfig({
     typeCheck: false,
   },
 
-  // Keep Prisma + Neon driver out of the Rollup bundle so the Docker
+  // Keep Drizzle + Neon driver out of the Rollup bundle so the Docker
   // runner's node_modules copies are what actually load at runtime.
   nitro: {
     rollupConfig: {
       external: [
-        '@prisma/client',
-        '@prisma/adapter-neon',
-        '@prisma/driver-adapter-utils',
+        'drizzle-orm',
+        'drizzle-orm/neon-serverless',
         '@neondatabase/serverless',
-        'postgres-array',
+        '@paralleldrive/cuid2',
+        'decimal.js',
         'ws',
       ],
     },

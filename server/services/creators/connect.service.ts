@@ -1,7 +1,9 @@
-import { AuditAction } from '@prisma/client';
+import { eq } from 'drizzle-orm';
 import { ApiError } from '../../lib/errors';
 import { getServerEnv } from '../../lib/env';
-import { usePrisma } from '../../lib/prisma';
+import { useDb } from '../../db';
+import { auditLogs, creatorProfiles } from '../../db/schema';
+import { AuditAction } from '../../db/enums';
 import {
   BachsProviderError,
   bachsPublicMessage,
@@ -26,7 +28,7 @@ export interface ConnectOnboardResult {
  */
 export class ConnectService {
   constructor(
-    private readonly prisma = usePrisma(),
+    private readonly db = useDb(),
     private readonly http = new BachsHttpClient(),
   ) {}
 
@@ -74,13 +76,14 @@ export class ConnectService {
     // No Bachs key → honest local stub for demo / offline hackathon demos.
     if (!this.http.isConfigured) {
       const stubId = `acct_stub_${profile.id}`;
-      const updated = await this.prisma.creatorProfile.update({
-        where: { id: profile.id },
-        data: {
+      const [updated] = await this.db
+        .update(creatorProfiles)
+        .set({
           bachsAccountId: stubId,
           fridayPayoutEnabled: true,
-        },
-      });
+        })
+        .where(eq(creatorProfiles.id, profile.id))
+        .returning();
       await this.audit(userId, updated.id, {
         event: 'connect_stub_linked',
         bachsAccountId: stubId,
@@ -126,10 +129,11 @@ export class ConnectService {
         );
       }
 
-      const updated = await this.prisma.creatorProfile.update({
-        where: { id: profile.id },
-        data: { bachsAccountId: account.id },
-      });
+      const [updated] = await this.db
+        .update(creatorProfiles)
+        .set({ bachsAccountId: account.id })
+        .where(eq(creatorProfiles.id, profile.id))
+        .returning();
 
       await this.audit(userId, updated.id, {
         event: 'connect_account_created',
@@ -189,10 +193,11 @@ export class ConnectService {
       }
     }
 
-    const updated = await this.prisma.creatorProfile.update({
-      where: { id: profile.id },
-      data: { fridayPayoutEnabled: true },
-    });
+    const [updated] = await this.db
+      .update(creatorProfiles)
+      .set({ fridayPayoutEnabled: true })
+      .where(eq(creatorProfiles.id, profile.id))
+      .returning();
 
     await this.audit(userId, updated.id, {
       event: 'friday_payout_enabled',
@@ -214,15 +219,17 @@ export class ConnectService {
   }
 
   private async requireProfileWithUser(userId: string) {
-    const profile = await this.prisma.creatorProfile.findUnique({
-      where: { userId },
-      select: {
+    const profile = await this.db.query.creatorProfiles.findFirst({
+      where: eq(creatorProfiles.userId, userId),
+      columns: {
         id: true,
         username: true,
         displayName: true,
         bachsAccountId: true,
         fridayPayoutEnabled: true,
-        user: { select: { email: true } },
+      },
+      with: {
+        user: { columns: { email: true } },
       },
     });
     if (!profile) {
@@ -240,14 +247,12 @@ export class ConnectService {
     profileId: string,
     metadata: Record<string, string | boolean | null>,
   ) {
-    await this.prisma.auditLog.create({
-      data: {
-        actorUserId: userId,
-        action: AuditAction.PROFILE_UPDATED,
-        entityType: 'CreatorProfile',
-        entityId: profileId,
-        metadata,
-      },
+    await this.db.insert(auditLogs).values({
+      actorUserId: userId,
+      action: AuditAction.PROFILE_UPDATED,
+      entityType: 'CreatorProfile',
+      entityId: profileId,
+      metadata,
     });
   }
 

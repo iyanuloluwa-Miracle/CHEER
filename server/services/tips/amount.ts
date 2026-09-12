@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import Decimal from 'decimal.js';
 import {
   TIP_AMOUNT_PATTERN,
   TIP_MAX_AMOUNT,
@@ -11,7 +11,7 @@ export type AmountValidationFailure =
   | 'ABOVE_MAXIMUM';
 
 export type AmountValidationResult =
-  | { ok: true; amount: string; decimal: Prisma.Decimal }
+  | { ok: true; amount: string; decimal: Decimal }
   | { ok: false; reason: AmountValidationFailure };
 
 /**
@@ -30,9 +30,9 @@ export function validateTipAmount(raw: unknown): AmountValidationResult {
     return { ok: false, reason: 'INVALID_FORMAT' };
   }
 
-  let decimal: Prisma.Decimal;
+  let decimal: Decimal;
   try {
-    decimal = new Prisma.Decimal(asString);
+    decimal = new Decimal(asString);
   } catch {
     return { ok: false, reason: 'INVALID_FORMAT' };
   }
@@ -41,10 +41,9 @@ export function validateTipAmount(raw: unknown): AmountValidationResult {
     return { ok: false, reason: 'INVALID_FORMAT' };
   }
 
-  // Reject more than 2 dp after Decimal parse (e.g. scientific notation edge cases)
   const normalized = decimal.toFixed(2);
-  const min = new Prisma.Decimal(TIP_MIN_AMOUNT);
-  const max = new Prisma.Decimal(TIP_MAX_AMOUNT);
+  const min = new Decimal(TIP_MIN_AMOUNT);
+  const max = new Decimal(TIP_MAX_AMOUNT);
 
   if (decimal.lt(min)) {
     return { ok: false, reason: 'BELOW_MINIMUM' };
@@ -56,7 +55,7 @@ export function validateTipAmount(raw: unknown): AmountValidationResult {
   return {
     ok: true,
     amount: normalized,
-    decimal: new Prisma.Decimal(normalized),
+    decimal: new Decimal(normalized),
   };
 }
 

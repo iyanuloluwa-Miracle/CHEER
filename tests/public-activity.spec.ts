@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import { describe, expect, it } from 'vitest';
 import {
   toPublicSupporterNoteDto,
@@ -33,17 +32,17 @@ describe('toPublicSupporterNoteDto', () => {
   const baseTip = {
     id: 'tip_1',
     creatorId: 'creator_1',
-    amount: new Prisma.Decimal('5000.00'),
+    amount: '5000.00',
     currency: 'NGN',
     message: '  Thanks!  ',
+    aiThankYouMessage: null,
     isAnonymous: false,
     supporterName: 'Tobi',
     supporterEmail: 'secret@example.com',
     status: 'PAID' as const,
+    paymentTransactionId: null,
     createdAt: new Date('2026-09-09T10:00:00.000Z'),
     updatedAt: new Date('2026-09-09T10:00:00.000Z'),
-    idempotencyKey: null,
-    expiresAt: null,
   };
 
   it('maps a paid tip with a message and never includes email', () => {

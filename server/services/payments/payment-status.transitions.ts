@@ -1,34 +1,35 @@
-import { PaymentStatus, TipStatus } from '@prisma/client';
+import { PaymentStatus, TipStatus } from '../../db/enums';
+import type { PaymentStatus as PaymentStatusT, TipStatus as TipStatusT } from '../../db/schema';
 import type { PaymentVerificationStatus } from './payment-provider.port';
 
 /**
  * TippyMe tip status machine (Phase 3 / Phase 8).
  * Terminal states are sticky — a PAID tip must not become FAILED from a stale webhook.
  */
-const TIP_TERMINAL: ReadonlySet<TipStatus> = new Set([
+const TIP_TERMINAL: ReadonlySet<TipStatusT> = new Set([
   TipStatus.PAID,
   TipStatus.FAILED,
   TipStatus.EXPIRED,
 ]);
 
-const PAYMENT_TERMINAL: ReadonlySet<PaymentStatus> = new Set([
+const PAYMENT_TERMINAL: ReadonlySet<PaymentStatusT> = new Set([
   PaymentStatus.SUCCEEDED,
   PaymentStatus.FAILED,
   PaymentStatus.CANCELLED,
   PaymentStatus.EXPIRED,
 ]);
 
-export function isTipTerminal(status: TipStatus): boolean {
+export function isTipTerminal(status: TipStatusT): boolean {
   return TIP_TERMINAL.has(status);
 }
 
-export function isPaymentTerminal(status: PaymentStatus): boolean {
+export function isPaymentTerminal(status: PaymentStatusT): boolean {
   return PAYMENT_TERMINAL.has(status);
 }
 
 export function mapVerificationToStatuses(
   status: PaymentVerificationStatus,
-): { tipStatus: TipStatus; paymentStatus: PaymentStatus } | null {
+): { tipStatus: TipStatusT; paymentStatus: PaymentStatusT } | null {
   switch (status) {
     case 'succeeded':
       return {
@@ -60,10 +61,9 @@ export function mapVerificationToStatuses(
 /**
  * Only non-terminal tips may advance. Terminal tips ignore further events.
  */
-export function canTransitionTip(from: TipStatus, to: TipStatus): boolean {
+export function canTransitionTip(from: TipStatusT, to: TipStatusT): boolean {
   if (from === to) return false;
   if (isTipTerminal(from)) return false;
-  // Allow CREATED / CHECKOUT_PENDING → terminal outcomes only
   return (
     to === TipStatus.PAID || to === TipStatus.FAILED || to === TipStatus.EXPIRED
   );

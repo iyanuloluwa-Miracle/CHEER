@@ -1,7 +1,27 @@
-import { AuditAction, Prisma, SocialPlatform, TipStatus } from '@prisma/client';
+import Decimal from 'decimal.js';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  isNotNull,
+  lt,
+  lte,
+  sum,
+} from 'drizzle-orm';
+import { useDb, isUniqueViolation } from '../../db';
+import {
+  auditLogs,
+  creatorProfiles,
+  socialLinks,
+  tipPageViews,
+  tips,
+  type Tip,
+} from '../../db/schema';
+import { AuditAction, SocialPlatform, TipStatus } from '../../db/enums';
 import { ApiError } from '../../lib/errors';
 import { getServerEnv } from '../../lib/env';
-import { usePrisma } from '../../lib/prisma';
 import { decimalToAmountString } from '../tips/tips.types';
 import type {
   CreateCreatorInput,
@@ -23,6 +43,7 @@ import {
   type CreatorTipsPageDto,
   type ListTipsQuery,
   type PublicCreatorPageDto,
+  type PublicSupporterNoteDto,
 } from './dashboard.types';
 import { buildSettlementStatus } from './settlement.types';
 import {
@@ -39,20 +60,12 @@ import {
   type AllowedCurrency,
 } from './username';
 
-const profileInclude = {
-  socialLinks: { orderBy: { sortOrder: 'asc' as const } },
-} satisfies Prisma.CreatorProfileInclude;
-
-const tipWithPaymentInclude = {
-  paymentTransaction: { select: { status: true } },
-} satisfies Prisma.TipInclude;
-
 const RECENT_TIPS_LIMIT = 8;
 const RECENT_MESSAGES_LIMIT = 8;
 const PUBLIC_NOTES_LIMIT = 8;
 
 export class CreatorsService {
-  constructor(private readonly prisma = usePrisma()) {}
+  constructor(private readonly db = useDb()) {}
 
   async checkUsernameAvailability(
     raw: string,
@@ -67,9 +80,9 @@ export class CreatorsService {
       };
     }
 
-    const existing = await this.prisma.creatorProfile.findUnique({
-      where: { username: format.username },
-      select: { userId: true },
+    const existing = await this.db.query.creatorProfiles.findFirst({
+      where: eq(creatorProfiles.username, format.username),
+      columns: { userId: true },
     });
 
     if (existing && existing.userId !== opts?.excludeUserId) {
@@ -84,18 +97,26 @@ export class CreatorsService {
   }
 
   async getMe(userId: string): Promise<CreatorProfileDto | null> {
-    const profile = await this.prisma.creatorProfile.findUnique({
-      where: { userId },
-      include: profileInclude,
+    const profile = await this.db.query.creatorProfiles.findFirst({
+      where: eq(creatorProfiles.userId, userId),
+      with: {
+        socialLinks: {
+          orderBy: (sl, { asc: ascFn }) => [ascFn(sl.sortOrder)],
+        },
+      },
     });
     return profile ? toCreatorProfileDto(profile) : null;
   }
 
   async getPublicByUsername(raw: string): Promise<PublicCreatorPageDto> {
     const username = normalizeUsername(raw);
-    const profile = await this.prisma.creatorProfile.findUnique({
-      where: { username },
-      include: profileInclude,
+    const profile = await this.db.query.creatorProfiles.findFirst({
+      where: eq(creatorProfiles.username, username),
+      with: {
+        socialLinks: {
+          orderBy: (sl, { asc: ascFn }) => [ascFn(sl.sortOrder)],
+        },
+      },
     });
 
     if (!profile || !profile.isActive) {
@@ -103,33 +124,42 @@ export class CreatorsService {
     }
 
     // Notes only — weekly tip totals stay private on the creator dashboard.
-    const [recentNotes, lifetimeAgg] = await Promise.all([
-      this.prisma.tip.findMany({
-        where: {
-          creatorId: profile.id,
-          status: TipStatus.PAID,
-          message: { not: null },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: PUBLIC_NOTES_LIMIT,
-        select: {
-          amount: true,
-          currency: true,
-          message: true,
-          isAnonymous: true,
-          supporterName: true,
-          createdAt: true,
-        },
-      }),
-      this.prisma.tip.aggregate({
-        where: { creatorId: profile.id, status: TipStatus.PAID },
-        _sum: { amount: true },
-      }),
+    const [recentNotes, [lifetimeAgg]] = await Promise.all([
+      this.db
+        .select({
+          amount: tips.amount,
+          currency: tips.currency,
+          message: tips.message,
+          isAnonymous: tips.isAnonymous,
+          supporterName: tips.supporterName,
+          createdAt: tips.createdAt,
+        })
+        .from(tips)
+        .where(
+          and(
+            eq(tips.creatorId, profile.id),
+            eq(tips.status, TipStatus.PAID),
+            isNotNull(tips.message),
+          ),
+        )
+        .orderBy(desc(tips.createdAt))
+        .limit(PUBLIC_NOTES_LIMIT),
+      this.db
+        .select({ value: sum(tips.amount) })
+        .from(tips)
+        .where(
+          and(eq(tips.creatorId, profile.id), eq(tips.status, TipStatus.PAID)),
+        ),
     ]);
 
     const recentSupporterNotes = recentNotes
-      .map((tip) => toPublicSupporterNoteDto(tip as never))
-      .filter((note): note is NonNullable<typeof note> => note !== null);
+      .map((tip: Pick<Tip, 'amount' | 'currency' | 'message' | 'isAnonymous' | 'supporterName' | 'createdAt'>) =>
+        toPublicSupporterNoteDto(tip as Tip),
+      )
+      .filter(
+        (note: PublicSupporterNoteDto | null): note is PublicSupporterNoteDto =>
+          note !== null,
+      );
 
     const week = utcWeekBounds();
 
@@ -143,7 +173,7 @@ export class CreatorsService {
         weekStart: week.weekStart,
         weekEnd: week.weekEnd,
       },
-      supportGoal: toSupportGoalDto(profile, lifetimeAgg._sum.amount),
+      supportGoal: toSupportGoalDto(profile, lifetimeAgg?.value),
       recentSupporterNotes,
     };
   }
@@ -152,9 +182,9 @@ export class CreatorsService {
     userId: string,
     dto: CreateCreatorInput,
   ): Promise<CreatorProfileDto> {
-    const existing = await this.prisma.creatorProfile.findUnique({
-      where: { userId },
-      select: { id: true },
+    const existing = await this.db.query.creatorProfiles.findFirst({
+      where: eq(creatorProfiles.userId, userId),
+      columns: { id: true },
     });
     if (existing) {
       throw new ApiError(
@@ -170,47 +200,61 @@ export class CreatorsService {
       throw this.usernameConflict(availability.reason ?? 'TAKEN');
     }
 
-    const socialLinks = this.normalizeSocialLinks(dto.socialLinks ?? []);
+    const linkRows = this.normalizeSocialLinks(dto.socialLinks ?? []);
     const suggestedTipAmounts = this.normalizeTipAmounts(
       dto.suggestedTipAmounts ?? ['1000.00', '2500.00', '5000.00'],
     );
 
     try {
-      const profile = await this.prisma.creatorProfile.create({
-        data: {
-          userId,
-          username,
-          displayName: dto.displayName.trim(),
-          bio: dto.bio?.trim() || null,
-          avatarUrl: dto.avatarUrl?.trim() || null,
-          supportMessage: dto.supportMessage?.trim() || null,
-          currency: (dto.currency ?? 'NGN').toUpperCase(),
-          suggestedTipAmounts,
-          socialLinks: socialLinks.length
-            ? {
-                create: socialLinks,
-              }
-            : undefined,
+      const profile = await this.db.transaction(async (tx) => {
+        const [inserted] = await tx
+          .insert(creatorProfiles)
+          .values({
+            userId,
+            username,
+            displayName: dto.displayName.trim(),
+            bio: dto.bio?.trim() || null,
+            avatarUrl: dto.avatarUrl?.trim() || null,
+            supportMessage: dto.supportMessage?.trim() || null,
+            currency: (dto.currency ?? 'NGN').toUpperCase(),
+            suggestedTipAmounts,
+          })
+          .returning();
+
+        if (linkRows.length > 0) {
+          await tx.insert(socialLinks).values(
+            linkRows.map((link) => ({
+              ...link,
+              creatorId: inserted.id,
+            })),
+          );
+        }
+
+        return tx.query.creatorProfiles.findFirst({
+          where: eq(creatorProfiles.id, inserted.id),
+          with: {
+        socialLinks: {
+          orderBy: (sl, { asc: ascFn }) => [ascFn(sl.sortOrder)],
         },
-        include: profileInclude,
+      },
+        });
       });
 
-      await this.prisma.auditLog.create({
-        data: {
-          actorUserId: userId,
-          action: AuditAction.PROFILE_UPDATED,
-          entityType: 'CreatorProfile',
-          entityId: profile.id,
-          metadata: { event: 'created', username },
-        },
+      if (!profile) {
+        throw new Error('Creator profile insert did not return a row.');
+      }
+
+      await this.db.insert(auditLogs).values({
+        actorUserId: userId,
+        action: AuditAction.PROFILE_UPDATED,
+        entityType: 'CreatorProfile',
+        entityId: profile.id,
+        metadata: { event: 'created', username },
       });
 
       return toCreatorProfileDto(profile);
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
+      if (isUniqueViolation(err)) {
         throw new ApiError(
           409,
           'USERNAME_TAKEN',
@@ -227,14 +271,18 @@ export class CreatorsService {
   ): Promise<CreatorProfileDto> {
     const profile = await this.requireOwnedProfile(userId);
 
-    const data: Prisma.CreatorProfileUpdateInput = {};
+    const data: {
+      displayName?: string;
+      bio?: string | null;
+      avatarUrl?: string | null;
+      username?: string;
+    } = {};
 
     if (dto.displayName !== undefined) {
       data.displayName = this.requireValidDisplayName(dto.displayName);
     }
     if (dto.bio !== undefined) {
-      data.bio =
-        dto.bio === null ? null : this.requireValidBio(dto.bio);
+      data.bio = dto.bio === null ? null : this.requireValidBio(dto.bio);
     }
     if (dto.avatarUrl !== undefined) {
       data.avatarUrl =
@@ -252,28 +300,35 @@ export class CreatorsService {
     }
 
     try {
-      const updated = await this.prisma.creatorProfile.update({
-        where: { id: profile.id },
-        data,
-        include: profileInclude,
+      await this.db
+        .update(creatorProfiles)
+        .set(data)
+        .where(eq(creatorProfiles.id, profile.id));
+
+      const updated = await this.db.query.creatorProfiles.findFirst({
+        where: eq(creatorProfiles.id, profile.id),
+        with: {
+        socialLinks: {
+          orderBy: (sl, { asc: ascFn }) => [ascFn(sl.sortOrder)],
+        },
+      },
       });
 
-      await this.prisma.auditLog.create({
-        data: {
-          actorUserId: userId,
-          action: AuditAction.PROFILE_UPDATED,
-          entityType: 'CreatorProfile',
-          entityId: updated.id,
-          metadata: { event: 'profile_update' },
-        },
+      if (!updated) {
+        throw new Error('Creator profile update did not return a row.');
+      }
+
+      await this.db.insert(auditLogs).values({
+        actorUserId: userId,
+        action: AuditAction.PROFILE_UPDATED,
+        entityType: 'CreatorProfile',
+        entityId: updated.id,
+        metadata: { event: 'profile_update' },
       });
 
       return toCreatorProfileDto(updated);
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
+      if (isUniqueViolation(err)) {
         throw new ApiError(
           409,
           'USERNAME_TAKEN',
@@ -290,7 +345,14 @@ export class CreatorsService {
   ): Promise<CreatorProfileDto> {
     const profile = await this.requireOwnedProfile(userId);
 
-    const data: Prisma.CreatorProfileUpdateInput = {};
+    const data: {
+      supportMessage?: string | null;
+      currency?: AllowedCurrency;
+      suggestedTipAmounts?: string[];
+      goalTitle?: string | null;
+      goalTargetAmount?: string | null;
+      goalActive?: boolean;
+    } = {};
     if (dto.supportMessage !== undefined) {
       data.supportMessage =
         dto.supportMessage === null
@@ -307,32 +369,44 @@ export class CreatorsService {
     }
     if (dto.goalTitle !== undefined) {
       data.goalTitle =
-        dto.goalTitle === null ? null : this.requireValidGoalTitle(dto.goalTitle);
+        dto.goalTitle === null
+          ? null
+          : this.requireValidGoalTitle(dto.goalTitle);
     }
     if (dto.goalTargetAmount !== undefined) {
       data.goalTargetAmount =
         dto.goalTargetAmount === null
           ? null
-          : this.requireValidGoalAmount(dto.goalTargetAmount);
+          : this.requireValidGoalAmount(dto.goalTargetAmount).toFixed(2);
     }
     if (dto.goalActive !== undefined) {
       data.goalActive = Boolean(dto.goalActive);
     }
 
-    const updated = await this.prisma.creatorProfile.update({
-      where: { id: profile.id },
-      data,
-      include: profileInclude,
+    await this.db
+      .update(creatorProfiles)
+      .set(data)
+      .where(eq(creatorProfiles.id, profile.id));
+
+    const updated = await this.db.query.creatorProfiles.findFirst({
+      where: eq(creatorProfiles.id, profile.id),
+      with: {
+        socialLinks: {
+          orderBy: (sl, { asc: ascFn }) => [ascFn(sl.sortOrder)],
+        },
+      },
     });
 
-    await this.prisma.auditLog.create({
-      data: {
-        actorUserId: userId,
-        action: AuditAction.PROFILE_UPDATED,
-        entityType: 'CreatorProfile',
-        entityId: updated.id,
-        metadata: { event: 'settings_update' },
-      },
+    if (!updated) {
+      throw new Error('Creator profile update did not return a row.');
+    }
+
+    await this.db.insert(auditLogs).values({
+      actorUserId: userId,
+      action: AuditAction.PROFILE_UPDATED,
+      entityType: 'CreatorProfile',
+      entityId: updated.id,
+      metadata: { event: 'settings_update' },
     });
 
     return toCreatorProfileDto(updated);
@@ -343,32 +417,40 @@ export class CreatorsService {
     dto: ReplaceSocialLinksInput,
   ): Promise<CreatorProfileDto> {
     const profile = await this.requireOwnedProfile(userId);
-    const links = this.normalizeSocialLinks(dto.links);
+    const linkRows = this.normalizeSocialLinks(dto.links);
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      await tx.socialLink.deleteMany({ where: { creatorId: profile.id } });
-      if (links.length > 0) {
-        await tx.socialLink.createMany({
-          data: links.map((link) => ({
+    const updated = await this.db.transaction(async (tx) => {
+      await tx
+        .delete(socialLinks)
+        .where(eq(socialLinks.creatorId, profile.id));
+      if (linkRows.length > 0) {
+        await tx.insert(socialLinks).values(
+          linkRows.map((link) => ({
             ...link,
             creatorId: profile.id,
           })),
-        });
+        );
       }
-      return tx.creatorProfile.findUniqueOrThrow({
-        where: { id: profile.id },
-        include: profileInclude,
+      return tx.query.creatorProfiles.findFirst({
+        where: eq(creatorProfiles.id, profile.id),
+        with: {
+        socialLinks: {
+          orderBy: (sl, { asc: ascFn }) => [ascFn(sl.sortOrder)],
+        },
+      },
       });
     });
 
-    await this.prisma.auditLog.create({
-      data: {
-        actorUserId: userId,
-        action: AuditAction.PROFILE_UPDATED,
-        entityType: 'CreatorProfile',
-        entityId: updated.id,
-        metadata: { event: 'social_links_replaced', count: links.length },
-      },
+    if (!updated) {
+      throw new Error('Creator profile not found after social link replace.');
+    }
+
+    await this.db.insert(auditLogs).values({
+      actorUserId: userId,
+      action: AuditAction.PROFILE_UPDATED,
+      entityType: 'CreatorProfile',
+      entityId: updated.id,
+      metadata: { event: 'social_links_replaced', count: linkRows.length },
     });
 
     return toCreatorProfileDto(updated);
@@ -380,9 +462,9 @@ export class CreatorsService {
    * Successful totals count TipStatus.PAID only.
    */
   async getDashboard(userId: string): Promise<CreatorDashboardDto> {
-    const profile = await this.prisma.creatorProfile.findUnique({
-      where: { userId },
-      select: {
+    const profile = await this.db.query.creatorProfiles.findFirst({
+      where: eq(creatorProfiles.userId, userId),
+      columns: {
         id: true,
         username: true,
         displayName: true,
@@ -411,55 +493,63 @@ export class CreatorsService {
       '',
     );
 
+    const paidFilter = and(
+      eq(tips.creatorId, creatorId),
+      eq(tips.status, TipStatus.PAID),
+    );
+
     const [
-      lifetimeAgg,
-      periodAgg,
+      [lifetimeAgg],
+      [periodAgg],
       recentTips,
       recentMessages,
-      lifetimeViews,
-      weekViews,
+      [lifetimeViews],
+      [weekViews],
     ] = await Promise.all([
-      this.prisma.tip.aggregate({
-        where: { creatorId, status: TipStatus.PAID },
-        _sum: { amount: true },
-        _count: { _all: true },
+      this.db
+        .select({ value: sum(tips.amount), n: count() })
+        .from(tips)
+        .where(paidFilter),
+      this.db
+        .select({ value: sum(tips.amount), n: count() })
+        .from(tips)
+        .where(
+          and(paidFilter, gte(tips.createdAt, start), lt(tips.createdAt, end)),
+        ),
+      this.db.query.tips.findMany({
+        where: eq(tips.creatorId, creatorId),
+        with: { paymentTransaction: { columns: { status: true } } },
+        orderBy: desc(tips.createdAt),
+        limit: RECENT_TIPS_LIMIT,
       }),
-      this.prisma.tip.aggregate({
-        where: {
-          creatorId,
-          status: TipStatus.PAID,
-          createdAt: { gte: start, lt: end },
-        },
-        _sum: { amount: true },
-        _count: { _all: true },
+      this.db.query.tips.findMany({
+        where: and(
+          eq(tips.creatorId, creatorId),
+          eq(tips.status, TipStatus.PAID),
+          isNotNull(tips.message),
+        ),
+        with: { paymentTransaction: { columns: { status: true } } },
+        orderBy: desc(tips.createdAt),
+        limit: RECENT_MESSAGES_LIMIT,
       }),
-      this.prisma.tip.findMany({
-        where: { creatorId },
-        include: tipWithPaymentInclude,
-        orderBy: { createdAt: 'desc' },
-        take: RECENT_TIPS_LIMIT,
-      }),
-      this.prisma.tip.findMany({
-        where: {
-          creatorId,
-          status: TipStatus.PAID,
-          message: { not: null },
-        },
-        include: tipWithPaymentInclude,
-        orderBy: { createdAt: 'desc' },
-        take: RECENT_MESSAGES_LIMIT,
-      }),
-      this.prisma.tipPageView.count({ where: { creatorId } }),
-      this.prisma.tipPageView.count({
-        where: {
-          creatorId,
-          createdAt: { gte: week.start, lt: week.end },
-        },
-      }),
+      this.db
+        .select({ n: count() })
+        .from(tipPageViews)
+        .where(eq(tipPageViews.creatorId, creatorId)),
+      this.db
+        .select({ n: count() })
+        .from(tipPageViews)
+        .where(
+          and(
+            eq(tipPageViews.creatorId, creatorId),
+            gte(tipPageViews.createdAt, week.start),
+            lt(tipPageViews.createdAt, week.end),
+          ),
+        ),
     ]);
 
-    const successfulTipCount = lifetimeAgg._count._all;
-    const lifetimeViewCount = lifetimeViews;
+    const successfulTipCount = lifetimeAgg?.n ?? 0;
+    const lifetimeViewCount = lifetimeViews?.n ?? 0;
     const conversionRate =
       lifetimeViewCount > 0
         ? Math.min(1, successfulTipCount / lifetimeViewCount)
@@ -474,19 +564,19 @@ export class CreatorsService {
       publicUrl: `${appUrl}/${profile.username}`,
       totals: {
         successfulSupport: decimalToAmountString(
-          lifetimeAgg._sum.amount ?? new Prisma.Decimal(0),
+          lifetimeAgg?.value ?? new Decimal(0),
         ),
         successfulTipCount,
         periodSupport: decimalToAmountString(
-          periodAgg._sum.amount ?? new Prisma.Decimal(0),
+          periodAgg?.value ?? new Decimal(0),
         ),
-        periodTipCount: periodAgg._count._all,
+        periodTipCount: periodAgg?.n ?? 0,
         periodKey,
         periodLabel,
       },
       linkViews: {
         lifetime: lifetimeViewCount,
-        thisWeek: weekViews,
+        thisWeek: weekViews?.n ?? 0,
       },
       conversion: {
         viewsToTipsRate: conversionRate,
@@ -496,10 +586,12 @@ export class CreatorsService {
             ? null
             : Math.round(conversionRate * 1000) / 10,
       },
-      supportGoal: toSupportGoalDto(profile, lifetimeAgg._sum.amount),
+      supportGoal: toSupportGoalDto(profile, lifetimeAgg?.value),
       recentTips: recentTips.map(toCreatorTipDto),
       recentMessages: recentMessages
-        .filter((t) => Boolean(t.message?.trim()))
+        .filter((t: (typeof recentMessages)[number]) =>
+          Boolean(t.message?.trim()),
+        )
         .map(toCreatorTipDto),
       settlement: buildSettlementStatus({
         bachsAccountId: profile.bachsAccountId,
@@ -514,18 +606,16 @@ export class CreatorsService {
    */
   async recordTipPageView(raw: string): Promise<{ recorded: true }> {
     const username = normalizeUsername(raw);
-    const profile = await this.prisma.creatorProfile.findUnique({
-      where: { username },
-      select: { id: true, isActive: true },
+    const profile = await this.db.query.creatorProfiles.findFirst({
+      where: eq(creatorProfiles.username, username),
+      columns: { id: true, isActive: true },
     });
 
     if (!profile || !profile.isActive) {
       throw new ApiError(404, 'CREATOR_NOT_FOUND', 'Creator not found.');
     }
 
-    await this.prisma.tipPageView.create({
-      data: { creatorId: profile.id },
-    });
+    await this.db.insert(tipPageViews).values({ creatorId: profile.id });
 
     return { recorded: true };
   }
@@ -543,19 +633,21 @@ export class CreatorsService {
     const pageSize = query.pageSize ?? 20;
     const where = this.buildTipListWhere(profile.id, query);
 
-    const [total, tips] = await Promise.all([
-      this.prisma.tip.count({ where }),
-      this.prisma.tip.findMany({
+    const [[countRow], tipRows] = await Promise.all([
+      this.db.select({ n: count() }).from(tips).where(where),
+      this.db.query.tips.findMany({
         where,
-        include: tipWithPaymentInclude,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        with: { paymentTransaction: { columns: { status: true } } },
+        orderBy: desc(tips.createdAt),
+        offset: (page - 1) * pageSize,
+        limit: pageSize,
       }),
     ]);
 
+    const total = countRow?.n ?? 0;
+
     return {
-      tips: tips.map(toCreatorTipDto),
+      tips: tipRows.map(toCreatorTipDto),
       page,
       pageSize,
       total,
@@ -563,42 +655,35 @@ export class CreatorsService {
     };
   }
 
-  private buildTipListWhere(
-    creatorId: string,
-    query: ListTipsQuery,
-  ): Prisma.TipWhereInput {
-    const where: Prisma.TipWhereInput = { creatorId };
+  private buildTipListWhere(creatorId: string, query: ListTipsQuery) {
+    const conditions = [eq(tips.creatorId, creatorId)];
 
     if (query.status) {
-      where.status = query.status;
+      conditions.push(eq(tips.status, query.status));
     }
 
-    if (query.from || query.to) {
-      where.createdAt = {};
-      if (query.from) {
-        where.createdAt.gte = new Date(query.from);
-      }
-      if (query.to) {
-        const to = new Date(query.to);
-        // If date-only (YYYY-MM-DD), include the full end day in UTC.
-        if (/^\d{4}-\d{2}-\d{2}$/.test(query.to)) {
-          to.setUTCHours(23, 59, 59, 999);
-        }
-        where.createdAt.lte = to;
-      }
+    if (query.from) {
+      conditions.push(gte(tips.createdAt, new Date(query.from)));
     }
 
-    if (query.minAmount || query.maxAmount) {
-      where.amount = {};
-      if (query.minAmount) {
-        where.amount.gte = new Prisma.Decimal(query.minAmount);
+    if (query.to) {
+      const to = new Date(query.to);
+      // If date-only (YYYY-MM-DD), include the full end day in UTC.
+      if (/^\d{4}-\d{2}-\d{2}$/.test(query.to)) {
+        to.setUTCHours(23, 59, 59, 999);
       }
-      if (query.maxAmount) {
-        where.amount.lte = new Prisma.Decimal(query.maxAmount);
-      }
+      conditions.push(lte(tips.createdAt, to));
     }
 
-    return where;
+    if (query.minAmount) {
+      conditions.push(gte(tips.amount, query.minAmount));
+    }
+
+    if (query.maxAmount) {
+      conditions.push(lte(tips.amount, query.maxAmount));
+    }
+
+    return and(...conditions);
   }
 
   /**
@@ -606,9 +691,9 @@ export class CreatorsService {
    * Never trust a client-supplied userId for ownership.
    */
   async assertOwnsCreator(userId: string, creatorId: string): Promise<void> {
-    const profile = await this.prisma.creatorProfile.findUnique({
-      where: { id: creatorId },
-      select: { userId: true },
+    const profile = await this.db.query.creatorProfiles.findFirst({
+      where: eq(creatorProfiles.id, creatorId),
+      columns: { userId: true },
     });
     if (!profile) {
       throw new ApiError(404, 'CREATOR_NOT_FOUND', 'Creator not found.');
@@ -623,9 +708,9 @@ export class CreatorsService {
   }
 
   private async requireOwnedProfile(userId: string) {
-    const profile = await this.prisma.creatorProfile.findUnique({
-      where: { userId },
-      select: { id: true, userId: true },
+    const profile = await this.db.query.creatorProfiles.findFirst({
+      where: eq(creatorProfiles.userId, userId),
+      columns: { id: true, userId: true },
     });
     if (!profile) {
       throw new ApiError(
@@ -691,7 +776,7 @@ export class CreatorsService {
     return title;
   }
 
-  private requireValidGoalAmount(raw: string): Prisma.Decimal {
+  private requireValidGoalAmount(raw: string): Decimal {
     const n = Number(raw);
     if (!Number.isFinite(n) || n < 100) {
       throw new ApiError(
@@ -707,14 +792,12 @@ export class CreatorsService {
         'Goal target is too large.',
       );
     }
-    return new Prisma.Decimal(n.toFixed(2));
+    return new Decimal(n.toFixed(2));
   }
 
   private requireValidCurrency(raw: string): AllowedCurrency {
     const currency = raw.trim().toUpperCase();
-    if (
-      !(ALLOWED_CURRENCIES as readonly string[]).includes(currency)
-    ) {
+    if (!(ALLOWED_CURRENCIES as readonly string[]).includes(currency)) {
       throw new ApiError(
         400,
         'INVALID_CURRENCY',
@@ -749,11 +832,7 @@ export class CreatorsService {
       reason === 'TOO_SHORT' ||
       reason === 'TOO_LONG'
     ) {
-      return new ApiError(
-        400,
-        reason,
-        usernameValidationMessage(reason),
-      );
+      return new ApiError(400, reason, usernameValidationMessage(reason));
     }
     return new ApiError(409, 'USERNAME_TAKEN', 'That username is already taken.');
   }
@@ -798,7 +877,11 @@ export class CreatorsService {
           'Social links must be http(s) URLs.',
         );
       }
-      if (!Object.values(SocialPlatform).includes(link.platform)) {
+      if (
+        !Object.values(SocialPlatform).includes(
+          link.platform as (typeof SocialPlatform)[keyof typeof SocialPlatform],
+        )
+      ) {
         throw new ApiError(
           400,
           'INVALID_SOCIAL_PLATFORM',

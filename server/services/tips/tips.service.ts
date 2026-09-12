@@ -1,14 +1,20 @@
+import { randomBytes } from 'crypto';
+import { eq } from 'drizzle-orm';
+import { useDb, isUniqueViolation } from '../../db';
 import {
   AuditAction,
   PaymentProvider,
   PaymentStatus,
-  Prisma,
   TipStatus,
-} from '@prisma/client';
-import { randomBytes } from 'crypto';
+} from '../../db/enums';
+import {
+  auditLogs,
+  creatorProfiles,
+  paymentTransactions,
+  tips,
+} from '../../db/schema';
 import { ApiError } from '../../lib/errors';
 import { getServerEnv } from '../../lib/env';
-import { usePrisma } from '../../lib/prisma';
 import { ALLOWED_CURRENCIES } from '../creators/username';
 import {
   BachsProviderError,
@@ -21,21 +27,20 @@ import { sanitizeSupporterName, sanitizeTipMessage } from './message';
 import type { CreateTipInput, PublicTipDto } from './tips.types';
 import { toPublicTipDto } from './tips.types';
 
-const tipPublicInclude = {
+const tipPublicWith = {
   creator: {
-    select: {
+    columns: {
       username: true,
       displayName: true,
       avatarUrl: true,
     },
   },
-} satisfies Prisma.TipInclude;
+} as const;
 
 export class TipsService {
-  constructor(
-    private readonly prisma = usePrisma(),
-    private readonly payments = new PaymentsService(),
-  ) {}
+  private readonly db = useDb();
+
+  constructor(private readonly payments = new PaymentsService()) {}
 
   /**
    * Create Tip + PaymentTransaction (PENDING), then initialize checkout.
@@ -46,9 +51,9 @@ export class TipsService {
     dto: CreateTipInput,
     opts?: { idempotencyKeyHeader?: string; ip?: string; userAgent?: string },
   ): Promise<{ tip: PublicTipDto; checkoutUrl: string }> {
-    const creator = await this.prisma.creatorProfile.findUnique({
-      where: { username: dto.username },
-      select: {
+    const creator = await this.db.query.creatorProfiles.findFirst({
+      where: eq(creatorProfiles.username, dto.username),
+      columns: {
         id: true,
         username: true,
         displayName: true,
@@ -105,25 +110,27 @@ export class TipsService {
     let paymentId: string;
 
     try {
-      const created = await this.prisma.$transaction(async (tx) => {
-        const payment = await tx.paymentTransaction.create({
-          data: {
+      const created = await this.db.transaction(async (tx) => {
+        const [payment] = await tx
+          .insert(paymentTransactions)
+          .values({
             internalReference,
             provider: dbProvider,
-            amount: amountResult.decimal,
+            amount: amountResult.decimal.toFixed(2),
             currency,
             status: PaymentStatus.PENDING,
             metadata: {
               source: 'tip_create',
               creatorUsername: creator.username,
             },
-          },
-        });
+          })
+          .returning();
 
-        const tip = await tx.tip.create({
-          data: {
+        const [tip] = await tx
+          .insert(tips)
+          .values({
             creatorId: creator.id,
-            amount: amountResult.decimal,
+            amount: amountResult.decimal.toFixed(2),
             currency,
             message,
             isAnonymous,
@@ -131,23 +138,21 @@ export class TipsService {
             supporterEmail,
             status: TipStatus.CREATED,
             paymentTransactionId: payment.id,
-          },
-        });
+          })
+          .returning();
 
-        await tx.auditLog.create({
-          data: {
-            action: AuditAction.TIP_CREATED,
-            entityType: 'Tip',
-            entityId: tip.id,
-            ipAddress: opts?.ip,
-            userAgent: opts?.userAgent,
-            metadata: {
-              amount: amountResult.amount,
-              currency,
-              isAnonymous,
-              creatorId: creator.id,
-              provider: dbProvider,
-            },
+        await tx.insert(auditLogs).values({
+          action: AuditAction.TIP_CREATED,
+          entityType: 'Tip',
+          entityId: tip.id,
+          ipAddress: opts?.ip,
+          userAgent: opts?.userAgent,
+          metadata: {
+            amount: amountResult.amount,
+            currency,
+            isAnonymous,
+            creatorId: creator.id,
+            provider: dbProvider,
           },
         });
 
@@ -157,10 +162,7 @@ export class TipsService {
       tipId = created.tip.id;
       paymentId = created.payment.id;
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
+      if (isUniqueViolation(err)) {
         const replay = await this.findByInternalReference(internalReference);
         if (replay) return replay;
       }
@@ -217,10 +219,10 @@ export class TipsService {
       );
     }
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const payment = await tx.paymentTransaction.update({
-        where: { id: paymentId },
-        data: {
+    const updated = await this.db.transaction(async (tx) => {
+      await tx
+        .update(paymentTransactions)
+        .set({
           providerReference: init.providerReference,
           status: PaymentStatus.PROCESSING,
           rawProviderStatus: init.rawStatus ?? 'initialized',
@@ -228,39 +230,43 @@ export class TipsService {
             source: 'tip_create',
             creatorUsername: creator.username,
             checkoutUrl: init.checkoutUrl,
-            providerMeta: (init.metadata ?? {}) as Prisma.InputJsonValue,
+            providerMeta: init.metadata ?? {},
           },
+        })
+        .where(eq(paymentTransactions.id, paymentId));
+
+      await tx
+        .update(tips)
+        .set({ status: TipStatus.CHECKOUT_PENDING })
+        .where(eq(tips.id, tipId));
+
+      const tip = await tx.query.tips.findFirst({
+        where: eq(tips.id, tipId),
+        with: tipPublicWith,
+      });
+
+      if (!tip) {
+        throw new Error(`Tip ${tipId} missing after checkout update`);
+      }
+
+      await tx.insert(auditLogs).values({
+        action: AuditAction.TIP_STATUS_CHANGED,
+        entityType: 'Tip',
+        entityId: tip.id,
+        metadata: {
+          from: TipStatus.CREATED,
+          to: TipStatus.CHECKOUT_PENDING,
         },
       });
 
-      const tip = await tx.tip.update({
-        where: { id: tipId },
-        data: { status: TipStatus.CHECKOUT_PENDING },
-        include: tipPublicInclude,
-      });
-
-      await tx.auditLog.create({
-        data: {
-          action: AuditAction.TIP_STATUS_CHANGED,
-          entityType: 'Tip',
-          entityId: tip.id,
-          metadata: {
-            from: TipStatus.CREATED,
-            to: TipStatus.CHECKOUT_PENDING,
-          },
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          action: AuditAction.PAYMENT_STATUS_CHANGED,
-          entityType: 'PaymentTransaction',
-          entityId: payment.id,
-          metadata: {
-            from: PaymentStatus.PENDING,
-            to: PaymentStatus.PROCESSING,
-            providerReference: init.providerReference,
-          },
+      await tx.insert(auditLogs).values({
+        action: AuditAction.PAYMENT_STATUS_CHANGED,
+        entityType: 'PaymentTransaction',
+        entityId: paymentId,
+        metadata: {
+          from: PaymentStatus.PENDING,
+          to: PaymentStatus.PROCESSING,
+          providerReference: init.providerReference,
         },
       });
 
@@ -274,9 +280,9 @@ export class TipsService {
   }
 
   async getPublicTip(tipId: string): Promise<PublicTipDto> {
-    const tip = await this.prisma.tip.findUnique({
-      where: { id: tipId },
-      include: tipPublicInclude,
+    const tip = await this.db.query.tips.findFirst({
+      where: eq(tips.id, tipId),
+      with: tipPublicWith,
     });
 
     if (!tip) {
@@ -296,25 +302,25 @@ export class TipsService {
       `Marking tip=${tipId} failed after payment init kind=${kind}`,
     );
     try {
-      await this.prisma.$transaction(async (tx) => {
-        await tx.paymentTransaction.update({
-          where: { id: paymentId },
-          data: {
+      await this.db.transaction(async (tx) => {
+        await tx
+          .update(paymentTransactions)
+          .set({
             status: PaymentStatus.FAILED,
             rawProviderStatus: kind,
-          },
-        });
-        await tx.tip.update({
-          where: { id: tipId },
-          data: { status: TipStatus.FAILED },
-        });
-        await tx.auditLog.create({
-          data: {
-            action: AuditAction.TIP_STATUS_CHANGED,
-            entityType: 'Tip',
-            entityId: tipId,
-            metadata: { to: TipStatus.FAILED, reason: 'payment_init_failed' },
-          },
+          })
+          .where(eq(paymentTransactions.id, paymentId));
+
+        await tx
+          .update(tips)
+          .set({ status: TipStatus.FAILED })
+          .where(eq(tips.id, tipId));
+
+        await tx.insert(auditLogs).values({
+          action: AuditAction.TIP_STATUS_CHANGED,
+          entityType: 'Tip',
+          entityId: tipId,
+          metadata: { to: TipStatus.FAILED, reason: 'payment_init_failed' },
         });
       });
     } catch (markErr) {
@@ -348,14 +354,18 @@ export class TipsService {
   private async findByInternalReference(
     internalReference: string,
   ): Promise<{ tip: PublicTipDto; checkoutUrl: string } | null> {
-    const payment = await this.prisma.paymentTransaction.findUnique({
-      where: { internalReference },
-      include: {
-        tip: { include: tipPublicInclude },
-      },
+    const payment = await this.db.query.paymentTransactions.findFirst({
+      where: eq(paymentTransactions.internalReference, internalReference),
     });
 
-    if (!payment?.tip) return null;
+    if (!payment) return null;
+
+    const tip = await this.db.query.tips.findFirst({
+      where: eq(tips.paymentTransactionId, payment.id),
+      with: tipPublicWith,
+    });
+
+    if (!tip) return null;
 
     const meta = payment.metadata as { checkoutUrl?: string } | null;
     const appUrl = (getServerEnv().APP_URL ?? 'http://localhost:3000').replace(
@@ -364,10 +374,10 @@ export class TipsService {
     );
     const checkoutUrl =
       meta?.checkoutUrl ??
-      `${appUrl}/support/checkout/${encodeURIComponent(payment.tip.id)}`;
+      `${appUrl}/support/checkout/${encodeURIComponent(tip.id)}`;
 
     return {
-      tip: toPublicTipDto(payment.tip),
+      tip: toPublicTipDto(tip),
       checkoutUrl,
     };
   }

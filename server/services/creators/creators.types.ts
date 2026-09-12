@@ -2,7 +2,8 @@ import type {
   CreatorProfile,
   SocialLink,
   SocialPlatform,
-} from '@prisma/client';
+} from '../../db/schema';
+import { decimalToAmountString } from '../tips/tips.types';
 
 export interface CreatorSocialLinkDto {
   id: string;
@@ -101,7 +102,7 @@ export function toCreatorProfileDto(
     isActive: profile.isActive,
     goalTitle: profile.goalTitle ?? null,
     goalTargetAmount: profile.goalTargetAmount
-      ? profile.goalTargetAmount.toFixed(2)
+      ? decimalToAmountString(profile.goalTargetAmount)
       : null,
     goalActive: Boolean(profile.goalActive),
     socialLinks: links.map((link) => ({

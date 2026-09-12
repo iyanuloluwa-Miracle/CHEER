@@ -1,4 +1,5 @@
-import { TipStatus } from '@prisma/client';
+import { TipStatus } from '../../../db/enums';
+import type { TipStatus as TipStatusType } from '../../../db/schema';
 import { CreatorsService } from '../../../services/creators/creators.service';
 import type { ListTipsQuery } from '../../../services/creators/dashboard.types';
 import { TIP_AMOUNT_PATTERN } from '../../../services/tips/tips.constants';
@@ -16,12 +17,12 @@ export default defineApiHandler(async (event) => {
   const q = getQuery(event);
 
   const statusRaw = emptyToUndefined(q.status);
-  let status: TipStatus | undefined;
+  let status: TipStatusType | undefined;
   if (statusRaw) {
-    if (!Object.values(TipStatus).includes(statusRaw as TipStatus)) {
+    if (!Object.values(TipStatus).includes(statusRaw as TipStatusType)) {
       throw new ApiError(400, 'INVALID_STATUS', 'Invalid tip status filter.');
     }
-    status = statusRaw as TipStatus;
+    status = statusRaw as TipStatusType;
   }
 
   const minAmount = emptyToUndefined(q.minAmount);

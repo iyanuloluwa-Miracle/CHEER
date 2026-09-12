@@ -1,0 +1,79 @@
+/**
+ * Const enum-like maps matching Postgres / Drizzle pgEnum values.
+ * Prefer these over string literals in services for parity with former Prisma enums.
+ */
+export const SocialPlatform = {
+  X: 'X',
+  INSTAGRAM: 'INSTAGRAM',
+  LINKEDIN: 'LINKEDIN',
+  GITHUB: 'GITHUB',
+  YOUTUBE: 'YOUTUBE',
+  TIKTOK: 'TIKTOK',
+  WEBSITE: 'WEBSITE',
+  OTHER: 'OTHER',
+} as const;
+
+export const TipStatus = {
+  CREATED: 'CREATED',
+  CHECKOUT_PENDING: 'CHECKOUT_PENDING',
+  PAID: 'PAID',
+  FAILED: 'FAILED',
+  EXPIRED: 'EXPIRED',
+} as const;
+
+export const PaymentProvider = {
+  BACHS: 'BACHS',
+  DEV_SEED: 'DEV_SEED',
+} as const;
+
+export const PaymentStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  SUCCEEDED: 'SUCCEEDED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+  EXPIRED: 'EXPIRED',
+} as const;
+
+export const OtpPurpose = {
+  EMAIL_VERIFICATION: 'EMAIL_VERIFICATION',
+  PASSWORD_RESET: 'PASSWORD_RESET',
+  LOGIN: 'LOGIN',
+} as const;
+
+export const NotificationType = {
+  EMAIL_OTP: 'EMAIL_OTP',
+  EMAIL_TIP_RECEIVED: 'EMAIL_TIP_RECEIVED',
+  EMAIL_ACCOUNT_VERIFIED: 'EMAIL_ACCOUNT_VERIFIED',
+  EMAIL_SECURITY_ALERT: 'EMAIL_SECURITY_ALERT',
+  EMAIL_GENERIC: 'EMAIL_GENERIC',
+} as const;
+
+export const NotificationStatus = {
+  QUEUED: 'QUEUED',
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  FAILED: 'FAILED',
+} as const;
+
+export const NotificationProvider = {
+  SENDBYTE: 'SENDBYTE',
+  RESEND: 'RESEND',
+  DEV_LOG: 'DEV_LOG',
+} as const;
+
+export const AuditAction = {
+  USER_CREATED: 'USER_CREATED',
+  EMAIL_VERIFIED: 'EMAIL_VERIFIED',
+  LOGIN_SUCCESS: 'LOGIN_SUCCESS',
+  LOGIN_FAILURE: 'LOGIN_FAILURE',
+  PASSWORD_RESET_REQUESTED: 'PASSWORD_RESET_REQUESTED',
+  PASSWORD_RESET_COMPLETED: 'PASSWORD_RESET_COMPLETED',
+  PROFILE_UPDATED: 'PROFILE_UPDATED',
+  TIP_CREATED: 'TIP_CREATED',
+  TIP_STATUS_CHANGED: 'TIP_STATUS_CHANGED',
+  PAYMENT_STATUS_CHANGED: 'PAYMENT_STATUS_CHANGED',
+  PAYOUT_REQUESTED: 'PAYOUT_REQUESTED',
+  WEBHOOK_RECEIVED: 'WEBHOOK_RECEIVED',
+  WEBHOOK_IGNORED_DUPLICATE: 'WEBHOOK_IGNORED_DUPLICATE',
+} as const;

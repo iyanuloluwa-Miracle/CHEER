@@ -1,10 +1,11 @@
+import { and, eq, sql } from 'drizzle-orm';
+import { useDb } from '../../db';
+import { notifications, type NotificationType } from '../../db/schema';
 import {
   NotificationProvider,
   NotificationStatus,
-  NotificationType,
-  Prisma,
-} from '@prisma/client';
-import { usePrisma } from '../../lib/prisma';
+  NotificationType as NotificationTypeEnum,
+} from '../../db/enums';
 import { ResendService } from './resend.service';
 import {
   accountVerifiedEmail,
@@ -28,7 +29,7 @@ export interface TransactionalSendResult {
  */
 export class TransactionalNotificationsService {
   constructor(
-    private readonly prisma = usePrisma(),
+    private readonly db = useDb(),
     private readonly resend = new ResendService(),
   ) {}
 
@@ -61,9 +62,9 @@ export class TransactionalNotificationsService {
     };
 
     let existing = params.existingId
-      ? await this.prisma.notification.findUnique({
-          where: { id: params.existingId },
-          select: { id: true, status: true },
+      ? await this.db.query.notifications.findFirst({
+          where: eq(notifications.id, params.existingId),
+          columns: { id: true, status: true },
         })
       : await this.findByIdempotencyKey(params.idempotencyKey);
 
@@ -90,15 +91,16 @@ export class TransactionalNotificationsService {
           : NotificationProvider.DEV_LOG;
 
       if (existing) {
-        const updated = await this.prisma.notification.update({
-          where: { id: existing.id },
-          data: {
+        const [updated] = await this.db
+          .update(notifications)
+          .set({
             status: NotificationStatus.SENT,
             provider,
             providerMessageId: result.id,
-            metadata: metadata,
-          },
-        });
+            metadata,
+          })
+          .where(eq(notifications.id, existing.id))
+          .returning();
         return {
           status: 'sent',
           notificationId: updated.id,
@@ -106,17 +108,18 @@ export class TransactionalNotificationsService {
         };
       }
 
-      const created = await this.prisma.notification.create({
-        data: {
-          userId: params.userId ?? undefined,
+      const [created] = await this.db
+        .insert(notifications)
+        .values({
+          userId: params.userId ?? null,
           email: params.to,
           type: params.type,
           provider,
           providerMessageId: result.id,
           status: NotificationStatus.SENT,
-          metadata: metadata,
-        },
-      });
+          metadata,
+        })
+        .returning();
       return {
         status: 'sent',
         notificationId: created.id,
@@ -175,12 +178,12 @@ export class TransactionalNotificationsService {
     supporterName: string | null;
   }): Promise<TransactionalSendResult> {
     // Backward-compatible dedupe on tipId (Phase 7/8 rows may lack idempotencyKey).
-    const byTip = await this.prisma.notification.findFirst({
-      where: {
-        type: NotificationType.EMAIL_TIP_RECEIVED,
-        metadata: { path: ['tipId'], equals: params.tipId },
-      },
-      select: { id: true, status: true },
+    const byTip = await this.db.query.notifications.findFirst({
+      where: and(
+        eq(notifications.type, NotificationTypeEnum.EMAIL_TIP_RECEIVED),
+        sql`metadata->>'tipId' = ${params.tipId}`,
+      ),
+      columns: { id: true, status: true },
     });
     if (byTip?.status === NotificationStatus.SENT) {
       return { status: 'skipped', notificationId: byTip.id };
@@ -193,7 +196,7 @@ export class TransactionalNotificationsService {
       supporterName: params.supporterName,
     });
     return this.send({
-      type: NotificationType.EMAIL_TIP_RECEIVED,
+      type: NotificationTypeEnum.EMAIL_TIP_RECEIVED,
       to: params.email,
       userId: params.userId,
       subject: copy.subject,
@@ -214,7 +217,7 @@ export class TransactionalNotificationsService {
   }): Promise<TransactionalSendResult> {
     const copy = accountVerifiedEmail();
     return this.send({
-      type: NotificationType.EMAIL_ACCOUNT_VERIFIED,
+      type: NotificationTypeEnum.EMAIL_ACCOUNT_VERIFIED,
       to: params.email,
       userId: params.userId,
       subject: copy.subject,
@@ -240,7 +243,7 @@ export class TransactionalNotificationsService {
         ? `security_login_${params.auditLogId}`
         : `security_login_${params.userId}_${atIso.slice(0, 13)}`;
     return this.send({
-      type: NotificationType.EMAIL_SECURITY_ALERT,
+      type: NotificationTypeEnum.EMAIL_SECURITY_ALERT,
       to: params.email,
       userId: params.userId,
       subject: copy.subject,
@@ -267,7 +270,7 @@ export class TransactionalNotificationsService {
   }): Promise<TransactionalSendResult> {
     const copy = otpEmail(params.code);
     return this.send({
-      type: NotificationType.EMAIL_OTP,
+      type: NotificationTypeEnum.EMAIL_OTP,
       to: params.email,
       userId: params.userId,
       subject: copy.subject,
@@ -284,11 +287,9 @@ export class TransactionalNotificationsService {
   }
 
   private async findByIdempotencyKey(idempotencyKey: string) {
-    return this.prisma.notification.findFirst({
-      where: {
-        metadata: { path: ['idempotencyKey'], equals: idempotencyKey },
-      },
-      select: { id: true, status: true },
+    return this.db.query.notifications.findFirst({
+      where: sql`metadata->>'idempotencyKey' = ${idempotencyKey}`,
+      columns: { id: true, status: true },
     });
   }
 
@@ -305,27 +306,31 @@ export class TransactionalNotificationsService {
       lastError:
         params.error instanceof Error ? params.error.message : 'unknown',
       failedAt: new Date().toISOString(),
-    } as Prisma.InputJsonValue;
+    };
 
     if (params.existingId) {
-      return this.prisma.notification.update({
-        where: { id: params.existingId },
-        data: {
+      const [updated] = await this.db
+        .update(notifications)
+        .set({
           status: NotificationStatus.FAILED,
           metadata: failureMeta,
-        },
-      });
+        })
+        .where(eq(notifications.id, params.existingId))
+        .returning();
+      return updated;
     }
 
-    return this.prisma.notification.create({
-      data: {
-        userId: params.userId ?? undefined,
+    const [created] = await this.db
+      .insert(notifications)
+      .values({
+        userId: params.userId ?? null,
         email: params.to,
         type: params.type,
         provider: NotificationProvider.RESEND,
         status: NotificationStatus.FAILED,
         metadata: failureMeta,
-      },
-    });
+      })
+      .returning();
+    return created;
   }
 }

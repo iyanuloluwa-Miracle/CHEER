@@ -1,5 +1,5 @@
-import type { CreatorProfile, Tip, TipStatus } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import type { CreatorProfile, Tip, TipStatus } from '../../db/schema';
+import Decimal from 'decimal.js';
 
 export interface PublicTipDto {
   id: string;
@@ -29,8 +29,8 @@ export interface CreateTipInput {
   idempotencyKey?: string;
 }
 
-export function decimalToAmountString(value: Prisma.Decimal | string): string {
-  const d = value instanceof Prisma.Decimal ? value : new Prisma.Decimal(value);
+export function decimalToAmountString(value: Decimal | string | number): string {
+  const d = value instanceof Decimal ? value : new Decimal(value);
   return d.toFixed(2);
 }
 

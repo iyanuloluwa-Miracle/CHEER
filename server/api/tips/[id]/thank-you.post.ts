@@ -1,8 +1,11 @@
-import { TipStatus } from '@prisma/client';
+import { eq } from 'drizzle-orm';
+import { useDb } from '../../../db';
+import { TipStatus } from '../../../db/enums';
+import { tips } from '../../../db/schema';
 import { OpenRouterAiService } from '../../../services/ai/openrouter.service';
 import { ApiError } from '../../../lib/errors';
-import { usePrisma } from '../../../lib/prisma';
 import { defineApiHandler } from '../../../lib/define-api';
+import { decimalToAmountString } from '../../../services/tips/tips.types';
 
 /**
  * Generate (or return cached) AI thank-you for a PAID tip.
@@ -14,12 +17,12 @@ export default defineApiHandler(async (event) => {
     throw new ApiError(400, 'INVALID_TIP', 'Tip id is required.');
   }
 
-  const prisma = usePrisma();
-  const tip = await prisma.tip.findUnique({
-    where: { id: tipId },
-    include: {
+  const db = useDb();
+  const tip = await db.query.tips.findFirst({
+    where: eq(tips.id, tipId),
+    with: {
       creator: {
-        select: {
+        columns: {
           displayName: true,
           supportMessage: true,
         },
@@ -52,15 +55,16 @@ export default defineApiHandler(async (event) => {
     supporterName: tip.supporterName,
     isAnonymous: tip.isAnonymous,
     tipMessage: tip.message,
-    amount: tip.amount.toFixed(2),
+    amount: decimalToAmountString(tip.amount),
     currency: tip.currency,
     supportMessage: tip.creator.supportMessage,
   });
 
-  const updated = await prisma.tip.update({
-    where: { id: tip.id },
-    data: { aiThankYouMessage: generated.message },
-  });
+  const [updated] = await db
+    .update(tips)
+    .set({ aiThankYouMessage: generated.message })
+    .where(eq(tips.id, tip.id))
+    .returning();
 
   return {
     message: updated.aiThankYouMessage!,

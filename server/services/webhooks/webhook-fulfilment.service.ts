@@ -1,11 +1,23 @@
+import Decimal from 'decimal.js';
+import { eq } from 'drizzle-orm';
+import { useDb, isUniqueViolation } from '../../db';
 import {
   AuditAction,
   PaymentProvider,
   PaymentStatus,
-  Prisma,
   TipStatus,
-} from '@prisma/client';
-import { usePrisma } from '../../lib/prisma';
+} from '../../db/enums';
+import type {
+  PaymentProvider as PaymentProviderT,
+  PaymentStatus as PaymentStatusT,
+  TipStatus as TipStatusT,
+} from '../../db/schema';
+import {
+  auditLogs,
+  paymentTransactions,
+  tips,
+  webhookEvents,
+} from '../../db/schema';
 import { TransactionalNotificationsService } from '../notifications/transactional-notifications.service';
 import { BachsProviderError } from '../payments/bachs/bachs.errors';
 import type { VerifyPaymentResult } from '../payments/payment-provider.port';
@@ -15,6 +27,7 @@ import {
   mapVerificationToStatuses,
 } from '../payments/payment-status.transitions';
 import { PaymentsService } from '../payments/payments.service';
+import { decimalToAmountString } from '../tips/tips.types';
 
 export type WebhookProcessOutcome =
   | 'ignored_duplicate'
@@ -40,8 +53,9 @@ export interface ProcessWebhookResult {
  * Tip emails fire only after DB SUCCESS — never from frontend redirects.
  */
 export class WebhookFulfilmentService {
+  private readonly db = useDb();
+
   constructor(
-    private readonly prisma = usePrisma(),
     private readonly payments = new PaymentsService(),
     private readonly notifications = new TransactionalNotificationsService(),
   ) {}
@@ -58,9 +72,9 @@ export class WebhookFulfilmentService {
       return { ok: true, outcome: 'ignored_malformed' };
     }
 
-    const existing = await this.prisma.webhookEvent.findUnique({
-      where: { providerEventId },
-      select: { id: true, processedAt: true },
+    const existing = await this.db.query.webhookEvents.findFirst({
+      where: eq(webhookEvents.providerEventId, providerEventId),
+      columns: { id: true, processedAt: true },
     });
     if (existing?.processedAt) {
       return { ok: true, outcome: 'ignored_duplicate' };
@@ -175,10 +189,10 @@ export class WebhookFulfilmentService {
   private validateAgainstTip(
     tip: {
       id: string;
-      amount: Prisma.Decimal;
+      amount: string;
       currency: string;
       paymentTransaction: {
-        amount: Prisma.Decimal;
+        amount: string;
         currency: string;
         internalReference: string;
       } | null;
@@ -192,8 +206,8 @@ export class WebhookFulfilmentService {
     }
 
     if (verified.amount) {
-      const expected = tip.amount.toFixed(2);
-      const got = new Prisma.Decimal(verified.amount).toFixed(2);
+      const expected = new Decimal(tip.amount).toFixed(2);
+      const got = new Decimal(verified.amount).toFixed(2);
       if (expected !== got) {
         return `amount_mismatch expected=${expected} got=${got}`;
       }
@@ -211,36 +225,34 @@ export class WebhookFulfilmentService {
   private async applyTransition(params: {
     tip: {
       id: string;
-      status: TipStatus;
+      status: TipStatusT;
       paymentTransactionId: string | null;
-      paymentTransaction: { provider: PaymentProvider } | null;
+      paymentTransaction: { provider: PaymentProviderT } | null;
     };
-    mapped: { tipStatus: TipStatus; paymentStatus: PaymentStatus };
+    mapped: { tipStatus: TipStatusT; paymentStatus: PaymentStatusT };
     verified: VerifyPaymentResult;
     providerEventId: string;
     eventType: string;
   }): Promise<{ updated: boolean; notified: boolean }> {
     try {
-      await this.prisma.$transaction(async (tx) => {
-        await tx.webhookEvent.create({
-          data: {
-            providerEventId: params.providerEventId,
-            provider:
-              params.tip.paymentTransaction?.provider ?? PaymentProvider.BACHS,
-            eventType: params.eventType,
-            payload: {
-              status: params.verified.status,
-              providerReference: params.verified.providerReference,
-              rawStatus: params.verified.rawStatus,
-            },
-            processedAt: new Date(),
+      await this.db.transaction(async (tx) => {
+        await tx.insert(webhookEvents).values({
+          providerEventId: params.providerEventId,
+          provider:
+            params.tip.paymentTransaction?.provider ?? PaymentProvider.BACHS,
+          eventType: params.eventType,
+          payload: {
+            status: params.verified.status,
+            providerReference: params.verified.providerReference,
+            rawStatus: params.verified.rawStatus,
           },
+          processedAt: new Date(),
         });
 
         // Re-check tip status inside transaction
-        const fresh = await tx.tip.findUnique({
-          where: { id: params.tip.id },
-          select: { status: true },
+        const fresh = await tx.query.tips.findFirst({
+          where: eq(tips.id, params.tip.id),
+          columns: { status: true },
         });
         if (!fresh || isTipTerminal(fresh.status)) {
           return;
@@ -250,55 +262,48 @@ export class WebhookFulfilmentService {
         }
 
         if (params.tip.paymentTransactionId) {
-          await tx.paymentTransaction.update({
-            where: { id: params.tip.paymentTransactionId },
-            data: {
+          await tx
+            .update(paymentTransactions)
+            .set({
               status: params.mapped.paymentStatus,
               providerReference: params.verified.providerReference,
               rawProviderStatus: params.verified.rawStatus,
-            },
-          });
+            })
+            .where(eq(paymentTransactions.id, params.tip.paymentTransactionId));
         }
 
-        await tx.tip.update({
-          where: { id: params.tip.id },
-          data: { status: params.mapped.tipStatus },
-        });
+        await tx
+          .update(tips)
+          .set({ status: params.mapped.tipStatus })
+          .where(eq(tips.id, params.tip.id));
 
-        await tx.auditLog.create({
-          data: {
-            action: AuditAction.TIP_STATUS_CHANGED,
-            entityType: 'Tip',
-            entityId: params.tip.id,
-            metadata: {
-              from: fresh.status,
-              to: params.mapped.tipStatus,
-              via: params.eventType,
-              providerEventId: params.providerEventId,
-            },
+        await tx.insert(auditLogs).values({
+          action: AuditAction.TIP_STATUS_CHANGED,
+          entityType: 'Tip',
+          entityId: params.tip.id,
+          metadata: {
+            from: fresh.status,
+            to: params.mapped.tipStatus,
+            via: params.eventType,
+            providerEventId: params.providerEventId,
           },
         });
 
         if (params.tip.paymentTransactionId) {
-          await tx.auditLog.create({
-            data: {
-              action: AuditAction.PAYMENT_STATUS_CHANGED,
-              entityType: 'PaymentTransaction',
-              entityId: params.tip.paymentTransactionId,
-              metadata: {
-                to: params.mapped.paymentStatus,
-                via: params.eventType,
-                providerEventId: params.providerEventId,
-              },
+          await tx.insert(auditLogs).values({
+            action: AuditAction.PAYMENT_STATUS_CHANGED,
+            entityType: 'PaymentTransaction',
+            entityId: params.tip.paymentTransactionId,
+            metadata: {
+              to: params.mapped.paymentStatus,
+              via: params.eventType,
+              providerEventId: params.providerEventId,
             },
           });
         }
       });
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
+      if (isUniqueViolation(err)) {
         return { updated: false, notified: false };
       }
       throw err;
@@ -312,32 +317,37 @@ export class WebhookFulfilmentService {
 
   private async findTip(params: { tipId?: string; providerReference: string }) {
     if (params.tipId) {
-      const byId = await this.prisma.tip.findUnique({
-        where: { id: params.tipId },
-        include: {
+      const byId = await this.db.query.tips.findFirst({
+        where: eq(tips.id, params.tipId),
+        with: {
           paymentTransaction: true,
           creator: {
-            include: { user: { select: { id: true, email: true } } },
+            with: {
+              user: { columns: { id: true, email: true } },
+            },
           },
         },
       });
       if (byId) return byId;
     }
 
-    const payment = await this.prisma.paymentTransaction.findFirst({
-      where: { providerReference: params.providerReference },
-      include: {
-        tip: {
-          include: {
-            paymentTransaction: true,
-            creator: {
-              include: { user: { select: { id: true, email: true } } },
-            },
+    const payment = await this.db.query.paymentTransactions.findFirst({
+      where: eq(paymentTransactions.providerReference, params.providerReference),
+    });
+
+    if (!payment) return null;
+
+    return this.db.query.tips.findFirst({
+      where: eq(tips.paymentTransactionId, payment.id),
+      with: {
+        paymentTransaction: true,
+        creator: {
+          with: {
+            user: { columns: { id: true, email: true } },
           },
         },
       },
     });
-    return payment?.tip ?? null;
   }
 
   private async recordIgnoredEvent(
@@ -346,28 +356,21 @@ export class WebhookFulfilmentService {
     payload: Record<string, unknown>,
   ) {
     try {
-      await this.prisma.webhookEvent.create({
-        data: {
-          providerEventId,
-          provider: PaymentProvider.BACHS,
-          eventType,
-          payload: payload as Prisma.InputJsonValue,
-          processedAt: new Date(),
-        },
+      await this.db.insert(webhookEvents).values({
+        providerEventId,
+        provider: PaymentProvider.BACHS,
+        eventType,
+        payload,
+        processedAt: new Date(),
       });
-      await this.prisma.auditLog.create({
-        data: {
-          action: AuditAction.WEBHOOK_IGNORED_DUPLICATE,
-          entityType: 'WebhookEvent',
-          entityId: providerEventId,
-          metadata: payload as Prisma.InputJsonValue,
-        },
+      await this.db.insert(auditLogs).values({
+        action: AuditAction.WEBHOOK_IGNORED_DUPLICATE,
+        entityType: 'WebhookEvent',
+        entityId: providerEventId,
+        metadata: payload,
       });
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
+      if (isUniqueViolation(err)) {
         return;
       }
       throw err;
@@ -380,20 +383,15 @@ export class WebhookFulfilmentService {
     payload: Record<string, unknown>,
   ) {
     try {
-      await this.prisma.webhookEvent.create({
-        data: {
-          providerEventId,
-          provider: PaymentProvider.BACHS,
-          eventType,
-          payload: payload as Prisma.InputJsonValue,
-          processedAt: new Date(),
-        },
+      await this.db.insert(webhookEvents).values({
+        providerEventId,
+        provider: PaymentProvider.BACHS,
+        eventType,
+        payload,
+        processedAt: new Date(),
       });
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
+      if (isUniqueViolation(err)) {
         return;
       }
       throw err;
@@ -402,11 +400,13 @@ export class WebhookFulfilmentService {
 
   private async notifyCreatorTipReceived(tipId: string) {
     try {
-      const tip = await this.prisma.tip.findUnique({
-        where: { id: tipId },
-        include: {
+      const tip = await this.db.query.tips.findFirst({
+        where: eq(tips.id, tipId),
+        with: {
           creator: {
-            include: { user: { select: { id: true, email: true } } },
+            with: {
+              user: { columns: { id: true, email: true } },
+            },
           },
         },
       });
@@ -416,7 +416,7 @@ export class WebhookFulfilmentService {
         tipId: tip.id,
         userId: tip.creator.user.id,
         email: tip.creator.user.email,
-        amount: tip.amount.toFixed(2),
+        amount: decimalToAmountString(tip.amount),
         currency: tip.currency,
         isAnonymous: tip.isAnonymous,
         supporterName: tip.supporterName,
