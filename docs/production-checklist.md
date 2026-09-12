@@ -51,7 +51,7 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 | Check | Notes | Done |
 |-------|-------|------|
 | Production PostgreSQL | Managed preferred (Neon/RDS/etc.) | ☐ |
-| `DATABASE_URL` set | SSL params as required by provider | ☐ |
+| `DATABASE_URL` set (pooled) + `DATABASE_URL_UNPOOLED` (direct, for migrate) | Neon: `-pooler` vs non-pooler host; SSL params | ☐ |
 | Migrations complete | `npm run prisma:migrate:deploy` or `scripts/prod-migrate.sh` | ☐ |
 | **No destructive reset** | Never `prisma migrate reset` / `db push --force-reset` on prod | ☐ |
 | Backup policy | Provider snapshots / PITR enabled | ☐ |
@@ -103,7 +103,8 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 | `NODE_ENV` | `production` | Web |
 | `APP_URL` | `https://…` | Web (+ `NUXT_PUBLIC_APP_URL`) |
 | `API_URL` | `https://…` (same origin as APP_URL) | Web |
-| `DATABASE_URL` | Yes | Web server-only |
+| `DATABASE_URL` | Yes | Web server-only (Neon pooled URL) |
+| `DATABASE_URL_UNPOOLED` | Yes (migrate) | Direct Neon URL for `prisma migrate` |
 | `AUTH_SECRET` | ≥32 chars, non-placeholder | Web server-only |
 | `OTP_HASH_PEPPER` | ≥32 chars, ≠ `AUTH_SECRET` | Web server-only |
 | `BACHS_API_KEY` | Yes | Web server-only |
