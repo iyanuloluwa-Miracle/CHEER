@@ -1,5 +1,5 @@
 import { createId } from '@paralleldrive/cuid2';
-import { Schema, model, models, type Model, type ClientSession } from 'mongoose';
+import mongoose, { type Model, type ClientSession } from 'mongoose';
 import {
   AuditAction,
   NotificationProvider,
@@ -11,6 +11,8 @@ import {
   SocialPlatform,
   TipStatus,
 } from './enums';
+
+const { Schema, model, models } = mongoose;
 
 const cuid = () => createId();
 
