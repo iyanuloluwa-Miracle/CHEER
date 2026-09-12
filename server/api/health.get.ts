@@ -1,11 +1,11 @@
-import { usePrisma } from '../lib/prisma';
+import { withPrismaRetry } from '../lib/prisma';
 import { defineApiHandler } from '../lib/define-api';
 
 export default defineApiHandler(async () => {
   let database: 'up' | 'down' = 'down';
 
   try {
-    await usePrisma().$queryRaw`SELECT 1`;
+    await withPrismaRetry((prisma) => prisma.$queryRaw`SELECT 1`);
     database = 'up';
   } catch {
     database = 'down';
