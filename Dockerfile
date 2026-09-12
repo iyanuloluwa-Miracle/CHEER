@@ -33,6 +33,6 @@ COPY --from=build /app/node_modules/prisma ./node_modules/prisma
 COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client
 USER tippy
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+HEALTHCHECK --interval=120s --timeout=5s --start-period=25s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
 CMD ["node", ".output/server/index.mjs"]

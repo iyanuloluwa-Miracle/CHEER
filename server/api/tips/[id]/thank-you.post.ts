@@ -1,5 +1,5 @@
 import { TipStatus } from '@prisma/client';
-import { CencoriAiService } from '../../../services/ai/cencori.service';
+import { OpenRouterAiService } from '../../../services/ai/openrouter.service';
 import { ApiError } from '../../../lib/errors';
 import { usePrisma } from '../../../lib/prisma';
 import { defineApiHandler } from '../../../lib/define-api';
@@ -46,7 +46,7 @@ export default defineApiHandler(async (event) => {
     };
   }
 
-  const ai = new CencoriAiService();
+  const ai = new OpenRouterAiService();
   const generated = await ai.thankYouNote({
     creatorDisplayName: tip.creator.displayName,
     supporterName: tip.supporterName,

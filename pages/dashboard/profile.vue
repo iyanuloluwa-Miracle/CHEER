@@ -729,9 +729,9 @@ async function polishBio() {
       supportMessage.value = result.supportCta;
     }
     aiHint.value =
-      result.source === 'cencori'
-        ? 'Polished with Cencori AI — review before saving.'
-        : 'Local AI assist used (add CENCORI_API_KEY for live Cencori).';
+      result.source === 'openrouter'
+        ? 'Polished with OpenRouter AI — review before saving.'
+        : 'Local AI assist used (add OPENROUTER_API_KEY for live OpenRouter).';
   } catch (err) {
     aiHint.value = mapError(err);
   } finally {

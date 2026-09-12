@@ -19,18 +19,19 @@ export interface ThankYouAssistInput {
 }
 
 /**
- * Cencori AI gateway (OpenAI-compatible) with deterministic local fallback
- * so hackathon demos work without CENCORI_API_KEY.
+ * OpenRouter AI gateway (OpenAI-compatible) with deterministic local fallback
+ * so demos work without OPENROUTER_API_KEY.
+ * https://openrouter.ai/docs
  */
-export class CencoriAiService {
+export class OpenRouterAiService {
   get isConfigured(): boolean {
-    return Boolean(getServerEnv().CENCORI_API_KEY?.trim());
+    return Boolean(getServerEnv().OPENROUTER_API_KEY?.trim());
   }
 
   async polishBio(input: BioAssistInput): Promise<{
     bio: string;
     supportCta: string;
-    source: 'cencori' | 'fallback';
+    source: 'openrouter' | 'fallback';
   }> {
     const prompt = [
       'You help African builders write TippyMe creator bios.',
@@ -54,7 +55,7 @@ export class CencoriAiService {
             parsed.supportCta ||
               'Thanks for supporting my work — every tip helps.',
           ).slice(0, 500),
-          source: 'cencori',
+          source: 'openrouter',
         };
       }
     }
@@ -67,7 +68,7 @@ export class CencoriAiService {
 
   async thankYouNote(input: ThankYouAssistInput): Promise<{
     message: string;
-    source: 'cencori' | 'fallback';
+    source: 'openrouter' | 'fallback';
   }> {
     const who = input.isAnonymous
       ? 'an anonymous supporter'
@@ -88,20 +89,21 @@ export class CencoriAiService {
 
     const raw = await this.chat(prompt);
     if (raw?.trim()) {
-      return { message: raw.trim().slice(0, 500), source: 'cencori' };
+      return { message: raw.trim().slice(0, 500), source: 'openrouter' };
     }
     return { message: this.fallbackThankYou(input), source: 'fallback' };
   }
 
   private async chat(userPrompt: string): Promise<string | null> {
     const env = getServerEnv();
-    const key = env.CENCORI_API_KEY?.trim();
+    const key = env.OPENROUTER_API_KEY?.trim();
     if (!key) return null;
 
     const base =
-      env.CENCORI_API_BASE_URL?.replace(/\/$/, '') ||
-      'https://api.cencori.com/v1';
-    const model = env.CENCORI_MODEL?.trim() || 'gpt-4o-mini';
+      env.OPENROUTER_API_BASE_URL?.replace(/\/$/, '') ||
+      'https://openrouter.ai/api/v1';
+    const model = env.OPENROUTER_MODEL?.trim() || 'openai/gpt-4o-mini';
+    const appUrl = (env.APP_URL || 'https://tippyme.click').replace(/\/$/, '');
 
     try {
       const response = await fetch(`${base}/chat/completions`, {
@@ -110,6 +112,8 @@ export class CencoriAiService {
           Authorization: `Bearer ${key}`,
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          'HTTP-Referer': appUrl,
+          'X-Title': 'TippyMe',
         },
         body: JSON.stringify({
           model,
@@ -128,7 +132,7 @@ export class CencoriAiService {
       });
 
       if (!response.ok) {
-        console.warn(`Cencori chat failed status=${response.status}`);
+        console.warn(`OpenRouter chat failed status=${response.status}`);
         return null;
       }
 
@@ -142,7 +146,7 @@ export class CencoriAiService {
       return content?.trim() || null;
     } catch (err) {
       console.warn(
-        `Cencori chat error: ${err instanceof Error ? err.message : 'unknown'}`,
+        `OpenRouter chat error: ${err instanceof Error ? err.message : 'unknown'}`,
       );
       return null;
     }

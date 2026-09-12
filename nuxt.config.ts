@@ -26,10 +26,10 @@ export default defineNuxtConfig({
     resendFromEmail:
       process.env.RESEND_FROM_EMAIL || 'TippyMe <noreply@example.com>',
     byteshipApiKey: process.env.BYTESHIP_API_KEY || '',
-    cencoriApiKey: process.env.CENCORI_API_KEY || '',
-    cencoriApiBaseUrl:
-      process.env.CENCORI_API_BASE_URL || 'https://api.cencori.com/v1',
-    cencoriModel: process.env.CENCORI_MODEL || 'gpt-4o-mini',
+    openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
+    openrouterApiBaseUrl:
+      process.env.OPENROUTER_API_BASE_URL || 'https://openrouter.ai/api/v1',
+    openrouterModel: process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',
     logFormat: process.env.LOG_FORMAT || '',
     errorMonitoringDsn: process.env.ERROR_MONITORING_DSN || '',
     public: {

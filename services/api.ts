@@ -221,7 +221,7 @@ export function createApiClient(apiBaseUrl: string) {
       request<{
         bio: string;
         supportCta: string;
-        source: 'cencori' | 'fallback';
+        source: 'openrouter' | 'fallback';
       }>('/api/ai/bio-assist', {
         method: 'POST',
         body: JSON.stringify(payload),
@@ -230,7 +230,7 @@ export function createApiClient(apiBaseUrl: string) {
     generateTipThankYou: (tipId: string) =>
       request<{
         message: string;
-        source: 'cencori' | 'fallback' | 'cached';
+        source: 'openrouter' | 'fallback' | 'cached';
       }>(`/api/tips/${encodeURIComponent(tipId)}/thank-you`, {
         method: 'POST',
       }),
