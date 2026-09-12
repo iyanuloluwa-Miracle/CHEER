@@ -27,12 +27,12 @@ RUN addgroup -S tippy && adduser -S tippy -G tippy
 COPY --from=build /app/.output ./.output
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/prisma ./prisma
-COPY --from=build /app/node_modules/.prisma ./.prisma
+# Prisma engines + Neon WebSocket driver (must resolve from /app/node_modules).
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=build /app/node_modules/prisma ./node_modules/prisma
-COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client
-COPY --from=build /app/node_modules/@prisma/adapter-neon ./node_modules/@prisma/adapter-neon
 COPY --from=build /app/node_modules/@neondatabase ./node_modules/@neondatabase
+COPY --from=build /app/node_modules/postgres-array ./node_modules/postgres-array
 COPY --from=build /app/node_modules/ws ./node_modules/ws
 USER tippy
 EXPOSE 3000

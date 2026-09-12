@@ -23,10 +23,13 @@ function normalizeDatabaseUrl(raw: string): string {
     return raw;
   }
 
+  // Serverless driver talks over WebSocket; strip Prisma/pgbouncer knobs
+  // that only apply to the native engine.
   url.searchParams.delete('channel_binding');
   url.searchParams.delete('connection_limit');
   url.searchParams.delete('pool_timeout');
   url.searchParams.delete('pgbouncer');
+  url.searchParams.delete('connect_timeout');
 
   if (!url.searchParams.has('sslmode')) {
     url.searchParams.set('sslmode', 'require');
@@ -42,6 +45,12 @@ function isTransientDbError(err: unknown): boolean {
   );
 }
 
+function isBenignDisconnect(message: string): boolean {
+  return /terminat|closed|Connection ended|ECONNRESET|kind:\s*Closed/i.test(
+    message,
+  );
+}
+
 function createPrismaClient(databaseUrl: string): PrismaClient {
   const adapter = new PrismaNeon(
     {
@@ -52,25 +61,29 @@ function createPrismaClient(databaseUrl: string): PrismaClient {
     },
     {
       onPoolError: (err) => {
-        // Neon idle disconnects are expected; don't flood Pxxl logs.
-        if (/terminat|closed|Connection ended|ECONNRESET/i.test(err.message)) {
-          return;
-        }
+        if (isBenignDisconnect(err.message)) return;
         console.error(`neon pool error: ${err.message}`);
       },
       onConnectionError: (err) => {
-        if (/terminat|closed|Connection ended|ECONNRESET/i.test(err.message)) {
-          return;
-        }
+        if (isBenignDisconnect(err.message)) return;
         console.error(`neon connection error: ${err.message}`);
       },
     },
   );
 
-  return new PrismaClient({
+  const client = new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+    // Event sink so idle Neon disconnects never hit Pxxl as prisma:error spam.
+    log: [{ emit: 'event', level: 'error' }],
   });
+
+  client.$on('error', (e) => {
+    if (isBenignDisconnect(e.message)) return;
+    console.error(`prisma:error ${e.message}`);
+  });
+
+  console.info('[prisma] neon serverless WebSocket adapter ready');
+  return client;
 }
 
 export function usePrisma(): PrismaClient {
