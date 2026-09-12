@@ -1,5 +1,3 @@
 -- AlterEnum
+-- Must be its own migration/transaction before using RESEND as a default.
 ALTER TYPE "NotificationProvider" ADD VALUE 'RESEND';
-
--- AlterTable
-ALTER TABLE "Notification" ALTER COLUMN "provider" SET DEFAULT 'RESEND';
