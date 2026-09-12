@@ -31,6 +31,9 @@ COPY --from=build /app/node_modules/.prisma ./.prisma
 COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=build /app/node_modules/prisma ./node_modules/prisma
 COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client
+COPY --from=build /app/node_modules/@prisma/adapter-neon ./node_modules/@prisma/adapter-neon
+COPY --from=build /app/node_modules/@neondatabase ./node_modules/@neondatabase
+COPY --from=build /app/node_modules/ws ./node_modules/ws
 USER tippy
 EXPOSE 3000
 HEALTHCHECK --interval=120s --timeout=5s --start-period=25s --retries=3 \

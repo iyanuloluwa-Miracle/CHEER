@@ -1,13 +1,19 @@
+import { PrismaNeon } from '@prisma/adapter-neon';
 import { PrismaClient } from '@prisma/client';
+import { neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
 import { getServerEnv } from './env';
+
+// Node runtime: Neon serverless driver needs a WebSocket implementation.
+neonConfig.webSocketConstructor = ws;
 
 const globalForPrisma = globalThis as unknown as {
   __tippyPrisma?: PrismaClient;
 };
 
 /**
- * Neon pooler + scale-to-zero closes idle sockets. Normalize the URL and
- * rebuild the client after Closed errors instead of reusing a dead pool.
+ * Avoid Prisma's native TCP pool against Neon (logs `kind: Closed` when
+ * compute suspends). Use the Neon serverless WebSocket adapter instead.
  */
 function normalizeDatabaseUrl(raw: string): string {
   let url: URL;
@@ -17,21 +23,13 @@ function normalizeDatabaseUrl(raw: string): string {
     return raw;
   }
 
-  // channel_binding breaks many PgBouncer / Prisma combinations.
   url.searchParams.delete('channel_binding');
+  url.searchParams.delete('connection_limit');
+  url.searchParams.delete('pool_timeout');
+  url.searchParams.delete('pgbouncer');
 
   if (!url.searchParams.has('sslmode')) {
     url.searchParams.set('sslmode', 'require');
-  }
-  if (!url.searchParams.has('connect_timeout')) {
-    url.searchParams.set('connect_timeout', '30');
-  }
-  if (!url.searchParams.has('pool_timeout')) {
-    url.searchParams.set('pool_timeout', '30');
-  }
-  // Small pool for a single long-lived Node process on Neon.
-  if (!url.searchParams.has('connection_limit')) {
-    url.searchParams.set('connection_limit', '3');
   }
 
   return url.toString();
@@ -45,26 +43,34 @@ function isTransientDbError(err: unknown): boolean {
 }
 
 function createPrismaClient(databaseUrl: string): PrismaClient {
-  const client = new PrismaClient({
-    datasources: {
-      db: { url: databaseUrl },
+  const adapter = new PrismaNeon(
+    {
+      connectionString: databaseUrl,
+      max: 3,
+      idleTimeoutMillis: 10_000,
+      connectionTimeoutMillis: 30_000,
     },
-    log: [
-      { level: 'error', emit: 'event' },
-      { level: 'warn', emit: 'event' },
-    ],
-  });
+    {
+      onPoolError: (err) => {
+        // Neon idle disconnects are expected; don't flood Pxxl logs.
+        if (/terminat|closed|Connection ended|ECONNRESET/i.test(err.message)) {
+          return;
+        }
+        console.error(`neon pool error: ${err.message}`);
+      },
+      onConnectionError: (err) => {
+        if (/terminat|closed|Connection ended|ECONNRESET/i.test(err.message)) {
+          return;
+        }
+        console.error(`neon connection error: ${err.message}`);
+      },
+    },
+  );
 
-  // Neon idle closes flood production logs; keep real errors only.
-  client.$on('error', (event) => {
-    if (/kind:\s*Closed/i.test(event.message)) return;
-    console.error(`prisma:error ${event.message}`);
+  return new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
   });
-  client.$on('warn', (event) => {
-    console.warn(`prisma:warn ${event.message}`);
-  });
-
-  return client;
 }
 
 export function usePrisma(): PrismaClient {
@@ -88,7 +94,7 @@ export async function resetPrisma(): Promise<void> {
   }
 }
 
-/** Rebuild client once after Neon/pooler drops idle connections. */
+/** One reconnect/rebuild after a transient Neon wake/idle failure. */
 export async function withPrismaRetry<T>(
   run: (prisma: PrismaClient) => Promise<T>,
 ): Promise<T> {
