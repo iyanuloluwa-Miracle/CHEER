@@ -10,7 +10,6 @@
 #
 # Usage (after setting env):
 #   docker compose -f docker-compose.prod.yml up -d --build
-#   docker compose -f docker-compose.prod.yml exec web npx drizzle-kit migrate
 
 services:
   web:
@@ -29,8 +28,7 @@ services:
       NUXT_PUBLIC_API_URL: ''
       APP_URL: ${APP_URL}
       API_URL: ${API_URL:-${APP_URL}}
-      DATABASE_URL: ${DATABASE_URL}
-      DATABASE_URL_UNPOOLED: ${DATABASE_URL_UNPOOLED:-${DATABASE_URL}}
+      MONGODB_URI: ${MONGODB_URI}
       AUTH_SECRET: ${AUTH_SECRET}
       OTP_HASH_PEPPER: ${OTP_HASH_PEPPER}
       BACHS_API_KEY: ${BACHS_API_KEY}
@@ -49,5 +47,4 @@ services:
       retries: 5
       start_period: 25s
 
-# Managed Postgres is recommended in production (Neon, RDS, etc.).
-# If you self-host Postgres, add a postgres service and wire DATABASE_URL.
+# Use MongoDB Atlas (or another managed MongoDB) via MONGODB_URI.

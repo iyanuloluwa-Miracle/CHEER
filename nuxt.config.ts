@@ -11,7 +11,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Server-only secrets / config (Nitro owns /api — no Nest proxy).
     nodeEnv: process.env.NODE_ENV || 'development',
-    databaseUrl: process.env.DATABASE_URL || '',
+    mongodbUri: process.env.MONGODB_URI || '',
     authSecret: process.env.AUTH_SECRET || '',
     otpHashPepper: process.env.OTP_HASH_PEPPER || '',
     // Empty default so Docker/build does not bake http://localhost into the image.
@@ -77,18 +77,11 @@ export default defineNuxtConfig({
     typeCheck: false,
   },
 
-  // Keep Drizzle + Neon driver out of the Rollup bundle so the Docker
-  // runner's node_modules copies are what actually load at runtime.
+  // Keep Mongoose out of the Rollup bundle so the Docker runner's
+  // node_modules copy is what loads at runtime.
   nitro: {
     rollupConfig: {
-      external: [
-        'drizzle-orm',
-        'drizzle-orm/neon-serverless',
-        '@neondatabase/serverless',
-        '@paralleldrive/cuid2',
-        'decimal.js',
-        'ws',
-      ],
+      external: ['mongoose', '@paralleldrive/cuid2', 'decimal.js'],
     },
   },
 });

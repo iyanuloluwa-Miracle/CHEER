@@ -24,17 +24,9 @@ ENV HOST=0.0.0.0
 ENV PORT=3000
 ENV NUXT_PUBLIC_API_URL=
 RUN addgroup -S tippy && adduser -S tippy -G tippy
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts
 COPY --from=build /app/.output ./.output
-COPY --from=build /app/package.json ./package.json
-COPY --from=build /app/drizzle.config.ts ./drizzle.config.ts
-COPY --from=build /app/server/db ./server/db
-# Neon WebSocket driver + Drizzle (resolve from /app/node_modules).
-COPY --from=build /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
-COPY --from=build /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
-COPY --from=build /app/node_modules/@neondatabase ./node_modules/@neondatabase
-COPY --from=build /app/node_modules/@paralleldrive ./node_modules/@paralleldrive
-COPY --from=build /app/node_modules/decimal.js ./node_modules/decimal.js
-COPY --from=build /app/node_modules/ws ./node_modules/ws
 USER tippy
 EXPOSE 3000
 HEALTHCHECK --interval=120s --timeout=5s --start-period=25s --retries=3 \
