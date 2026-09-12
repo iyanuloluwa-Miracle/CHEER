@@ -38,7 +38,7 @@ Docs: [Installation](https://outray.dev/docs/installation)
 
 ## Local webhook flow
 
-1. `npm run db:up` then `npm run prisma:migrate`  
+1. `npm run db:up` then `npm run db:migrate`  
 2. `npm run dev` (Nuxt on port **3000**)  
 3. Expose local Nitro:
 

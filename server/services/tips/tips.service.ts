@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import { eq } from 'drizzle-orm';
-import { useDb, isUniqueViolation } from '../../db';
+import { useDb, isUniqueViolation, type Db } from '../../db';
 import {
   AuditAction,
   PaymentProvider,
@@ -110,7 +110,7 @@ export class TipsService {
     let paymentId: string;
 
     try {
-      const created = await this.db.transaction(async (tx) => {
+      const created = await this.db.transaction(async (tx: Db) => {
         const [payment] = await tx
           .insert(paymentTransactions)
           .values({
@@ -219,7 +219,7 @@ export class TipsService {
       );
     }
 
-    const updated = await this.db.transaction(async (tx) => {
+    const updated = await this.db.transaction(async (tx: Db) => {
       await tx
         .update(paymentTransactions)
         .set({
@@ -302,7 +302,7 @@ export class TipsService {
       `Marking tip=${tipId} failed after payment init kind=${kind}`,
     );
     try {
-      await this.db.transaction(async (tx) => {
+      await this.db.transaction(async (tx: Db) => {
         await tx
           .update(paymentTransactions)
           .set({

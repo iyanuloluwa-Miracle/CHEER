@@ -10,7 +10,7 @@
 | Layer | Technology |
 |-------|------------|
 | App | Vue 3 + Nuxt 3 + Nitro + TypeScript + Tailwind CSS + Pinia |
-| Database | PostgreSQL + Prisma |
+| Database | PostgreSQL + Drizzle ORM |
 | Payments | Bachs |
 | Email / OTP delivery | SendByte |
 | Local webhook tunnel | OutRay (**development only**) |
@@ -23,7 +23,7 @@ Do not replace Vue/Nuxt with React/Next.js. Do not replace Bachs with another pa
 
 ```text
 Nuxt 3 (TippyMe UI + Nitro /api)
-        ├── PostgreSQL (Prisma)
+        ├── PostgreSQL (Drizzle)
         ├── Bachs (payments + Connect)
         ├── SendByte (OTP / transactional email)
         └── Webhooks (/api/webhooks/bachs)
@@ -108,6 +108,6 @@ pages/                 Vue routes
 server/
   api/                 Nitro /api handlers
   services/            Domain logic (auth, creators, tips, payments, …)
-  lib/                 prisma, env, auth, errors, rate-limit
-prisma/                Schema + migrations
+  lib/                 env, auth, errors, rate-limit
+  db/                  Drizzle schema, client, migrations, seed
 ```

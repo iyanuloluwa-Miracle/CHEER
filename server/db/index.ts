@@ -1,12 +1,12 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
+import { drizzle, type NeonDatabase } from 'drizzle-orm/neon-serverless';
 import ws from 'ws';
 import { getServerEnv } from '../lib/env';
 import * as schema from './schema';
 
 neonConfig.webSocketConstructor = ws;
 
-export type Db = ReturnType<typeof createDbFromUrl>;
+export type Db = NeonDatabase<typeof schema>;
 
 const globalForDb = globalThis as unknown as {
   __tippyDb?: Db;
@@ -48,7 +48,7 @@ export function createDbFromUrl(databaseUrl: string): Db {
     connectionTimeoutMillis: 30_000,
   });
 
-  pool.on('error', (err) => {
+  pool.on('error', (err: Error) => {
     if (isBenignDisconnect(err.message)) return;
     console.error(`neon pool error: ${err.message}`);
   });

@@ -10,7 +10,7 @@
 #
 # Usage (after setting env):
 #   docker compose -f docker-compose.prod.yml up -d --build
-#   docker compose -f docker-compose.prod.yml exec web npx prisma migrate deploy
+#   docker compose -f docker-compose.prod.yml exec web npx drizzle-kit migrate
 
 services:
   web:

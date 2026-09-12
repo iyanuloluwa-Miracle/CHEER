@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { useDb, isUniqueViolation } from '../../db';
+import { useDb, isUniqueViolation, type Db } from '../../db';
 import {
   AuditAction,
   PaymentProvider,
@@ -152,7 +152,7 @@ export class PaymentsService {
     }
 
     try {
-      await this.db.transaction(async (tx) => {
+      await this.db.transaction(async (tx: Db) => {
         if (params.providerEventId) {
           await tx.insert(webhookEvents).values({
             providerEventId: params.providerEventId,

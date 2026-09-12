@@ -52,8 +52,8 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 |-------|-------|------|
 | Production PostgreSQL | Managed preferred (Neon/RDS/etc.) | ☐ |
 | `DATABASE_URL` set (pooled) + `DATABASE_URL_UNPOOLED` (direct, for migrate) | Neon: `-pooler` vs non-pooler host; SSL params | ☐ |
-| Migrations complete | `npm run prisma:migrate:deploy` or `scripts/prod-migrate.sh` | ☐ |
-| **No destructive reset** | Never `prisma migrate reset` / `db push --force-reset` on prod | ☐ |
+| Migrations complete | `npm run db:migrate` or `scripts/prod-migrate.sh` | ☐ |
+| **No destructive reset** | Never drop/recreate prod tables or force-push schema | ☐ |
 | Backup policy | Provider snapshots / PITR enabled | ☐ |
 
 ---
@@ -104,7 +104,7 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 | `APP_URL` | `https://…` | Web (+ `NUXT_PUBLIC_APP_URL`) |
 | `API_URL` | `https://…` (same origin as APP_URL) | Web |
 | `DATABASE_URL` | Yes | Web server-only (Neon pooled URL) |
-| `DATABASE_URL_UNPOOLED` | Yes (migrate) | Direct Neon URL for `prisma migrate` |
+| `DATABASE_URL_UNPOOLED` | Yes (migrate) | Direct Neon URL for `drizzle-kit migrate` |
 | `AUTH_SECRET` | ≥32 chars, non-placeholder | Web server-only |
 | `OTP_HASH_PEPPER` | ≥32 chars, ≠ `AUTH_SECRET` | Web server-only |
 | `BACHS_API_KEY` | Yes | Web server-only |
@@ -165,9 +165,9 @@ npm run build
 docker compose -f docker-compose.prod.yml build
 
 # Apply migrations ONLY (never reset)
-npm run prisma:migrate:deploy
+npm run db:migrate
 # or: sh scripts/prod-migrate.sh
-# or: docker compose -f docker-compose.prod.yml exec web npx prisma migrate deploy
+# or: docker compose -f docker-compose.prod.yml exec web npx drizzle-kit migrate
 
 # Start (after migrate)
 npm run start:prod:migrate

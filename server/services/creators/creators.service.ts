@@ -1,6 +1,7 @@
 import Decimal from 'decimal.js';
 import {
   and,
+  asc,
   count,
   desc,
   eq,
@@ -10,7 +11,7 @@ import {
   lte,
   sum,
 } from 'drizzle-orm';
-import { useDb, isUniqueViolation } from '../../db';
+import { useDb, isUniqueViolation, type Db } from '../../db';
 import {
   auditLogs,
   creatorProfiles,
@@ -101,7 +102,7 @@ export class CreatorsService {
       where: eq(creatorProfiles.userId, userId),
       with: {
         socialLinks: {
-          orderBy: (sl, { asc: ascFn }) => [ascFn(sl.sortOrder)],
+          orderBy: [asc(socialLinks.sortOrder)],
         },
       },
     });
@@ -114,7 +115,7 @@ export class CreatorsService {
       where: eq(creatorProfiles.username, username),
       with: {
         socialLinks: {
-          orderBy: (sl, { asc: ascFn }) => [ascFn(sl.sortOrder)],
+          orderBy: [asc(socialLinks.sortOrder)],
         },
       },
     });
@@ -206,7 +207,7 @@ export class CreatorsService {
     );
 
     try {
-      const profile = await this.db.transaction(async (tx) => {
+      const profile = await this.db.transaction(async (tx: Db) => {
         const [inserted] = await tx
           .insert(creatorProfiles)
           .values({
@@ -233,10 +234,10 @@ export class CreatorsService {
         return tx.query.creatorProfiles.findFirst({
           where: eq(creatorProfiles.id, inserted.id),
           with: {
-        socialLinks: {
-          orderBy: (sl, { asc: ascFn }) => [ascFn(sl.sortOrder)],
-        },
-      },
+            socialLinks: {
+              orderBy: [asc(socialLinks.sortOrder)],
+            },
+          },
         });
       });
 
@@ -308,10 +309,10 @@ export class CreatorsService {
       const updated = await this.db.query.creatorProfiles.findFirst({
         where: eq(creatorProfiles.id, profile.id),
         with: {
-        socialLinks: {
-          orderBy: (sl, { asc: ascFn }) => [ascFn(sl.sortOrder)],
+          socialLinks: {
+            orderBy: [asc(socialLinks.sortOrder)],
+          },
         },
-      },
       });
 
       if (!updated) {
@@ -392,7 +393,7 @@ export class CreatorsService {
       where: eq(creatorProfiles.id, profile.id),
       with: {
         socialLinks: {
-          orderBy: (sl, { asc: ascFn }) => [ascFn(sl.sortOrder)],
+          orderBy: [asc(socialLinks.sortOrder)],
         },
       },
     });
@@ -419,7 +420,7 @@ export class CreatorsService {
     const profile = await this.requireOwnedProfile(userId);
     const linkRows = this.normalizeSocialLinks(dto.links);
 
-    const updated = await this.db.transaction(async (tx) => {
+    const updated = await this.db.transaction(async (tx: Db) => {
       await tx
         .delete(socialLinks)
         .where(eq(socialLinks.creatorId, profile.id));
@@ -434,10 +435,10 @@ export class CreatorsService {
       return tx.query.creatorProfiles.findFirst({
         where: eq(creatorProfiles.id, profile.id),
         with: {
-        socialLinks: {
-          orderBy: (sl, { asc: ascFn }) => [ascFn(sl.sortOrder)],
+          socialLinks: {
+            orderBy: [asc(socialLinks.sortOrder)],
+          },
         },
-      },
       });
     });
 

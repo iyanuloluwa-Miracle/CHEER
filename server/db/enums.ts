@@ -1,6 +1,6 @@
 /**
  * Const enum-like maps matching Postgres / Drizzle pgEnum values.
- * Prefer these over string literals in services for parity with former Prisma enums.
+ * Prefer these over string literals in services for parity with pgEnum values.
  */
 export const SocialPlatform = {
   X: 'X',

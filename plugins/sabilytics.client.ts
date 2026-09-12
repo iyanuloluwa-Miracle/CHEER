@@ -27,9 +27,9 @@ export default defineNuxtPlugin(() => {
     });
   };
 
-  if ('requestIdleCallback' in window) {
+  if (typeof window.requestIdleCallback === 'function') {
     window.requestIdleCallback(() => inject(), { timeout: 2500 });
   } else {
-    window.setTimeout(inject, 1200);
+    globalThis.setTimeout(inject, 1200);
   }
 });

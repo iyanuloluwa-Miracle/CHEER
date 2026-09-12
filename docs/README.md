@@ -17,7 +17,7 @@ Live runtime: single Nuxt 3 + Nitro app at the repo root — SSR pages and `/api
 | [outray-development.md](./outray-development.md) | OutRay local webhook tunnels |
 | [PHASE-1-ARCHITECTURE.md](./PHASE-1-ARCHITECTURE.md) | Earlier Phase 1 notes (historical) |
 | [PHASE-2-FOUNDATION.md](./PHASE-2-FOUNDATION.md) | Phase 2 monorepo foundation summary |
-| [PHASE-3-DATABASE.md](./PHASE-3-DATABASE.md) | Phase 3 PostgreSQL + Prisma |
+| [PHASE-3-DATABASE.md](./PHASE-3-DATABASE.md) | Phase 3 PostgreSQL + Drizzle (historical Prisma notes) |
 | [PHASE-4-AUTHENTICATION.md](./PHASE-4-AUTHENTICATION.md) | Phase 4 creator OTP auth + SendByte |
 | [PHASE-5-ONBOARDING.md](./PHASE-5-ONBOARDING.md) | Phase 5 creator onboarding + Tippy page |
 | [security-audit.md](./security-audit.md) | Phase 13 security audit |

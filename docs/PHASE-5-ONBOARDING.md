@@ -26,7 +26,7 @@ Ownership always from JWT `sub` — never from client `userId`.
 - Normalized lowercase
 - `^[a-z0-9_]{3,30}$`
 - Reserved set includes routes (`login`, `dashboard`, `api`, …) and brand terms
-- Uniqueness via Prisma unique + `P2002` race handling
+- Uniqueness via DB unique constraints + unique-violation race handling
 
 ## Schema
 

@@ -1,6 +1,6 @@
 import Decimal from 'decimal.js';
 import { eq } from 'drizzle-orm';
-import { useDb, isUniqueViolation } from '../../db';
+import { useDb, isUniqueViolation, type Db } from '../../db';
 import {
   AuditAction,
   PaymentProvider,
@@ -235,7 +235,7 @@ export class WebhookFulfilmentService {
     eventType: string;
   }): Promise<{ updated: boolean; notified: boolean }> {
     try {
-      await this.db.transaction(async (tx) => {
+      await this.db.transaction(async (tx: Db) => {
         await tx.insert(webhookEvents).values({
           providerEventId: params.providerEventId,
           provider:

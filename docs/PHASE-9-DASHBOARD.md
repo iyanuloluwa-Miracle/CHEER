@@ -50,8 +50,8 @@ On `Tip`:
 - `(creatorId, status, createdAt DESC)`
 - `(creatorId, amount)`
 
-Apply with your usual Prisma migrate / `db push` workflow.
+Apply with `npm run db:migrate` (or `drizzle-kit push` for local prototyping).
 
 ## Local seed
 
-`prisma/seed.ts` includes DEV_SEED `PAID` tips for dashboard UI. They are **not** Bachs-verified payments.
+`server/db/seed.ts` includes DEV_SEED `PAID` tips for dashboard UI. They are **not** Bachs-verified payments.

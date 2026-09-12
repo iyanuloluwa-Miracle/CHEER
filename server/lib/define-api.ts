@@ -16,7 +16,7 @@ export function defineApiHandler<T extends EventHandlerRequest, R>(
       if (err instanceof ApiError) {
         setResponseStatus(event, err.statusCode);
         if (err.retryAfterSeconds != null) {
-          setHeader(event, 'Retry-After', String(err.retryAfterSeconds));
+          setHeader(event, 'Retry-After', err.retryAfterSeconds);
         }
         return {
           statusCode: err.statusCode,

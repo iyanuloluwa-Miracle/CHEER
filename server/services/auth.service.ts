@@ -1,11 +1,9 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
-import type { NeonDatabase } from 'drizzle-orm/neon-serverless';
 import * as bcrypt from 'bcryptjs';
 import { ApiError } from '../lib/errors';
 import { getServerEnv } from '../lib/env';
-import { useDb } from '../db';
+import { useDb, type Db } from '../db';
 import { auditLogs, otpChallenges, users } from '../db/schema';
-import type * as schema from '../db/schema';
 import type { User } from '../db/schema';
 import { AuditAction, OtpPurpose } from '../db/enums';
 import { signAccessToken } from '../lib/auth';
@@ -29,8 +27,6 @@ import type {
 } from './auth/auth.types';
 
 const BCRYPT_ROUNDS = 12;
-
-type TransactionDb = NeonDatabase<typeof schema>;
 
 export class AuthService {
   constructor(
@@ -255,7 +251,7 @@ export class AuthService {
     const now = new Date();
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-    const user = await this.db.transaction(async (tx: TransactionDb) => {
+    const user = await this.db.transaction(async (tx: Db) => {
       await tx
         .update(otpChallenges)
         .set({ consumedAt: now })
