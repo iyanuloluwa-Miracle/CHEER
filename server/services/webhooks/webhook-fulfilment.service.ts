@@ -1,23 +1,28 @@
 import Decimal from 'decimal.js';
-import { eq } from 'drizzle-orm';
-import { useDb, isUniqueViolation, type Db } from '../../db';
 import {
-  AuditAction,
-  PaymentProvider,
-  PaymentStatus,
-  TipStatus,
-} from '../../db/enums';
+  AuditLogModel,
+  CreatorProfileModel,
+  PaymentTransactionModel,
+  TipModel,
+  UserModel,
+  WebhookEventModel,
+  isUniqueViolation,
+  toPlain,
+  useDb,
+  withTransaction,
+} from '../../db';
+import type { LeanDoc } from '../../db/lean';
+import { AuditAction, PaymentProvider, TipStatus } from '../../db/enums';
 import type {
+  CreatorProfile,
   PaymentProvider as PaymentProviderT,
   PaymentStatus as PaymentStatusT,
+  PaymentTransaction,
+  Tip,
   TipStatus as TipStatusT,
-} from '../../db/schema';
-import {
-  auditLogs,
-  paymentTransactions,
-  tips,
-  webhookEvents,
-} from '../../db/schema';
+  User,
+  WebhookEvent,
+} from '../../db/types';
 import { TransactionalNotificationsService } from '../notifications/transactional-notifications.service';
 import { BachsProviderError } from '../payments/bachs/bachs.errors';
 import type { VerifyPaymentResult } from '../payments/payment-provider.port';
@@ -47,14 +52,18 @@ export interface ProcessWebhookResult {
   retryable?: boolean;
 }
 
+/** Tip joined with the rows the fulfilment checks need. */
+type HydratedTip = Tip & {
+  paymentTransaction: PaymentTransaction | null;
+  creator: (CreatorProfile & { user: Pick<User, 'id' | 'email'> }) | null;
+};
+
 /**
  * Authoritative Bachs webhook fulfilment (Phase 8).
  * Signature is verified by the payment provider before this runs.
  * Tip emails fire only after DB SUCCESS — never from frontend redirects.
  */
 export class WebhookFulfilmentService {
-  private readonly db = useDb();
-
   constructor(
     private readonly payments = new PaymentsService(),
     private readonly notifications = new TransactionalNotificationsService(),
@@ -66,16 +75,18 @@ export class WebhookFulfilmentService {
     tipId?: string;
     verification?: VerifyPaymentResult;
   }): Promise<ProcessWebhookResult> {
+    await useDb();
     const { providerEventId, eventType, tipId, verification } = params;
 
     if (!providerEventId || !eventType) {
       return { ok: true, outcome: 'ignored_malformed' };
     }
 
-    const existing = await this.db.query.webhookEvents.findFirst({
-      where: eq(webhookEvents.providerEventId, providerEventId),
-      columns: { id: true, processedAt: true },
-    });
+    const existing = toPlain<WebhookEvent>(
+      await WebhookEventModel.findOne({ providerEventId }).lean<
+        LeanDoc | null
+      >(),
+    );
     if (existing?.processedAt) {
       return { ok: true, outcome: 'ignored_duplicate' };
     }
@@ -235,119 +246,166 @@ export class WebhookFulfilmentService {
     eventType: string;
   }): Promise<{ updated: boolean; notified: boolean }> {
     try {
-      await this.db.transaction(async (tx: Db) => {
-        await tx.insert(webhookEvents).values({
-          providerEventId: params.providerEventId,
-          provider:
-            params.tip.paymentTransaction?.provider ?? PaymentProvider.BACHS,
-          eventType: params.eventType,
-          payload: {
-            status: params.verified.status,
-            providerReference: params.verified.providerReference,
-            rawStatus: params.verified.rawStatus,
-          },
-          processedAt: new Date(),
-        });
+      const applied = await withTransaction(async (session) => {
+        await WebhookEventModel.create(
+          [
+            {
+              providerEventId: params.providerEventId,
+              provider:
+                params.tip.paymentTransaction?.provider ??
+                PaymentProvider.BACHS,
+              eventType: params.eventType,
+              payload: {
+                status: params.verified.status,
+                providerReference: params.verified.providerReference,
+                rawStatus: params.verified.rawStatus,
+              },
+              processedAt: new Date(),
+            },
+          ],
+          { session },
+        );
 
         // Re-check tip status inside transaction
-        const fresh = await tx.query.tips.findFirst({
-          where: eq(tips.id, params.tip.id),
-          columns: { status: true },
-        });
+        const fresh = toPlain<Tip>(
+          await TipModel.findOne({ _id: params.tip.id })
+            .session(session)
+            .lean<LeanDoc | null>(),
+        );
         if (!fresh || isTipTerminal(fresh.status)) {
-          return;
+          return { updated: false as const, notified: false as const };
         }
         if (!canTransitionTip(fresh.status, params.mapped.tipStatus)) {
-          return;
+          return { updated: false as const, notified: false as const };
         }
 
         if (params.tip.paymentTransactionId) {
-          await tx
-            .update(paymentTransactions)
-            .set({
-              status: params.mapped.paymentStatus,
-              providerReference: params.verified.providerReference,
-              rawProviderStatus: params.verified.rawStatus,
-            })
-            .where(eq(paymentTransactions.id, params.tip.paymentTransactionId));
-        }
-
-        await tx
-          .update(tips)
-          .set({ status: params.mapped.tipStatus })
-          .where(eq(tips.id, params.tip.id));
-
-        await tx.insert(auditLogs).values({
-          action: AuditAction.TIP_STATUS_CHANGED,
-          entityType: 'Tip',
-          entityId: params.tip.id,
-          metadata: {
-            from: fresh.status,
-            to: params.mapped.tipStatus,
-            via: params.eventType,
-            providerEventId: params.providerEventId,
-          },
-        });
-
-        if (params.tip.paymentTransactionId) {
-          await tx.insert(auditLogs).values({
-            action: AuditAction.PAYMENT_STATUS_CHANGED,
-            entityType: 'PaymentTransaction',
-            entityId: params.tip.paymentTransactionId,
-            metadata: {
-              to: params.mapped.paymentStatus,
-              via: params.eventType,
-              providerEventId: params.providerEventId,
+          await PaymentTransactionModel.updateOne(
+            { _id: params.tip.paymentTransactionId },
+            {
+              $set: {
+                status: params.mapped.paymentStatus,
+                providerReference: params.verified.providerReference,
+                rawProviderStatus: params.verified.rawStatus,
+                updatedAt: new Date(),
+              },
             },
-          });
+            { session },
+          );
         }
+
+        await TipModel.updateOne(
+          { _id: params.tip.id },
+          { $set: { status: params.mapped.tipStatus, updatedAt: new Date() } },
+          { session },
+        );
+
+        await AuditLogModel.create(
+          [
+            {
+              action: AuditAction.TIP_STATUS_CHANGED,
+              entityType: 'Tip',
+              entityId: params.tip.id,
+              metadata: {
+                from: fresh.status,
+                to: params.mapped.tipStatus,
+                via: params.eventType,
+                providerEventId: params.providerEventId,
+              },
+            },
+          ],
+          { session },
+        );
+
+        if (params.tip.paymentTransactionId) {
+          await AuditLogModel.create(
+            [
+              {
+                action: AuditAction.PAYMENT_STATUS_CHANGED,
+                entityType: 'PaymentTransaction',
+                entityId: params.tip.paymentTransactionId,
+                metadata: {
+                  to: params.mapped.paymentStatus,
+                  via: params.eventType,
+                  providerEventId: params.providerEventId,
+                },
+              },
+            ],
+            { session },
+          );
+        }
+
+        return {
+          updated: true as const,
+          notified: params.mapped.tipStatus === TipStatus.PAID,
+        };
       });
+      return applied;
     } catch (err) {
       if (isUniqueViolation(err)) {
         return { updated: false, notified: false };
       }
       throw err;
     }
-
-    return {
-      updated: true,
-      notified: params.mapped.tipStatus === TipStatus.PAID,
-    };
   }
 
-  private async findTip(params: { tipId?: string; providerReference: string }) {
+  private async findTip(params: {
+    tipId?: string;
+    providerReference: string;
+  }): Promise<HydratedTip | null> {
     if (params.tipId) {
-      const byId = await this.db.query.tips.findFirst({
-        where: eq(tips.id, params.tipId),
-        with: {
-          paymentTransaction: true,
-          creator: {
-            with: {
-              user: { columns: { id: true, email: true } },
-            },
-          },
-        },
-      });
-      if (byId) return byId;
+      const byId = toPlain<Tip>(
+        await TipModel.findOne({ _id: params.tipId }).lean<LeanDoc | null>(),
+      );
+      if (byId) return this.hydrateTip(byId);
     }
 
-    const payment = await this.db.query.paymentTransactions.findFirst({
-      where: eq(paymentTransactions.providerReference, params.providerReference),
-    });
+    const payment = toPlain<PaymentTransaction>(
+      await PaymentTransactionModel.findOne({
+        providerReference: params.providerReference,
+      }).lean<LeanDoc | null>(),
+    );
 
     if (!payment) return null;
 
-    return this.db.query.tips.findFirst({
-      where: eq(tips.paymentTransactionId, payment.id),
-      with: {
-        paymentTransaction: true,
-        creator: {
-          with: {
-            user: { columns: { id: true, email: true } },
-          },
-        },
-      },
-    });
+    const byReference = toPlain<Tip>(
+      await TipModel.findOne({
+        paymentTransactionId: payment.id,
+      }).lean<LeanDoc | null>(),
+    );
+
+    return byReference ? this.hydrateTip(byReference) : null;
+  }
+
+  private async hydrateTip(tip: Tip): Promise<HydratedTip> {
+    const [paymentDoc, creatorDoc] = await Promise.all([
+      tip.paymentTransactionId
+        ? PaymentTransactionModel.findOne({
+            _id: tip.paymentTransactionId,
+          }).lean<LeanDoc | null>()
+        : Promise.resolve(null),
+      CreatorProfileModel.findOne({ _id: tip.creatorId }).lean<
+        LeanDoc | null
+      >(),
+    ]);
+
+    const creatorProfile = toPlain<CreatorProfile>(creatorDoc);
+    const user = creatorProfile
+      ? toPlain<User>(
+          await UserModel.findOne({ _id: creatorProfile.userId }).lean<
+            LeanDoc | null
+          >(),
+        )
+      : null;
+
+    return {
+      ...tip,
+      paymentTransaction: toPlain<PaymentTransaction>(paymentDoc),
+      creator:
+        creatorProfile && user
+          ? { ...creatorProfile, user: { id: user.id, email: user.email } }
+          : null,
+    };
   }
 
   private async recordIgnoredEvent(
@@ -356,19 +414,23 @@ export class WebhookFulfilmentService {
     payload: Record<string, unknown>,
   ) {
     try {
-      await this.db.insert(webhookEvents).values({
-        providerEventId,
-        provider: PaymentProvider.BACHS,
-        eventType,
-        payload,
-        processedAt: new Date(),
-      });
-      await this.db.insert(auditLogs).values({
-        action: AuditAction.WEBHOOK_IGNORED_DUPLICATE,
-        entityType: 'WebhookEvent',
-        entityId: providerEventId,
-        metadata: payload,
-      });
+      await WebhookEventModel.create([
+        {
+          providerEventId,
+          provider: PaymentProvider.BACHS,
+          eventType,
+          payload,
+          processedAt: new Date(),
+        },
+      ]);
+      await AuditLogModel.create([
+        {
+          action: AuditAction.WEBHOOK_IGNORED_DUPLICATE,
+          entityType: 'WebhookEvent',
+          entityId: providerEventId,
+          metadata: payload,
+        },
+      ]);
     } catch (err) {
       if (isUniqueViolation(err)) {
         return;
@@ -383,13 +445,15 @@ export class WebhookFulfilmentService {
     payload: Record<string, unknown>,
   ) {
     try {
-      await this.db.insert(webhookEvents).values({
-        providerEventId,
-        provider: PaymentProvider.BACHS,
-        eventType,
-        payload,
-        processedAt: new Date(),
-      });
+      await WebhookEventModel.create([
+        {
+          providerEventId,
+          provider: PaymentProvider.BACHS,
+          eventType,
+          payload,
+          processedAt: new Date(),
+        },
+      ]);
     } catch (err) {
       if (isUniqueViolation(err)) {
         return;
@@ -400,26 +464,22 @@ export class WebhookFulfilmentService {
 
   private async notifyCreatorTipReceived(tipId: string) {
     try {
-      const tip = await this.db.query.tips.findFirst({
-        where: eq(tips.id, tipId),
-        with: {
-          creator: {
-            with: {
-              user: { columns: { id: true, email: true } },
-            },
-          },
-        },
-      });
+      const tip = toPlain<Tip>(
+        await TipModel.findOne({ _id: tipId }).lean<LeanDoc | null>(),
+      );
       if (!tip) return;
 
+      const hydrated = await this.hydrateTip(tip);
+      if (!hydrated.creator) return;
+
       await this.notifications.notifyTipReceived({
-        tipId: tip.id,
-        userId: tip.creator.user.id,
-        email: tip.creator.user.email,
-        amount: decimalToAmountString(tip.amount),
-        currency: tip.currency,
-        isAnonymous: tip.isAnonymous,
-        supporterName: tip.supporterName,
+        tipId: hydrated.id,
+        userId: hydrated.creator.user.id,
+        email: hydrated.creator.user.email,
+        amount: decimalToAmountString(hydrated.amount),
+        currency: hydrated.currency,
+        isAnonymous: hydrated.isAnonymous,
+        supporterName: hydrated.supporterName,
       });
     } catch (err) {
       // Never reverse payment success because email failed.

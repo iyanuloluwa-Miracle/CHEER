@@ -1,5 +1,8 @@
 import { PaymentStatus, TipStatus } from '../../db/enums';
-import type { PaymentStatus as PaymentStatusT, TipStatus as TipStatusT } from '../../db/schema';
+import type {
+  PaymentStatus as PaymentStatusT,
+  TipStatus as TipStatusT,
+} from '../../db/types';
 import type { PaymentVerificationStatus } from './payment-provider.port';
 
 /**

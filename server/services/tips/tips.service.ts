@@ -1,18 +1,22 @@
 import { randomBytes } from 'crypto';
-import { eq } from 'drizzle-orm';
-import { useDb, isUniqueViolation, type Db } from '../../db';
+import {
+  AuditLogModel,
+  CreatorProfileModel,
+  PaymentTransactionModel,
+  TipModel,
+  isUniqueViolation,
+  toPlain,
+  useDb,
+  withTransaction,
+} from '../../db';
+import { insertedId, type LeanDoc } from '../../db/lean';
 import {
   AuditAction,
   PaymentProvider,
   PaymentStatus,
   TipStatus,
 } from '../../db/enums';
-import {
-  auditLogs,
-  creatorProfiles,
-  paymentTransactions,
-  tips,
-} from '../../db/schema';
+import type { CreatorProfile, PaymentTransaction, Tip } from '../../db/types';
 import { ApiError } from '../../lib/errors';
 import { getServerEnv } from '../../lib/env';
 import { ALLOWED_CURRENCIES } from '../creators/username';
@@ -27,19 +31,7 @@ import { sanitizeSupporterName, sanitizeTipMessage } from './message';
 import type { CreateTipInput, PublicTipDto } from './tips.types';
 import { toPublicTipDto } from './tips.types';
 
-const tipPublicWith = {
-  creator: {
-    columns: {
-      username: true,
-      displayName: true,
-      avatarUrl: true,
-    },
-  },
-} as const;
-
 export class TipsService {
-  private readonly db = useDb();
-
   constructor(private readonly payments = new PaymentsService()) {}
 
   /**
@@ -51,18 +43,12 @@ export class TipsService {
     dto: CreateTipInput,
     opts?: { idempotencyKeyHeader?: string; ip?: string; userAgent?: string },
   ): Promise<{ tip: PublicTipDto; checkoutUrl: string }> {
-    const creator = await this.db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.username, dto.username),
-      columns: {
-        id: true,
-        username: true,
-        displayName: true,
-        avatarUrl: true,
-        currency: true,
-        isActive: true,
-        bachsAccountId: true,
-      },
-    });
+    await useDb();
+    const creator = toPlain<CreatorProfile>(
+      await CreatorProfileModel.findOne({
+        username: dto.username,
+      }).lean<LeanDoc | null>(),
+    );
 
     if (!creator || !creator.isActive) {
       throw new ApiError(404, 'CREATOR_NOT_FOUND', 'Creator not found.');
@@ -110,57 +96,68 @@ export class TipsService {
     let paymentId: string;
 
     try {
-      const created = await this.db.transaction(async (tx: Db) => {
-        const [payment] = await tx
-          .insert(paymentTransactions)
-          .values({
-            internalReference,
-            provider: dbProvider,
-            amount: amountResult.decimal.toFixed(2),
-            currency,
-            status: PaymentStatus.PENDING,
-            metadata: {
-              source: 'tip_create',
-              creatorUsername: creator.username,
+      const created = await withTransaction(async (session) => {
+        const [payment] = await PaymentTransactionModel.create(
+          [
+            {
+              internalReference,
+              provider: dbProvider,
+              amount: amountResult.decimal.toFixed(2),
+              currency,
+              status: PaymentStatus.PENDING,
+              metadata: {
+                source: 'tip_create',
+                creatorUsername: creator.username,
+              },
             },
-          })
-          .returning();
+          ],
+          { session },
+        );
+        const newPaymentId = insertedId(payment);
 
-        const [tip] = await tx
-          .insert(tips)
-          .values({
-            creatorId: creator.id,
-            amount: amountResult.decimal.toFixed(2),
-            currency,
-            message,
-            isAnonymous,
-            supporterName,
-            supporterEmail,
-            status: TipStatus.CREATED,
-            paymentTransactionId: payment.id,
-          })
-          .returning();
+        const [tip] = await TipModel.create(
+          [
+            {
+              creatorId: creator.id,
+              amount: amountResult.decimal.toFixed(2),
+              currency,
+              message,
+              isAnonymous,
+              supporterName,
+              supporterEmail,
+              status: TipStatus.CREATED,
+              paymentTransactionId: newPaymentId,
+            },
+          ],
+          { session },
+        );
+        const newTipId = insertedId(tip);
 
-        await tx.insert(auditLogs).values({
-          action: AuditAction.TIP_CREATED,
-          entityType: 'Tip',
-          entityId: tip.id,
-          ipAddress: opts?.ip,
-          userAgent: opts?.userAgent,
-          metadata: {
-            amount: amountResult.amount,
-            currency,
-            isAnonymous,
-            creatorId: creator.id,
-            provider: dbProvider,
-          },
-        });
+        await AuditLogModel.create(
+          [
+            {
+              action: AuditAction.TIP_CREATED,
+              entityType: 'Tip',
+              entityId: newTipId,
+              ipAddress: opts?.ip,
+              userAgent: opts?.userAgent,
+              metadata: {
+                amount: amountResult.amount,
+                currency,
+                isAnonymous,
+                creatorId: creator.id,
+                provider: dbProvider,
+              },
+            },
+          ],
+          { session },
+        );
 
-        return { tip, payment };
+        return { tipId: newTipId, paymentId: newPaymentId };
       });
 
-      tipId = created.tip.id;
-      paymentId = created.payment.id;
+      tipId = created.tipId;
+      paymentId = created.paymentId;
     } catch (err) {
       if (isUniqueViolation(err)) {
         const replay = await this.findByInternalReference(internalReference);
@@ -219,77 +216,98 @@ export class TipsService {
       );
     }
 
-    const updated = await this.db.transaction(async (tx: Db) => {
-      await tx
-        .update(paymentTransactions)
-        .set({
-          providerReference: init.providerReference,
-          status: PaymentStatus.PROCESSING,
-          rawProviderStatus: init.rawStatus ?? 'initialized',
-          metadata: {
-            source: 'tip_create',
-            creatorUsername: creator.username,
-            checkoutUrl: init.checkoutUrl,
-            providerMeta: init.metadata ?? {},
+    const updated = await withTransaction(async (session) => {
+      await PaymentTransactionModel.updateOne(
+        { _id: paymentId },
+        {
+          $set: {
+            providerReference: init.providerReference,
+            status: PaymentStatus.PROCESSING,
+            rawProviderStatus: init.rawStatus ?? 'initialized',
+            metadata: {
+              source: 'tip_create',
+              creatorUsername: creator.username,
+              checkoutUrl: init.checkoutUrl,
+              providerMeta: init.metadata ?? {},
+            },
+            updatedAt: new Date(),
           },
-        })
-        .where(eq(paymentTransactions.id, paymentId));
+        },
+        { session },
+      );
 
-      await tx
-        .update(tips)
-        .set({ status: TipStatus.CHECKOUT_PENDING })
-        .where(eq(tips.id, tipId));
+      await TipModel.updateOne(
+        { _id: tipId },
+        { $set: { status: TipStatus.CHECKOUT_PENDING, updatedAt: new Date() } },
+        { session },
+      );
 
-      const tip = await tx.query.tips.findFirst({
-        where: eq(tips.id, tipId),
-        with: tipPublicWith,
-      });
+      const tip = toPlain<Tip>(
+        await TipModel.findOne({ _id: tipId })
+          .session(session)
+          .lean<LeanDoc | null>(),
+      );
 
       if (!tip) {
         throw new Error(`Tip ${tipId} missing after checkout update`);
       }
 
-      await tx.insert(auditLogs).values({
-        action: AuditAction.TIP_STATUS_CHANGED,
-        entityType: 'Tip',
-        entityId: tip.id,
-        metadata: {
-          from: TipStatus.CREATED,
-          to: TipStatus.CHECKOUT_PENDING,
-        },
-      });
+      await AuditLogModel.create(
+        [
+          {
+            action: AuditAction.TIP_STATUS_CHANGED,
+            entityType: 'Tip',
+            entityId: tip.id,
+            metadata: {
+              from: TipStatus.CREATED,
+              to: TipStatus.CHECKOUT_PENDING,
+            },
+          },
+        ],
+        { session },
+      );
 
-      await tx.insert(auditLogs).values({
-        action: AuditAction.PAYMENT_STATUS_CHANGED,
-        entityType: 'PaymentTransaction',
-        entityId: paymentId,
-        metadata: {
-          from: PaymentStatus.PENDING,
-          to: PaymentStatus.PROCESSING,
-          providerReference: init.providerReference,
-        },
-      });
+      await AuditLogModel.create(
+        [
+          {
+            action: AuditAction.PAYMENT_STATUS_CHANGED,
+            entityType: 'PaymentTransaction',
+            entityId: paymentId,
+            metadata: {
+              from: PaymentStatus.PENDING,
+              to: PaymentStatus.PROCESSING,
+              providerReference: init.providerReference,
+            },
+          },
+        ],
+        { session },
+      );
 
       return tip;
     });
 
     return {
-      tip: toPublicTipDto(updated),
+      tip: toPublicTipDto({ ...updated, creator }),
       checkoutUrl: init.checkoutUrl,
     };
   }
 
   async getPublicTip(tipId: string): Promise<PublicTipDto> {
-    const tip = await this.db.query.tips.findFirst({
-      where: eq(tips.id, tipId),
-      with: tipPublicWith,
-    });
+    await useDb();
+    const tip = toPlain<Tip>(
+      await TipModel.findOne({ _id: tipId }).lean<LeanDoc | null>(),
+    );
 
     if (!tip) {
       throw new ApiError(404, 'TIP_NOT_FOUND', 'Tip not found.');
     }
 
-    return toPublicTipDto(tip);
+    const creator = await this.findCreator(tip.creatorId);
+    if (!creator) {
+      throw new ApiError(404, 'TIP_NOT_FOUND', 'Tip not found.');
+    }
+
+    return toPublicTipDto({ ...tip, creator });
   }
 
   private async markCheckoutFailed(
@@ -302,26 +320,36 @@ export class TipsService {
       `Marking tip=${tipId} failed after payment init kind=${kind}`,
     );
     try {
-      await this.db.transaction(async (tx: Db) => {
-        await tx
-          .update(paymentTransactions)
-          .set({
-            status: PaymentStatus.FAILED,
-            rawProviderStatus: kind,
-          })
-          .where(eq(paymentTransactions.id, paymentId));
+      await withTransaction(async (session) => {
+        await PaymentTransactionModel.updateOne(
+          { _id: paymentId },
+          {
+            $set: {
+              status: PaymentStatus.FAILED,
+              rawProviderStatus: kind,
+              updatedAt: new Date(),
+            },
+          },
+          { session },
+        );
 
-        await tx
-          .update(tips)
-          .set({ status: TipStatus.FAILED })
-          .where(eq(tips.id, tipId));
+        await TipModel.updateOne(
+          { _id: tipId },
+          { $set: { status: TipStatus.FAILED, updatedAt: new Date() } },
+          { session },
+        );
 
-        await tx.insert(auditLogs).values({
-          action: AuditAction.TIP_STATUS_CHANGED,
-          entityType: 'Tip',
-          entityId: tipId,
-          metadata: { to: TipStatus.FAILED, reason: 'payment_init_failed' },
-        });
+        await AuditLogModel.create(
+          [
+            {
+              action: AuditAction.TIP_STATUS_CHANGED,
+              entityType: 'Tip',
+              entityId: tipId,
+              metadata: { to: TipStatus.FAILED, reason: 'payment_init_failed' },
+            },
+          ],
+          { session },
+        );
       });
     } catch (markErr) {
       console.error(
@@ -351,21 +379,37 @@ export class TipsService {
     return authoritative;
   }
 
+  private async findCreator(
+    creatorId: string,
+  ): Promise<CreatorProfile | null> {
+    return toPlain<CreatorProfile>(
+      await CreatorProfileModel.findOne({ _id: creatorId }).lean<
+        LeanDoc | null
+      >(),
+    );
+  }
+
   private async findByInternalReference(
     internalReference: string,
   ): Promise<{ tip: PublicTipDto; checkoutUrl: string } | null> {
-    const payment = await this.db.query.paymentTransactions.findFirst({
-      where: eq(paymentTransactions.internalReference, internalReference),
-    });
+    const payment = toPlain<PaymentTransaction>(
+      await PaymentTransactionModel.findOne({
+        internalReference,
+      }).lean<LeanDoc | null>(),
+    );
 
     if (!payment) return null;
 
-    const tip = await this.db.query.tips.findFirst({
-      where: eq(tips.paymentTransactionId, payment.id),
-      with: tipPublicWith,
-    });
+    const tip = toPlain<Tip>(
+      await TipModel.findOne({
+        paymentTransactionId: payment.id,
+      }).lean<LeanDoc | null>(),
+    );
 
     if (!tip) return null;
+
+    const creator = await this.findCreator(tip.creatorId);
+    if (!creator) return null;
 
     const meta = payment.metadata as { checkoutUrl?: string } | null;
     const appUrl = (getServerEnv().APP_URL ?? 'http://localhost:3000').replace(
@@ -377,7 +421,7 @@ export class TipsService {
       `${appUrl}/support/checkout/${encodeURIComponent(tip.id)}`;
 
     return {
-      tip: toPublicTipDto(tip),
+      tip: toPublicTipDto({ ...tip, creator }),
       checkoutUrl,
     };
   }

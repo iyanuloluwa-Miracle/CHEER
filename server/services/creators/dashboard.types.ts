@@ -3,7 +3,7 @@ import type {
   PaymentTransaction,
   Tip,
   TipStatus,
-} from '../../db/schema';
+} from '../../db/types';
 import Decimal from 'decimal.js';
 import { decimalToAmountString } from '../tips/tips.types';
 import type { CreatorProfileDto } from './creators.types';

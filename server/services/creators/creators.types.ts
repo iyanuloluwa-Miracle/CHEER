@@ -2,7 +2,7 @@ import type {
   CreatorProfile,
   SocialLink,
   SocialPlatform,
-} from '../../db/schema';
+} from '../../db/types';
 import { decimalToAmountString } from '../tips/tips.types';
 
 export interface CreatorSocialLinkDto {

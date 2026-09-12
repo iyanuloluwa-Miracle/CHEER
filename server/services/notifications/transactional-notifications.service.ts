@@ -1,6 +1,9 @@
-import { and, eq, sql } from 'drizzle-orm';
-import { useDb } from '../../db';
-import { notifications, type NotificationType } from '../../db/schema';
+import { NotificationModel, useDb } from '../../db';
+import { insertedId, type LeanDoc } from '../../db/lean';
+import type {
+  NotificationStatus as NotificationStatusT,
+  NotificationType,
+} from '../../db/types';
 import {
   NotificationProvider,
   NotificationStatus,
@@ -20,6 +23,17 @@ export interface TransactionalSendResult {
   providerMessageId?: string;
 }
 
+/** Minimal projection used for idempotency decisions. */
+type NotificationRef = { id: string; status: NotificationStatusT };
+
+function toRef(doc: LeanDoc | null): NotificationRef | null {
+  if (!doc) return null;
+  return {
+    id: String(doc._id),
+    status: doc.status as NotificationStatusT,
+  };
+}
+
 /**
  * Idempotent transactional emails on top of ResendService.
  * Never creates a second Resend client.
@@ -28,10 +42,7 @@ export interface TransactionalSendResult {
  * success must not be reversed when email delivery fails.
  */
 export class TransactionalNotificationsService {
-  constructor(
-    private readonly db = useDb(),
-    private readonly resend = new ResendService(),
-  ) {}
+  constructor(private readonly resend = new ResendService()) {}
 
   /**
    * Core send with Notification-row idempotency.
@@ -56,16 +67,18 @@ export class TransactionalNotificationsService {
     /** Prefer this row when retrying a known FAILED notification. */
     existingId?: string;
   }): Promise<TransactionalSendResult> {
+    await useDb();
     const metadata = {
       ...(params.metadata ?? {}),
       idempotencyKey: params.idempotencyKey,
     };
 
     let existing = params.existingId
-      ? await this.db.query.notifications.findFirst({
-          where: eq(notifications.id, params.existingId),
-          columns: { id: true, status: true },
-        })
+      ? toRef(
+          await NotificationModel.findOne({ _id: params.existingId })
+            .select('_id status')
+            .lean<LeanDoc | null>(),
+        )
       : await this.findByIdempotencyKey(params.idempotencyKey);
 
     if (!existing) {
@@ -91,26 +104,27 @@ export class TransactionalNotificationsService {
           : NotificationProvider.DEV_LOG;
 
       if (existing) {
-        const [updated] = await this.db
-          .update(notifications)
-          .set({
-            status: NotificationStatus.SENT,
-            provider,
-            providerMessageId: result.id,
-            metadata,
-          })
-          .where(eq(notifications.id, existing.id))
-          .returning();
+        await NotificationModel.updateOne(
+          { _id: existing.id },
+          {
+            $set: {
+              status: NotificationStatus.SENT,
+              provider,
+              providerMessageId: result.id,
+              metadata,
+              updatedAt: new Date(),
+            },
+          },
+        );
         return {
           status: 'sent',
-          notificationId: updated.id,
+          notificationId: existing.id,
           providerMessageId: result.id,
         };
       }
 
-      const [created] = await this.db
-        .insert(notifications)
-        .values({
+      const [created] = await NotificationModel.create([
+        {
           userId: params.userId ?? null,
           email: params.to,
           type: params.type,
@@ -118,11 +132,11 @@ export class TransactionalNotificationsService {
           providerMessageId: result.id,
           status: NotificationStatus.SENT,
           metadata,
-        })
-        .returning();
+        },
+      ]);
       return {
         status: 'sent',
-        notificationId: created.id,
+        notificationId: insertedId(created),
         providerMessageId: result.id,
       };
     };
@@ -177,14 +191,16 @@ export class TransactionalNotificationsService {
     isAnonymous: boolean;
     supporterName: string | null;
   }): Promise<TransactionalSendResult> {
+    await useDb();
     // Backward-compatible dedupe on tipId (Phase 7/8 rows may lack idempotencyKey).
-    const byTip = await this.db.query.notifications.findFirst({
-      where: and(
-        eq(notifications.type, NotificationTypeEnum.EMAIL_TIP_RECEIVED),
-        sql`metadata->>'tipId' = ${params.tipId}`,
-      ),
-      columns: { id: true, status: true },
-    });
+    const byTip = toRef(
+      await NotificationModel.findOne({
+        type: NotificationTypeEnum.EMAIL_TIP_RECEIVED,
+        'metadata.tipId': params.tipId,
+      })
+        .select('_id status')
+        .lean<LeanDoc | null>(),
+    );
     if (byTip?.status === NotificationStatus.SENT) {
       return { status: 'skipped', notificationId: byTip.id };
     }
@@ -286,11 +302,16 @@ export class TransactionalNotificationsService {
     });
   }
 
-  private async findByIdempotencyKey(idempotencyKey: string) {
-    return this.db.query.notifications.findFirst({
-      where: sql`metadata->>'idempotencyKey' = ${idempotencyKey}`,
-      columns: { id: true, status: true },
-    });
+  private async findByIdempotencyKey(
+    idempotencyKey: string,
+  ): Promise<NotificationRef | null> {
+    return toRef(
+      await NotificationModel.findOne({
+        'metadata.idempotencyKey': idempotencyKey,
+      })
+        .select('_id status')
+        .lean<LeanDoc | null>(),
+    );
   }
 
   private async persistFailed(params: {
@@ -300,7 +321,7 @@ export class TransactionalNotificationsService {
     type: NotificationType;
     metadata: Record<string, unknown>;
     error: unknown;
-  }) {
+  }): Promise<{ id: string }> {
     const failureMeta = {
       ...params.metadata,
       lastError:
@@ -309,28 +330,29 @@ export class TransactionalNotificationsService {
     };
 
     if (params.existingId) {
-      const [updated] = await this.db
-        .update(notifications)
-        .set({
-          status: NotificationStatus.FAILED,
-          metadata: failureMeta,
-        })
-        .where(eq(notifications.id, params.existingId))
-        .returning();
-      return updated;
+      await NotificationModel.updateOne(
+        { _id: params.existingId },
+        {
+          $set: {
+            status: NotificationStatus.FAILED,
+            metadata: failureMeta,
+            updatedAt: new Date(),
+          },
+        },
+      );
+      return { id: params.existingId };
     }
 
-    const [created] = await this.db
-      .insert(notifications)
-      .values({
+    const [created] = await NotificationModel.create([
+      {
         userId: params.userId ?? null,
         email: params.to,
         type: params.type,
         provider: NotificationProvider.RESEND,
         status: NotificationStatus.FAILED,
         metadata: failureMeta,
-      })
-      .returning();
-    return created;
+      },
+    ]);
+    return { id: insertedId(created) };
   }
 }

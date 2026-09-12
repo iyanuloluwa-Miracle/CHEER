@@ -1,8 +1,14 @@
-import { eq } from 'drizzle-orm';
 import { ApiError } from '../../lib/errors';
 import { getServerEnv } from '../../lib/env';
-import { useDb } from '../../db';
-import { auditLogs, creatorProfiles } from '../../db/schema';
+import {
+  AuditLogModel,
+  CreatorProfileModel,
+  UserModel,
+  toPlain,
+  useDb,
+} from '../../db';
+import type { LeanDoc } from '../../db/lean';
+import type { CreatorProfile, User } from '../../db/types';
 import { AuditAction } from '../../db/enums';
 import {
   BachsProviderError,
@@ -27,12 +33,10 @@ export interface ConnectOnboardResult {
  * Never invents a TippyMe wallet — only stores `bachsAccountId` and settlement flags.
  */
 export class ConnectService {
-  constructor(
-    private readonly db = useDb(),
-    private readonly http = new BachsHttpClient(),
-  ) {}
+  constructor(private readonly http = new BachsHttpClient()) {}
 
   async startOnboarding(userId: string): Promise<ConnectOnboardResult> {
+    await useDb();
     const profile = await this.requireProfileWithUser(userId);
     const appUrl = (getServerEnv().APP_URL ?? 'http://localhost:3000').replace(
       /\/$/,
@@ -76,22 +80,24 @@ export class ConnectService {
     // No Bachs key → honest local stub for demo / offline hackathon demos.
     if (!this.http.isConfigured) {
       const stubId = `acct_stub_${profile.id}`;
-      const [updated] = await this.db
-        .update(creatorProfiles)
-        .set({
-          bachsAccountId: stubId,
-          fridayPayoutEnabled: true,
-        })
-        .where(eq(creatorProfiles.id, profile.id))
-        .returning();
-      await this.audit(userId, updated.id, {
+      await CreatorProfileModel.updateOne(
+        { _id: profile.id },
+        {
+          $set: {
+            bachsAccountId: stubId,
+            fridayPayoutEnabled: true,
+            updatedAt: new Date(),
+          },
+        },
+      );
+      await this.audit(userId, profile.id, {
         event: 'connect_stub_linked',
         bachsAccountId: stubId,
       });
       return {
         settlement: buildSettlementStatus({
-          bachsAccountId: updated.bachsAccountId,
-          fridayPayoutEnabled: updated.fridayPayoutEnabled,
+          bachsAccountId: stubId,
+          fridayPayoutEnabled: true,
         }),
         onboardingUrl: null,
         stub: true,
@@ -129,13 +135,12 @@ export class ConnectService {
         );
       }
 
-      const [updated] = await this.db
-        .update(creatorProfiles)
-        .set({ bachsAccountId: account.id })
-        .where(eq(creatorProfiles.id, profile.id))
-        .returning();
+      await CreatorProfileModel.updateOne(
+        { _id: profile.id },
+        { $set: { bachsAccountId: account.id, updatedAt: new Date() } },
+      );
 
-      await this.audit(userId, updated.id, {
+      await this.audit(userId, profile.id, {
         event: 'connect_account_created',
         bachsAccountId: account.id,
       });
@@ -148,8 +153,8 @@ export class ConnectService {
 
       return {
         settlement: buildSettlementStatus({
-          bachsAccountId: updated.bachsAccountId,
-          fridayPayoutEnabled: updated.fridayPayoutEnabled,
+          bachsAccountId: account.id,
+          fridayPayoutEnabled: profile.fridayPayoutEnabled,
         }),
         onboardingUrl: link.url,
         stub: false,
@@ -163,6 +168,7 @@ export class ConnectService {
    * After hosted return/refresh — optionally enable Friday weekly payouts.
    */
   async enableFridayPayout(userId: string): Promise<CreatorSettlementStatusDto> {
+    await useDb();
     const profile = await this.requireProfileWithUser(userId);
     if (!profile.bachsAccountId) {
       throw new ApiError(
@@ -193,24 +199,24 @@ export class ConnectService {
       }
     }
 
-    const [updated] = await this.db
-      .update(creatorProfiles)
-      .set({ fridayPayoutEnabled: true })
-      .where(eq(creatorProfiles.id, profile.id))
-      .returning();
+    await CreatorProfileModel.updateOne(
+      { _id: profile.id },
+      { $set: { fridayPayoutEnabled: true, updatedAt: new Date() } },
+    );
 
-    await this.audit(userId, updated.id, {
+    await this.audit(userId, profile.id, {
       event: 'friday_payout_enabled',
-      bachsAccountId: updated.bachsAccountId,
+      bachsAccountId: profile.bachsAccountId,
     });
 
     return buildSettlementStatus({
-      bachsAccountId: updated.bachsAccountId,
-      fridayPayoutEnabled: updated.fridayPayoutEnabled,
+      bachsAccountId: profile.bachsAccountId,
+      fridayPayoutEnabled: true,
     });
   }
 
   async getSettlement(userId: string): Promise<CreatorSettlementStatusDto> {
+    await useDb();
     const profile = await this.requireProfileWithUser(userId);
     return buildSettlementStatus({
       bachsAccountId: profile.bachsAccountId,
@@ -218,28 +224,27 @@ export class ConnectService {
     });
   }
 
-  private async requireProfileWithUser(userId: string) {
-    const profile = await this.db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.userId, userId),
-      columns: {
-        id: true,
-        username: true,
-        displayName: true,
-        bachsAccountId: true,
-        fridayPayoutEnabled: true,
-      },
-      with: {
-        user: { columns: { email: true } },
-      },
-    });
-    if (!profile) {
+  private async requireProfileWithUser(
+    userId: string,
+  ): Promise<CreatorProfile & { user: Pick<User, 'email'> }> {
+    const profile = toPlain<CreatorProfile>(
+      await CreatorProfileModel.findOne({ userId }).lean<LeanDoc | null>(),
+    );
+    const user = profile
+      ? toPlain<User>(
+          await UserModel.findOne({ _id: profile.userId }).lean<
+            LeanDoc | null
+          >(),
+        )
+      : null;
+    if (!profile || !user) {
       throw new ApiError(
         404,
         'PROFILE_NOT_FOUND',
         'Create a creator profile first.',
       );
     }
-    return profile;
+    return { ...profile, user: { email: user.email } };
   }
 
   private async audit(
@@ -247,13 +252,15 @@ export class ConnectService {
     profileId: string,
     metadata: Record<string, string | boolean | null>,
   ) {
-    await this.db.insert(auditLogs).values({
-      actorUserId: userId,
-      action: AuditAction.PROFILE_UPDATED,
-      entityType: 'CreatorProfile',
-      entityId: profileId,
-      metadata,
-    });
+    await AuditLogModel.create([
+      {
+        actorUserId: userId,
+        action: AuditAction.PROFILE_UPDATED,
+        entityType: 'CreatorProfile',
+        entityId: profileId,
+        metadata,
+      },
+    ]);
   }
 
   private throwConnectError(err: unknown): never {

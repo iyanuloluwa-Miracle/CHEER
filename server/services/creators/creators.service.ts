@@ -1,25 +1,25 @@
 import Decimal from 'decimal.js';
 import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  gte,
-  isNotNull,
-  lt,
-  lte,
-  sum,
-} from 'drizzle-orm';
-import { useDb, isUniqueViolation, type Db } from '../../db';
-import {
-  auditLogs,
-  creatorProfiles,
-  socialLinks,
-  tipPageViews,
-  tips,
-  type Tip,
-} from '../../db/schema';
+  AuditLogModel,
+  CreatorProfileModel,
+  PaymentTransactionModel,
+  SocialLinkModel,
+  TipModel,
+  TipPageViewModel,
+  isUniqueViolation,
+  toPlain,
+  toPlainList,
+  useDb,
+  withTransaction,
+} from '../../db';
+import { insertedId, type LeanDoc } from '../../db/lean';
+import type {
+  CreatorProfile,
+  PaymentStatus,
+  PaymentTransaction,
+  SocialLink,
+  Tip,
+} from '../../db/types';
 import { AuditAction, SocialPlatform, TipStatus } from '../../db/enums';
 import { ApiError } from '../../lib/errors';
 import { getServerEnv } from '../../lib/env';
@@ -65,13 +65,17 @@ const RECENT_TIPS_LIMIT = 8;
 const RECENT_MESSAGES_LIMIT = 8;
 const PUBLIC_NOTES_LIMIT = 8;
 
-export class CreatorsService {
-  constructor(private readonly db = useDb()) {}
+type ProfileWithLinks = CreatorProfile & { socialLinks: SocialLink[] };
+type TipWithPaymentStatus = Tip & {
+  paymentTransaction: Pick<PaymentTransaction, 'status'> | null;
+};
 
+export class CreatorsService {
   async checkUsernameAvailability(
     raw: string,
     opts?: { excludeUserId?: string },
   ): Promise<UsernameAvailabilityDto> {
+    await useDb();
     const format = validateUsernameFormat(raw);
     if (!format.ok) {
       return {
@@ -81,10 +85,11 @@ export class CreatorsService {
       };
     }
 
-    const existing = await this.db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.username, format.username),
-      columns: { userId: true },
-    });
+    const existing = toPlain<CreatorProfile>(
+      await CreatorProfileModel.findOne({
+        username: format.username,
+      }).lean<LeanDoc | null>(),
+    );
 
     if (existing && existing.userId !== opts?.excludeUserId) {
       return {
@@ -98,65 +103,38 @@ export class CreatorsService {
   }
 
   async getMe(userId: string): Promise<CreatorProfileDto | null> {
-    const profile = await this.db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.userId, userId),
-      with: {
-        socialLinks: {
-          orderBy: [asc(socialLinks.sortOrder)],
-        },
-      },
-    });
+    await useDb();
+    const profile = await this.findProfileWithLinks({ userId });
     return profile ? toCreatorProfileDto(profile) : null;
   }
 
   async getPublicByUsername(raw: string): Promise<PublicCreatorPageDto> {
+    await useDb();
     const username = normalizeUsername(raw);
-    const profile = await this.db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.username, username),
-      with: {
-        socialLinks: {
-          orderBy: [asc(socialLinks.sortOrder)],
-        },
-      },
-    });
+    const profile = await this.findProfileWithLinks({ username });
 
     if (!profile || !profile.isActive) {
       throw new ApiError(404, 'CREATOR_NOT_FOUND', 'Creator not found.');
     }
 
     // Notes only — weekly tip totals stay private on the creator dashboard.
-    const [recentNotes, [lifetimeAgg]] = await Promise.all([
-      this.db
-        .select({
-          amount: tips.amount,
-          currency: tips.currency,
-          message: tips.message,
-          isAnonymous: tips.isAnonymous,
-          supporterName: tips.supporterName,
-          createdAt: tips.createdAt,
-        })
-        .from(tips)
-        .where(
-          and(
-            eq(tips.creatorId, profile.id),
-            eq(tips.status, TipStatus.PAID),
-            isNotNull(tips.message),
-          ),
-        )
-        .orderBy(desc(tips.createdAt))
-        .limit(PUBLIC_NOTES_LIMIT),
-      this.db
-        .select({ value: sum(tips.amount) })
-        .from(tips)
-        .where(
-          and(eq(tips.creatorId, profile.id), eq(tips.status, TipStatus.PAID)),
-        ),
+    const [noteDocs, lifetime] = await Promise.all([
+      TipModel.find({
+        creatorId: profile.id,
+        status: TipStatus.PAID,
+        message: { $ne: null },
+      })
+        .sort({ createdAt: -1 })
+        .limit(PUBLIC_NOTES_LIMIT)
+        .lean<LeanDoc[]>(),
+      this.aggregateTipTotals({
+        creatorId: profile.id,
+        status: TipStatus.PAID,
+      }),
     ]);
 
-    const recentSupporterNotes = recentNotes
-      .map((tip: Pick<Tip, 'amount' | 'currency' | 'message' | 'isAnonymous' | 'supporterName' | 'createdAt'>) =>
-        toPublicSupporterNoteDto(tip as Tip),
-      )
+    const recentSupporterNotes = toPlainList<Tip>(noteDocs)
+      .map((tip) => toPublicSupporterNoteDto(tip))
       .filter(
         (note: PublicSupporterNoteDto | null): note is PublicSupporterNoteDto =>
           note !== null,
@@ -174,7 +152,7 @@ export class CreatorsService {
         weekStart: week.weekStart,
         weekEnd: week.weekEnd,
       },
-      supportGoal: toSupportGoalDto(profile, lifetimeAgg?.value),
+      supportGoal: toSupportGoalDto(profile, lifetime.sum),
       recentSupporterNotes,
     };
   }
@@ -183,10 +161,10 @@ export class CreatorsService {
     userId: string,
     dto: CreateCreatorInput,
   ): Promise<CreatorProfileDto> {
-    const existing = await this.db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.userId, userId),
-      columns: { id: true },
-    });
+    await useDb();
+    const existing = await CreatorProfileModel.findOne({ userId })
+      .select('_id')
+      .lean<LeanDoc | null>();
     if (existing) {
       throw new ApiError(
         409,
@@ -207,51 +185,48 @@ export class CreatorsService {
     );
 
     try {
-      const profile = await this.db.transaction(async (tx: Db) => {
-        const [inserted] = await tx
-          .insert(creatorProfiles)
-          .values({
-            userId,
-            username,
-            displayName: dto.displayName.trim(),
-            bio: dto.bio?.trim() || null,
-            avatarUrl: dto.avatarUrl?.trim() || null,
-            supportMessage: dto.supportMessage?.trim() || null,
-            currency: (dto.currency ?? 'NGN').toUpperCase(),
-            suggestedTipAmounts,
-          })
-          .returning();
+      const profileId = await withTransaction(async (session) => {
+        const [created] = await CreatorProfileModel.create(
+          [
+            {
+              userId,
+              username,
+              displayName: dto.displayName.trim(),
+              bio: dto.bio?.trim() || null,
+              avatarUrl: dto.avatarUrl?.trim() || null,
+              supportMessage: dto.supportMessage?.trim() || null,
+              currency: (dto.currency ?? 'NGN').toUpperCase(),
+              suggestedTipAmounts,
+            },
+          ],
+          { session },
+        );
+        const id = insertedId(created);
 
         if (linkRows.length > 0) {
-          await tx.insert(socialLinks).values(
-            linkRows.map((link) => ({
-              ...link,
-              creatorId: inserted.id,
-            })),
+          await SocialLinkModel.create(
+            linkRows.map((link) => ({ ...link, creatorId: id })),
+            { session },
           );
         }
 
-        return tx.query.creatorProfiles.findFirst({
-          where: eq(creatorProfiles.id, inserted.id),
-          with: {
-            socialLinks: {
-              orderBy: [asc(socialLinks.sortOrder)],
-            },
-          },
-        });
+        return id;
       });
 
+      const profile = await this.findProfileWithLinks({ _id: profileId });
       if (!profile) {
         throw new Error('Creator profile insert did not return a row.');
       }
 
-      await this.db.insert(auditLogs).values({
-        actorUserId: userId,
-        action: AuditAction.PROFILE_UPDATED,
-        entityType: 'CreatorProfile',
-        entityId: profile.id,
-        metadata: { event: 'created', username },
-      });
+      await AuditLogModel.create([
+        {
+          actorUserId: userId,
+          action: AuditAction.PROFILE_UPDATED,
+          entityType: 'CreatorProfile',
+          entityId: profile.id,
+          metadata: { event: 'created', username },
+        },
+      ]);
 
       return toCreatorProfileDto(profile);
     } catch (err) {
@@ -270,6 +245,7 @@ export class CreatorsService {
     userId: string,
     dto: UpdateCreatorProfileInput,
   ): Promise<CreatorProfileDto> {
+    await useDb();
     const profile = await this.requireOwnedProfile(userId);
 
     const data: {
@@ -301,31 +277,25 @@ export class CreatorsService {
     }
 
     try {
-      await this.db
-        .update(creatorProfiles)
-        .set(data)
-        .where(eq(creatorProfiles.id, profile.id));
+      await CreatorProfileModel.updateOne(
+        { _id: profile.id },
+        { $set: { ...data, updatedAt: new Date() } },
+      );
 
-      const updated = await this.db.query.creatorProfiles.findFirst({
-        where: eq(creatorProfiles.id, profile.id),
-        with: {
-          socialLinks: {
-            orderBy: [asc(socialLinks.sortOrder)],
-          },
-        },
-      });
-
+      const updated = await this.findProfileWithLinks({ _id: profile.id });
       if (!updated) {
         throw new Error('Creator profile update did not return a row.');
       }
 
-      await this.db.insert(auditLogs).values({
-        actorUserId: userId,
-        action: AuditAction.PROFILE_UPDATED,
-        entityType: 'CreatorProfile',
-        entityId: updated.id,
-        metadata: { event: 'profile_update' },
-      });
+      await AuditLogModel.create([
+        {
+          actorUserId: userId,
+          action: AuditAction.PROFILE_UPDATED,
+          entityType: 'CreatorProfile',
+          entityId: updated.id,
+          metadata: { event: 'profile_update' },
+        },
+      ]);
 
       return toCreatorProfileDto(updated);
     } catch (err) {
@@ -344,6 +314,7 @@ export class CreatorsService {
     userId: string,
     dto: UpdateCreatorSettingsInput,
   ): Promise<CreatorProfileDto> {
+    await useDb();
     const profile = await this.requireOwnedProfile(userId);
 
     const data: {
@@ -384,31 +355,25 @@ export class CreatorsService {
       data.goalActive = Boolean(dto.goalActive);
     }
 
-    await this.db
-      .update(creatorProfiles)
-      .set(data)
-      .where(eq(creatorProfiles.id, profile.id));
+    await CreatorProfileModel.updateOne(
+      { _id: profile.id },
+      { $set: { ...data, updatedAt: new Date() } },
+    );
 
-    const updated = await this.db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.id, profile.id),
-      with: {
-        socialLinks: {
-          orderBy: [asc(socialLinks.sortOrder)],
-        },
-      },
-    });
-
+    const updated = await this.findProfileWithLinks({ _id: profile.id });
     if (!updated) {
       throw new Error('Creator profile update did not return a row.');
     }
 
-    await this.db.insert(auditLogs).values({
-      actorUserId: userId,
-      action: AuditAction.PROFILE_UPDATED,
-      entityType: 'CreatorProfile',
-      entityId: updated.id,
-      metadata: { event: 'settings_update' },
-    });
+    await AuditLogModel.create([
+      {
+        actorUserId: userId,
+        action: AuditAction.PROFILE_UPDATED,
+        entityType: 'CreatorProfile',
+        entityId: updated.id,
+        metadata: { event: 'settings_update' },
+      },
+    ]);
 
     return toCreatorProfileDto(updated);
   }
@@ -417,42 +382,34 @@ export class CreatorsService {
     userId: string,
     dto: ReplaceSocialLinksInput,
   ): Promise<CreatorProfileDto> {
+    await useDb();
     const profile = await this.requireOwnedProfile(userId);
     const linkRows = this.normalizeSocialLinks(dto.links);
 
-    const updated = await this.db.transaction(async (tx: Db) => {
-      await tx
-        .delete(socialLinks)
-        .where(eq(socialLinks.creatorId, profile.id));
+    await withTransaction(async (session) => {
+      await SocialLinkModel.deleteMany({ creatorId: profile.id }, { session });
       if (linkRows.length > 0) {
-        await tx.insert(socialLinks).values(
-          linkRows.map((link) => ({
-            ...link,
-            creatorId: profile.id,
-          })),
+        await SocialLinkModel.create(
+          linkRows.map((link) => ({ ...link, creatorId: profile.id })),
+          { session },
         );
       }
-      return tx.query.creatorProfiles.findFirst({
-        where: eq(creatorProfiles.id, profile.id),
-        with: {
-          socialLinks: {
-            orderBy: [asc(socialLinks.sortOrder)],
-          },
-        },
-      });
     });
 
+    const updated = await this.findProfileWithLinks({ _id: profile.id });
     if (!updated) {
       throw new Error('Creator profile not found after social link replace.');
     }
 
-    await this.db.insert(auditLogs).values({
-      actorUserId: userId,
-      action: AuditAction.PROFILE_UPDATED,
-      entityType: 'CreatorProfile',
-      entityId: updated.id,
-      metadata: { event: 'social_links_replaced', count: linkRows.length },
-    });
+    await AuditLogModel.create([
+      {
+        actorUserId: userId,
+        action: AuditAction.PROFILE_UPDATED,
+        entityType: 'CreatorProfile',
+        entityId: updated.id,
+        metadata: { event: 'social_links_replaced', count: linkRows.length },
+      },
+    ]);
 
     return toCreatorProfileDto(updated);
   }
@@ -463,21 +420,10 @@ export class CreatorsService {
    * Successful totals count TipStatus.PAID only.
    */
   async getDashboard(userId: string): Promise<CreatorDashboardDto> {
-    const profile = await this.db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.userId, userId),
-      columns: {
-        id: true,
-        username: true,
-        displayName: true,
-        avatarUrl: true,
-        currency: true,
-        bachsAccountId: true,
-        fridayPayoutEnabled: true,
-        goalTitle: true,
-        goalTargetAmount: true,
-        goalActive: true,
-      },
-    });
+    await useDb();
+    const profile = toPlain<CreatorProfile>(
+      await CreatorProfileModel.findOne({ userId }).lean<LeanDoc | null>(),
+    );
     if (!profile) {
       throw new ApiError(
         404,
@@ -494,63 +440,46 @@ export class CreatorsService {
       '',
     );
 
-    const paidFilter = and(
-      eq(tips.creatorId, creatorId),
-      eq(tips.status, TipStatus.PAID),
-    );
+    const paidFilter = { creatorId, status: TipStatus.PAID };
 
     const [
-      [lifetimeAgg],
-      [periodAgg],
-      recentTips,
-      recentMessages,
-      [lifetimeViews],
-      [weekViews],
+      lifetime,
+      period,
+      recentTipDocs,
+      recentMessageDocs,
+      lifetimeViewCount,
+      weekViewCount,
     ] = await Promise.all([
-      this.db
-        .select({ value: sum(tips.amount), n: count() })
-        .from(tips)
-        .where(paidFilter),
-      this.db
-        .select({ value: sum(tips.amount), n: count() })
-        .from(tips)
-        .where(
-          and(paidFilter, gte(tips.createdAt, start), lt(tips.createdAt, end)),
-        ),
-      this.db.query.tips.findMany({
-        where: eq(tips.creatorId, creatorId),
-        with: { paymentTransaction: { columns: { status: true } } },
-        orderBy: desc(tips.createdAt),
-        limit: RECENT_TIPS_LIMIT,
+      this.aggregateTipTotals(paidFilter),
+      this.aggregateTipTotals({
+        ...paidFilter,
+        createdAt: { $gte: start, $lt: end },
       }),
-      this.db.query.tips.findMany({
-        where: and(
-          eq(tips.creatorId, creatorId),
-          eq(tips.status, TipStatus.PAID),
-          isNotNull(tips.message),
-        ),
-        with: { paymentTransaction: { columns: { status: true } } },
-        orderBy: desc(tips.createdAt),
-        limit: RECENT_MESSAGES_LIMIT,
+      TipModel.find({ creatorId })
+        .sort({ createdAt: -1 })
+        .limit(RECENT_TIPS_LIMIT)
+        .lean<LeanDoc[]>(),
+      TipModel.find({
+        creatorId,
+        status: TipStatus.PAID,
+        message: { $ne: null },
+      })
+        .sort({ createdAt: -1 })
+        .limit(RECENT_MESSAGES_LIMIT)
+        .lean<LeanDoc[]>(),
+      TipPageViewModel.countDocuments({ creatorId }),
+      TipPageViewModel.countDocuments({
+        creatorId,
+        createdAt: { $gte: week.start, $lt: week.end },
       }),
-      this.db
-        .select({ n: count() })
-        .from(tipPageViews)
-        .where(eq(tipPageViews.creatorId, creatorId)),
-      this.db
-        .select({ n: count() })
-        .from(tipPageViews)
-        .where(
-          and(
-            eq(tipPageViews.creatorId, creatorId),
-            gte(tipPageViews.createdAt, week.start),
-            lt(tipPageViews.createdAt, week.end),
-          ),
-        ),
     ]);
 
-    const successfulTipCount = lifetimeAgg?.n ?? 0;
-    const lifetimeViewCount = lifetimeViews?.n ?? 0;
+    const [recentTips, recentMessages] = await Promise.all([
+      this.attachPaymentStatus(toPlainList<Tip>(recentTipDocs)),
+      this.attachPaymentStatus(toPlainList<Tip>(recentMessageDocs)),
+    ]);
+
+    const successfulTipCount = lifetime.count;
     const conversionRate =
       lifetimeViewCount > 0
         ? Math.min(1, successfulTipCount / lifetimeViewCount)
@@ -564,20 +493,16 @@ export class CreatorsService {
       publicPath: `/${profile.username}`,
       publicUrl: `${appUrl}/${profile.username}`,
       totals: {
-        successfulSupport: decimalToAmountString(
-          lifetimeAgg?.value ?? new Decimal(0),
-        ),
+        successfulSupport: decimalToAmountString(lifetime.sum),
         successfulTipCount,
-        periodSupport: decimalToAmountString(
-          periodAgg?.value ?? new Decimal(0),
-        ),
-        periodTipCount: periodAgg?.n ?? 0,
+        periodSupport: decimalToAmountString(period.sum),
+        periodTipCount: period.count,
         periodKey,
         periodLabel,
       },
       linkViews: {
         lifetime: lifetimeViewCount,
-        thisWeek: weekViews?.n ?? 0,
+        thisWeek: weekViewCount,
       },
       conversion: {
         viewsToTipsRate: conversionRate,
@@ -587,12 +512,10 @@ export class CreatorsService {
             ? null
             : Math.round(conversionRate * 1000) / 10,
       },
-      supportGoal: toSupportGoalDto(profile, lifetimeAgg?.value),
+      supportGoal: toSupportGoalDto(profile, lifetime.sum),
       recentTips: recentTips.map(toCreatorTipDto),
       recentMessages: recentMessages
-        .filter((t: (typeof recentMessages)[number]) =>
-          Boolean(t.message?.trim()),
-        )
+        .filter((t) => Boolean(t.message?.trim()))
         .map(toCreatorTipDto),
       settlement: buildSettlementStatus({
         bachsAccountId: profile.bachsAccountId,
@@ -606,17 +529,17 @@ export class CreatorsService {
    * Does not store IP, user-agent, or other visitor identifiers.
    */
   async recordTipPageView(raw: string): Promise<{ recorded: true }> {
+    await useDb();
     const username = normalizeUsername(raw);
-    const profile = await this.db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.username, username),
-      columns: { id: true, isActive: true },
-    });
+    const profile = toPlain<CreatorProfile>(
+      await CreatorProfileModel.findOne({ username }).lean<LeanDoc | null>(),
+    );
 
     if (!profile || !profile.isActive) {
       throw new ApiError(404, 'CREATOR_NOT_FOUND', 'Creator not found.');
     }
 
-    await this.db.insert(tipPageViews).values({ creatorId: profile.id });
+    await TipPageViewModel.create([{ creatorId: profile.id }]);
 
     return { recorded: true };
   }
@@ -629,23 +552,22 @@ export class CreatorsService {
     userId: string,
     query: ListTipsQuery,
   ): Promise<CreatorTipsPageDto> {
+    await useDb();
     const profile = await this.requireOwnedProfile(userId);
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
-    const where = this.buildTipListWhere(profile.id, query);
+    const filter = this.buildTipListFilter(profile.id, query);
 
-    const [[countRow], tipRows] = await Promise.all([
-      this.db.select({ n: count() }).from(tips).where(where),
-      this.db.query.tips.findMany({
-        where,
-        with: { paymentTransaction: { columns: { status: true } } },
-        orderBy: desc(tips.createdAt),
-        offset: (page - 1) * pageSize,
-        limit: pageSize,
-      }),
+    const [total, tipDocs] = await Promise.all([
+      TipModel.countDocuments(filter),
+      TipModel.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .lean<LeanDoc[]>(),
     ]);
 
-    const total = countRow?.n ?? 0;
+    const tipRows = await this.attachPaymentStatus(toPlainList<Tip>(tipDocs));
 
     return {
       tips: tipRows.map(toCreatorTipDto),
@@ -656,35 +578,54 @@ export class CreatorsService {
     };
   }
 
-  private buildTipListWhere(creatorId: string, query: ListTipsQuery) {
-    const conditions = [eq(tips.creatorId, creatorId)];
+  private buildTipListFilter(
+    creatorId: string,
+    query: ListTipsQuery,
+  ): Record<string, unknown> {
+    const filter: Record<string, unknown> = { creatorId };
 
     if (query.status) {
-      conditions.push(eq(tips.status, query.status));
+      filter.status = query.status;
     }
 
+    const createdAt: Record<string, Date> = {};
     if (query.from) {
-      conditions.push(gte(tips.createdAt, new Date(query.from)));
+      createdAt.$gte = new Date(query.from);
     }
-
     if (query.to) {
       const to = new Date(query.to);
       // If date-only (YYYY-MM-DD), include the full end day in UTC.
       if (/^\d{4}-\d{2}-\d{2}$/.test(query.to)) {
         to.setUTCHours(23, 59, 59, 999);
       }
-      conditions.push(lte(tips.createdAt, to));
+      createdAt.$lte = to;
+    }
+    if (Object.keys(createdAt).length > 0) {
+      filter.createdAt = createdAt;
     }
 
+    // Amounts are stored as decimal strings, so compare them numerically
+    // rather than lexicographically.
+    const amountBounds: Record<string, unknown>[] = [];
     if (query.minAmount) {
-      conditions.push(gte(tips.amount, query.minAmount));
+      amountBounds.push({
+        $expr: {
+          $gte: [{ $toDecimal: '$amount' }, { $toDecimal: query.minAmount }],
+        },
+      });
     }
-
     if (query.maxAmount) {
-      conditions.push(lte(tips.amount, query.maxAmount));
+      amountBounds.push({
+        $expr: {
+          $lte: [{ $toDecimal: '$amount' }, { $toDecimal: query.maxAmount }],
+        },
+      });
+    }
+    if (amountBounds.length > 0) {
+      filter.$and = amountBounds;
     }
 
-    return and(...conditions);
+    return filter;
   }
 
   /**
@@ -692,10 +633,12 @@ export class CreatorsService {
    * Never trust a client-supplied userId for ownership.
    */
   async assertOwnsCreator(userId: string, creatorId: string): Promise<void> {
-    const profile = await this.db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.id, creatorId),
-      columns: { userId: true },
-    });
+    await useDb();
+    const profile = toPlain<CreatorProfile>(
+      await CreatorProfileModel.findOne({
+        _id: creatorId,
+      }).lean<LeanDoc | null>(),
+    );
     if (!profile) {
       throw new ApiError(404, 'CREATOR_NOT_FOUND', 'Creator not found.');
     }
@@ -708,11 +651,78 @@ export class CreatorsService {
     }
   }
 
-  private async requireOwnedProfile(userId: string) {
-    const profile = await this.db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.userId, userId),
-      columns: { id: true, userId: true },
+  /** PAID-tip sum and count for a tip filter, mirroring the old SQL aggregates. */
+  private async aggregateTipTotals(
+    match: Record<string, unknown>,
+  ): Promise<{ sum: Decimal; count: number }> {
+    const [row] = await TipModel.aggregate<{ total: unknown; n: number }>([
+      { $match: match },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $toDecimal: '$amount' } },
+          n: { $sum: 1 },
+        },
+      },
+    ]);
+
+    return {
+      sum: row?.total == null ? new Decimal(0) : new Decimal(String(row.total)),
+      count: row?.n ?? 0,
+    };
+  }
+
+  private async attachPaymentStatus(
+    tipList: Tip[],
+  ): Promise<TipWithPaymentStatus[]> {
+    const paymentIds = tipList
+      .map((tip) => tip.paymentTransactionId)
+      .filter((id): id is string => Boolean(id));
+
+    const statusById = new Map<string, PaymentStatus>();
+    if (paymentIds.length > 0) {
+      const payments = await PaymentTransactionModel.find({
+        _id: { $in: paymentIds },
+      })
+        .select('status')
+        .lean<LeanDoc[]>();
+      for (const payment of payments) {
+        statusById.set(String(payment._id), payment.status as PaymentStatus);
+      }
+    }
+
+    return tipList.map((tip) => {
+      const status = tip.paymentTransactionId
+        ? statusById.get(tip.paymentTransactionId)
+        : undefined;
+      return {
+        ...tip,
+        paymentTransaction: status ? { status } : null,
+      };
     });
+  }
+
+  private async findProfileWithLinks(
+    filter: Record<string, unknown>,
+  ): Promise<ProfileWithLinks | null> {
+    const profile = toPlain<CreatorProfile>(
+      await CreatorProfileModel.findOne(filter).lean<LeanDoc | null>(),
+    );
+    if (!profile) return null;
+
+    const socialLinks = toPlainList<SocialLink>(
+      await SocialLinkModel.find({ creatorId: profile.id })
+        .sort({ sortOrder: 1 })
+        .lean<LeanDoc[]>(),
+    );
+
+    return { ...profile, socialLinks };
+  }
+
+  private async requireOwnedProfile(userId: string): Promise<CreatorProfile> {
+    const profile = toPlain<CreatorProfile>(
+      await CreatorProfileModel.findOne({ userId }).lean<LeanDoc | null>(),
+    );
     if (!profile) {
       throw new ApiError(
         404,

@@ -1,4 +1,4 @@
-import type { CreatorProfile, Tip, TipStatus } from '../../db/schema';
+import type { CreatorProfile, Tip, TipStatus } from '../../db/types';
 import Decimal from 'decimal.js';
 
 export interface PublicTipDto {

@@ -1,10 +1,17 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { ApiError } from '../lib/errors';
 import { getServerEnv } from '../lib/env';
-import { useDb, type Db } from '../db';
-import { auditLogs, otpChallenges, users } from '../db/schema';
-import type { User } from '../db/schema';
+import {
+  AuditLogModel,
+  CreatorProfileModel,
+  OtpChallengeModel,
+  UserModel,
+  toPlain,
+  useDb,
+  withTransaction,
+} from '../db';
+import { insertedId, type LeanDoc } from '../db/lean';
+import type { OtpChallenge, User } from '../db/types';
 import { AuditAction, OtpPurpose } from '../db/enums';
 import { signAccessToken } from '../lib/auth';
 import { TransactionalNotificationsService } from './notifications/transactional-notifications.service';
@@ -30,7 +37,6 @@ const BCRYPT_ROUNDS = 12;
 
 export class AuthService {
   constructor(
-    private readonly db = useDb(),
     private readonly notifications = new TransactionalNotificationsService(),
   ) {}
 
@@ -38,13 +44,14 @@ export class AuthService {
     emailRaw: string,
     meta?: { ipAddress?: string; userAgent?: string },
   ): Promise<RequestOtpResponse> {
+    await useDb();
     const email = normalizeEmail(emailRaw);
     const purpose = OtpPurpose.EMAIL_VERIFICATION;
     const pepper = this.requirePepper();
 
-    const existing = await this.db.query.users.findFirst({
-      where: eq(users.email, email),
-    });
+    const existing = toPlain<User>(
+      await UserModel.findOne({ email }).lean<LeanDoc | null>(),
+    );
     if (existing?.emailVerifiedAt && existing.passwordHash) {
       throw new ApiError(
         409,
@@ -53,17 +60,11 @@ export class AuthService {
       );
     }
 
-    const [recent] = await this.db
-      .select()
-      .from(otpChallenges)
-      .where(
-        and(
-          eq(otpChallenges.email, email),
-          eq(otpChallenges.purpose, purpose),
-        ),
-      )
-      .orderBy(desc(otpChallenges.createdAt))
-      .limit(1);
+    const recent = toPlain<OtpChallenge>(
+      await OtpChallengeModel.findOne({ email, purpose })
+        .sort({ createdAt: -1 })
+        .lean<LeanDoc | null>(),
+    );
 
     if (recent) {
       const elapsed = Date.now() - recent.createdAt.getTime();
@@ -80,61 +81,58 @@ export class AuthService {
       }
     }
 
-    let user = existing;
-    if (!user) {
-      [user] = await this.db.insert(users).values({ email }).returning();
-      await this.db.insert(auditLogs).values({
-        actorUserId: user.id,
-        action: AuditAction.USER_CREATED,
-        entityType: 'User',
-        entityId: user.id,
-        metadata: { source: 'signup_otp_request' },
-        ipAddress: meta?.ipAddress,
-        userAgent: meta?.userAgent,
-      });
+    let userId = existing?.id;
+    if (!userId) {
+      const [created] = await UserModel.create([{ email }]);
+      userId = insertedId(created);
+      await AuditLogModel.create([
+        {
+          actorUserId: userId,
+          action: AuditAction.USER_CREATED,
+          entityType: 'User',
+          entityId: userId,
+          metadata: { source: 'signup_otp_request' },
+          ipAddress: meta?.ipAddress,
+          userAgent: meta?.userAgent,
+        },
+      ]);
     }
 
-    await this.db
-      .update(otpChallenges)
-      .set({ consumedAt: new Date() })
-      .where(
-        and(
-          eq(otpChallenges.email, email),
-          eq(otpChallenges.purpose, purpose),
-          isNull(otpChallenges.consumedAt),
-        ),
-      );
+    await OtpChallengeModel.updateMany(
+      { email, purpose, consumedAt: null },
+      { $set: { consumedAt: new Date() } },
+    );
 
     const code = generateOtpCode();
     const codeHash = hashOtp(code, pepper);
     const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-    const [challenge] = await this.db
-      .insert(otpChallenges)
-      .values({
-        userId: user.id,
+    const [createdChallenge] = await OtpChallengeModel.create([
+      {
+        userId,
         email,
         codeHash,
         purpose,
         expiresAt,
         maxAttempts: OTP_MAX_ATTEMPTS,
-      })
-      .returning();
+      },
+    ]);
+    const challengeId = insertedId(createdChallenge);
 
     try {
       await this.notifications.notifyOtp({
-        userId: user.id,
+        userId,
         email,
         code,
-        challengeId: challenge.id,
+        challengeId,
         purpose,
       });
     } catch (err) {
-      await this.db
-        .update(otpChallenges)
-        .set({ consumedAt: new Date() })
-        .where(eq(otpChallenges.id, challenge.id));
-      console.warn(`OTP email delivery failed for challenge=${challenge.id}`);
+      await OtpChallengeModel.updateOne(
+        { _id: challengeId },
+        { $set: { consumedAt: new Date() } },
+      );
+      console.warn(`OTP email delivery failed for challenge=${challengeId}`);
       throw err;
     }
 
@@ -151,6 +149,7 @@ export class AuthService {
     password: string,
     meta?: { ipAddress?: string; userAgent?: string },
   ): Promise<{ response: VerifyOtpResponse; accessToken: string }> {
+    await useDb();
     const email = normalizeEmail(emailRaw);
     const code = normalizeOtp(codeRaw);
     const purpose = OtpPurpose.EMAIL_VERIFICATION;
@@ -164,17 +163,11 @@ export class AuthService {
       );
     }
 
-    const [challenge] = await this.db
-      .select()
-      .from(otpChallenges)
-      .where(
-        and(
-          eq(otpChallenges.email, email),
-          eq(otpChallenges.purpose, purpose),
-        ),
-      )
-      .orderBy(desc(otpChallenges.createdAt))
-      .limit(1);
+    const challenge = toPlain<OtpChallenge>(
+      await OtpChallengeModel.findOne({ email, purpose })
+        .sort({ createdAt: -1 })
+        .lean<LeanDoc | null>(),
+    );
 
     if (!challenge) {
       await this.recordLoginFailure(null, email, 'NO_CHALLENGE', meta);
@@ -220,11 +213,13 @@ export class AuthService {
     const valid = verifyOtpHash(code, challenge.codeHash, pepper);
 
     if (!valid) {
-      const [updated] = await this.db
-        .update(otpChallenges)
-        .set({ attemptCount: sql`${otpChallenges.attemptCount} + 1` })
-        .where(eq(otpChallenges.id, challenge.id))
-        .returning();
+      const updated = toPlain<OtpChallenge>(
+        await OtpChallengeModel.findOneAndUpdate(
+          { _id: challenge.id },
+          { $inc: { attemptCount: 1 } },
+          { new: true },
+        ).lean<LeanDoc | null>(),
+      );
 
       await this.recordLoginFailure(
         challenge.userId,
@@ -233,7 +228,7 @@ export class AuthService {
         meta,
       );
 
-      if (updated.attemptCount >= updated.maxAttempts) {
+      if (updated && updated.attemptCount >= updated.maxAttempts) {
         throw new ApiError(
           429,
           'TOO_MANY_ATTEMPTS',
@@ -251,63 +246,74 @@ export class AuthService {
     const now = new Date();
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
-    const user = await this.db.transaction(async (tx: Db) => {
-      await tx
-        .update(otpChallenges)
-        .set({ consumedAt: now })
-        .where(eq(otpChallenges.id, challenge.id));
+    const verified = await withTransaction(async (session) => {
+      await OtpChallengeModel.updateOne(
+        { _id: challenge.id },
+        { $set: { consumedAt: now } },
+        { session },
+      );
 
-      const [verified] = await tx
-        .update(users)
-        .set({
-          emailVerifiedAt: now,
-          passwordHash,
-        })
-        .where(
-          challenge.userId
-            ? eq(users.id, challenge.userId)
-            : eq(users.email, email),
-        )
-        .returning();
+      const user = toPlain<User>(
+        await UserModel.findOneAndUpdate(
+          challenge.userId ? { _id: challenge.userId } : { email },
+          {
+            $set: {
+              emailVerifiedAt: now,
+              passwordHash,
+              updatedAt: now,
+            },
+          },
+          { new: true, session },
+        ).lean<LeanDoc | null>(),
+      );
 
-      await tx.insert(auditLogs).values({
-        actorUserId: verified.id,
-        action: AuditAction.EMAIL_VERIFIED,
-        entityType: 'User',
-        entityId: verified.id,
-        metadata: { purpose, challengeId: challenge.id },
-        ipAddress: meta?.ipAddress,
-        userAgent: meta?.userAgent,
-      });
+      if (!user) {
+        throw new Error('Verified OTP challenge has no matching user.');
+      }
 
-      await tx.insert(auditLogs).values({
-        actorUserId: verified.id,
-        action: AuditAction.LOGIN_SUCCESS,
-        entityType: 'User',
-        entityId: verified.id,
-        metadata: { method: 'signup_otp' },
-        ipAddress: meta?.ipAddress,
-        userAgent: meta?.userAgent,
-      });
+      await AuditLogModel.create(
+        [
+          {
+            actorUserId: user.id,
+            action: AuditAction.EMAIL_VERIFIED,
+            entityType: 'User',
+            entityId: user.id,
+            metadata: { purpose, challengeId: challenge.id },
+            ipAddress: meta?.ipAddress,
+            userAgent: meta?.userAgent,
+          },
+        ],
+        { session },
+      );
 
-      const verifiedWithProfile = await tx.query.users.findFirst({
-        where: eq(users.id, verified.id),
-        with: { creatorProfile: { columns: { id: true } } },
-      });
+      await AuditLogModel.create(
+        [
+          {
+            actorUserId: user.id,
+            action: AuditAction.LOGIN_SUCCESS,
+            entityType: 'User',
+            entityId: user.id,
+            metadata: { method: 'signup_otp' },
+            ipAddress: meta?.ipAddress,
+            userAgent: meta?.userAgent,
+          },
+        ],
+        { session },
+      );
 
-      return verifiedWithProfile!;
+      return user;
     });
 
     const accessToken = await signAccessToken({
-      sub: user.id,
-      email: user.email,
+      sub: verified.id,
+      email: verified.email,
     });
 
     void this.notifications
-      .notifyAccountVerified({ userId: user.id, email: user.email })
+      .notifyAccountVerified({ userId: verified.id, email: verified.email })
       .catch((err) => {
         console.warn(
-          `Account verified email failed user=${user.id}: ${err instanceof Error ? err.message : 'unknown'}`,
+          `Account verified email failed user=${verified.id}: ${err instanceof Error ? err.message : 'unknown'}`,
         );
       });
 
@@ -315,7 +321,10 @@ export class AuthService {
       accessToken,
       response: {
         ok: true,
-        user: this.toPublicUser(user),
+        user: this.toPublicUser({
+          ...verified,
+          creatorProfile: await this.findCreatorProfileRef(verified.id),
+        }),
       },
     };
   }
@@ -325,11 +334,11 @@ export class AuthService {
     password: string,
     meta?: { ipAddress?: string; userAgent?: string },
   ): Promise<{ response: VerifyOtpResponse; accessToken: string }> {
+    await useDb();
     const email = normalizeEmail(emailRaw);
-    const user = await this.db.query.users.findFirst({
-      where: eq(users.email, email),
-      with: { creatorProfile: { columns: { id: true } } },
-    });
+    const user = toPlain<User>(
+      await UserModel.findOne({ email }).lean<LeanDoc | null>(),
+    );
 
     if (!user?.passwordHash || !user.emailVerifiedAt) {
       await this.recordLoginFailure(
@@ -360,9 +369,8 @@ export class AuthService {
       );
     }
 
-    const [loginAudit] = await this.db
-      .insert(auditLogs)
-      .values({
+    const [loginAudit] = await AuditLogModel.create([
+      {
         actorUserId: user.id,
         action: AuditAction.LOGIN_SUCCESS,
         entityType: 'User',
@@ -370,8 +378,9 @@ export class AuthService {
         metadata: { method: 'password' },
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
-      })
-      .returning();
+      },
+    ]);
+    const auditLogId = insertedId(loginAudit);
 
     const accessToken = await signAccessToken({
       sub: user.id,
@@ -383,7 +392,7 @@ export class AuthService {
         userId: user.id,
         email: user.email,
         method: 'password',
-        auditLogId: loginAudit.id,
+        auditLogId,
       })
       .catch((err) => {
         console.warn(
@@ -395,18 +404,24 @@ export class AuthService {
       accessToken,
       response: {
         ok: true,
-        user: this.toPublicUser(user),
+        user: this.toPublicUser({
+          ...user,
+          creatorProfile: await this.findCreatorProfileRef(user.id),
+        }),
       },
     };
   }
 
   async getUserById(userId: string): Promise<PublicUser | null> {
-    const user = await this.db.query.users.findFirst({
-      where: eq(users.id, userId),
-      with: { creatorProfile: { columns: { id: true } } },
-    });
+    await useDb();
+    const user = toPlain<User>(
+      await UserModel.findOne({ _id: userId }).lean<LeanDoc | null>(),
+    );
     if (!user) return null;
-    return this.toPublicUser(user);
+    return this.toPublicUser({
+      ...user,
+      creatorProfile: await this.findCreatorProfileRef(user.id),
+    });
   }
 
   toPublicUser(
@@ -418,6 +433,15 @@ export class AuthService {
       emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
       hasCreatorProfile: Boolean(user.creatorProfile),
     };
+  }
+
+  private async findCreatorProfileRef(
+    userId: string,
+  ): Promise<{ id: string } | null> {
+    const profile = await CreatorProfileModel.findOne({ userId })
+      .select('_id')
+      .lean<LeanDoc | null>();
+    return profile ? { id: String(profile._id) } : null;
   }
 
   private requirePepper(): string {
@@ -434,14 +458,16 @@ export class AuthService {
     reason: string,
     meta?: { ipAddress?: string; userAgent?: string },
   ) {
-    await this.db.insert(auditLogs).values({
-      actorUserId: userId ?? null,
-      action: AuditAction.LOGIN_FAILURE,
-      entityType: 'User',
-      entityId: userId ?? null,
-      metadata: { email, reason },
-      ipAddress: meta?.ipAddress,
-      userAgent: meta?.userAgent,
-    });
+    await AuditLogModel.create([
+      {
+        actorUserId: userId ?? null,
+        action: AuditAction.LOGIN_FAILURE,
+        entityType: 'User',
+        entityId: userId ?? null,
+        metadata: { email, reason },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      },
+    ]);
   }
 }
