@@ -7,7 +7,7 @@ Creator support platform for African builders — **one link** to receive tips v
 | Layer | Tech |
 |-------|------|
 | App | Vue 3 + Nuxt 3 + Nitro (SSR + `/api`) + TypeScript + Tailwind + Pinia |
-| DB | PostgreSQL + Drizzle ORM (Neon WebSocket in production) |
+| DB | MongoDB + Mongoose (Atlas in production) |
 | Payments | Bachs |
 | Email | Resend |
 
@@ -16,9 +16,7 @@ Creator support platform for African builders — **one link** to receive tips v
 ```bash
 npm install
 cp .env.example .env
-docker compose up -d postgres
-npm run db:migrate   # fresh local DB
-# Existing Neon already has tables: skip migrate (or baseline __drizzle_migrations) then seed.
+# Set MONGODB_URI (local Mongo or Atlas)
 npm run db:seed
 ```
 
@@ -38,7 +36,6 @@ Health check: [http://localhost:3000/api/health](http://localhost:3000/api/healt
 | `npm run typecheck` | TypeScript checks |
 | `npm run test` | Unit tests |
 | `npm run build` | Production build |
-| `npm run db:migrate` | Apply Drizzle migrations (`DATABASE_URL_UNPOOLED`) |
 | `npm run db:seed` | Seed demo creators |
 
 ## Production

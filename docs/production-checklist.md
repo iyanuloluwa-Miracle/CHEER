@@ -27,8 +27,8 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 | Production domain | `NUXT_PUBLIC_APP_URL=https://<domain>` | ☐ |
 | HTTPS | TLS at edge (Cloudflare / Caddy / load balancer) | ☐ |
 | Production API routing | Same-origin Nitro `/api` — leave `NUXT_PUBLIC_API_URL` empty | ☐ |
-| Runtime configuration | Server secrets via env / `runtimeConfig` (`DATABASE_URL`, `AUTH_*`, `BACHS_*`, `RESEND_*`) | ☐ |
-| No secrets in bundle | Confirm build output has no `BACHS_*`, `RESEND_*`, `DATABASE_URL`, `AUTH_*` | ☐ |
+| Runtime configuration | Server secrets via env / `runtimeConfig` (`MONGODB_URI`, `AUTH_*`, `BACHS_*`, `RESEND_*`) | ☐ |
+| No secrets in bundle | Confirm build output has no `BACHS_*`, `RESEND_*`, `MONGODB_URI`, `AUTH_*` | ☐ |
 | Privacy / terms pages | `/privacy`, `/terms` reachable | ☐ |
 
 ---
@@ -50,10 +50,10 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 
 | Check | Notes | Done |
 |-------|-------|------|
-| Production PostgreSQL | Managed preferred (Neon/RDS/etc.) | ☐ |
-| `DATABASE_URL` set (pooled) + `DATABASE_URL_UNPOOLED` (direct, for migrate) | Neon: `-pooler` vs non-pooler host; SSL params | ☐ |
-| Migrations complete | `npm run db:migrate` or `scripts/prod-migrate.sh` | ☐ |
-| **No destructive reset** | Never drop/recreate prod tables or force-push schema | ☐ |
+| Production MongoDB | Managed preferred (Atlas) | ☐ |
+| `MONGODB_URI` set | Atlas SRV connection string | ☐ |
+| Indexes created | Mongoose schemas create indexes on connect | ☐ |
+| **No destructive reset** | Never drop production collections casually | ☐ |
 | Backup policy | Provider snapshots / PITR enabled | ☐ |
 
 ---
@@ -103,8 +103,7 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 | `NODE_ENV` | `production` | Web |
 | `APP_URL` | `https://…` | Web (+ `NUXT_PUBLIC_APP_URL`) |
 | `API_URL` | `https://…` (same origin as APP_URL) | Web |
-| `DATABASE_URL` | Yes | Web server-only (Neon pooled URL) |
-| `DATABASE_URL_UNPOOLED` | Yes (migrate) | Direct Neon URL for `drizzle-kit migrate` |
+| `MONGODB_URI` | Yes | Web server-only (MongoDB Atlas) |
 | `AUTH_SECRET` | ≥32 chars, non-placeholder | Web server-only |
 | `OTP_HASH_PEPPER` | ≥32 chars, ≠ `AUTH_SECRET` | Web server-only |
 | `BACHS_API_KEY` | Yes | Web server-only |
@@ -164,20 +163,9 @@ npm run build
 # Or Docker (from repo root)
 docker compose -f docker-compose.prod.yml build
 
-# Apply migrations ONLY (never reset)
-npm run db:migrate
-# or: sh scripts/prod-migrate.sh
-# or: docker compose -f docker-compose.prod.yml exec web npx drizzle-kit migrate
-
-# Start (after migrate)
-npm run start:prod:migrate
+# Start
+npm run start:prod
 # or: node .output/server/index.mjs
-```
-
-Optional combined start (migrate then boot) — use only when the release job owns a single replica:
-
-```bash
-npm run start:prod:migrate
 ```
 
 ---

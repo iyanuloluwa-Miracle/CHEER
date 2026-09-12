@@ -10,7 +10,7 @@
 | Layer | Technology |
 |-------|------------|
 | App | Vue 3 + Nuxt 3 + Nitro + TypeScript + Tailwind CSS + Pinia |
-| Database | PostgreSQL + Drizzle ORM |
+| Database | MongoDB + Mongoose |
 | Payments | Bachs |
 | Email / OTP delivery | SendByte |
 | Local webhook tunnel | OutRay (**development only**) |
@@ -23,7 +23,7 @@ Do not replace Vue/Nuxt with React/Next.js. Do not replace Bachs with another pa
 
 ```text
 Nuxt 3 (TippyMe UI + Nitro /api)
-        ├── PostgreSQL (Drizzle)
+        ├── MongoDB (Mongoose)
         ├── Bachs (payments + Connect)
         ├── SendByte (OTP / transactional email)
         └── Webhooks (/api/webhooks/bachs)
@@ -84,12 +84,12 @@ OutRay is **not** in production.
 
 | Concern | System of record |
 |---------|------------------|
-| Creator identity & profile | TippyMe Postgres |
-| Tip intent, message, anonymity | TippyMe Postgres |
-| Tip paid / failed | TippyMe Postgres, updated only after Bachs verification |
+| Creator identity & profile | TippyMe MongoDB |
+| Tip intent, message, anonymity | TippyMe MongoDB |
+| Tip paid / failed | TippyMe MongoDB, updated only after Bachs verification |
 | Money movement | Bachs |
 | Email delivery | SendByte |
-| OTP codes | TippyMe Postgres (hashed) + SendByte for transport |
+| OTP codes | TippyMe MongoDB (hashed) + email transport |
 
 ---
 
@@ -97,7 +97,7 @@ OutRay is **not** in production.
 
 - Session: httpOnly cookie `tippyme_session` (JWT). Never expose OTP codes or secrets to the client.
 - Tip `PAID` status is set only via webhook + server-side Bachs verify — never from browser redirects.
-- Secrets (`AUTH_*`, `DATABASE_URL`, `BACHS_*`, `SENDBYTE_*`) stay on the Nitro server (`runtimeConfig`), never `NUXT_PUBLIC_*`.
+- Secrets (`AUTH_*`, `MONGODB_URI`, `BACHS_*`, `RESEND_*`) stay on the Nitro server (`runtimeConfig`), never `NUXT_PUBLIC_*`.
 
 ---
 
@@ -109,5 +109,5 @@ server/
   api/                 Nitro /api handlers
   services/            Domain logic (auth, creators, tips, payments, …)
   lib/                 env, auth, errors, rate-limit
-  db/                  Drizzle schema, client, migrations, seed
+  db/                  Mongoose models, client, seed
 ```
