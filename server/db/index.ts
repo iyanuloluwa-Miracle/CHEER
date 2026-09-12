@@ -1,81 +1,62 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle, type NeonDatabase } from 'drizzle-orm/neon-serverless';
-import ws from 'ws';
+import mongoose from 'mongoose';
 import { getServerEnv } from '../lib/env';
-import * as schema from './schema';
+import './models';
 
-neonConfig.webSocketConstructor = ws;
+export type DbSession = mongoose.ClientSession;
 
-export type Db = NeonDatabase<typeof schema>;
-
-const globalForDb = globalThis as unknown as {
-  __tippyDb?: Db;
-  __tippyPool?: Pool;
+const globalForMongo = globalThis as unknown as {
+  __tippyMongoReady?: Promise<typeof mongoose>;
 };
 
-function normalizeDatabaseUrl(raw: string): string {
-  let url: URL;
+export async function connectMongo(uri?: string): Promise<typeof mongoose> {
+  if (mongoose.connection.readyState === 1) {
+    return mongoose;
+  }
+  if (!globalForMongo.__tippyMongoReady) {
+    const connectionUri = uri || getServerEnv().MONGODB_URI;
+    globalForMongo.__tippyMongoReady = mongoose.connect(connectionUri, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 15_000,
+    });
+    globalForMongo.__tippyMongoReady
+      .then(() => {
+        console.info('[db] mongodb connected');
+      })
+      .catch((err: Error) => {
+        globalForMongo.__tippyMongoReady = undefined;
+        console.error(`[db] mongodb connect failed: ${err.message}`);
+      });
+  }
+  return globalForMongo.__tippyMongoReady;
+}
+
+/** Ensure a connection exists (call from request handlers / services). */
+export async function useDb(): Promise<typeof mongoose> {
+  return connectMongo();
+}
+
+export async function withTransaction<T>(
+  fn: (session: DbSession) => Promise<T>,
+): Promise<T> {
+  await connectMongo();
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    url = new URL(raw);
-  } catch {
-    return raw;
+    const result = await fn(session);
+    await session.commitTransaction();
+    return result;
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
   }
-
-  url.searchParams.delete('channel_binding');
-  url.searchParams.delete('connection_limit');
-  url.searchParams.delete('pool_timeout');
-  url.searchParams.delete('pgbouncer');
-  url.searchParams.delete('connect_timeout');
-
-  if (!url.searchParams.has('sslmode')) {
-    url.searchParams.set('sslmode', 'require');
-  }
-
-  return url.toString();
-}
-
-function isBenignDisconnect(message: string): boolean {
-  return /terminat|closed|Connection ended|ECONNRESET|kind:\s*Closed/i.test(
-    message,
-  );
-}
-
-export function createDbFromUrl(databaseUrl: string): Db {
-  const pool = new Pool({
-    connectionString: normalizeDatabaseUrl(databaseUrl),
-    max: 3,
-    idleTimeoutMillis: 10_000,
-    connectionTimeoutMillis: 30_000,
-  });
-
-  pool.on('error', (err: Error) => {
-    if (isBenignDisconnect(err.message)) return;
-    console.error(`neon pool error: ${err.message}`);
-  });
-
-  globalForDb.__tippyPool = pool;
-  console.info('[db] neon serverless WebSocket pool ready');
-  return drizzle(pool, { schema });
-}
-
-export function useDb(): Db {
-  if (!globalForDb.__tippyDb) {
-    const { DATABASE_URL } = getServerEnv();
-    process.env.DATABASE_URL = normalizeDatabaseUrl(DATABASE_URL);
-    globalForDb.__tippyDb = createDbFromUrl(DATABASE_URL);
-  }
-  return globalForDb.__tippyDb;
 }
 
 export async function resetDb(): Promise<void> {
-  globalForDb.__tippyDb = undefined;
-  const pool = globalForDb.__tippyPool;
-  globalForDb.__tippyPool = undefined;
-  if (!pool) return;
-  try {
-    await pool.end();
-  } catch {
-    /* ignore */
+  globalForMongo.__tippyMongoReady = undefined;
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
   }
 }
 
@@ -84,6 +65,23 @@ export function isUniqueViolation(err: unknown): boolean {
     typeof err === 'object' &&
     err !== null &&
     'code' in err &&
-    (err as { code?: string }).code === '23505'
+    (err as { code?: number | string }).code === 11000
   );
 }
+
+export {
+  UserModel,
+  CreatorProfileModel,
+  TipPageViewModel,
+  SocialLinkModel,
+  PaymentTransactionModel,
+  TipModel,
+  WebhookEventModel,
+  OtpChallengeModel,
+  NotificationModel,
+  AuditLogModel,
+  toPlain,
+  toPlainList,
+} from './models';
+
+export type * from './types';
