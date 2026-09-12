@@ -169,7 +169,7 @@
                 {{ settlementLabel }}
               </p>
               <p class="mt-1.5 text-xs text-white/45">
-                TippyMe is not a bank
+                Tips settle on Bachs
               </p>
             </div>
           </div>
@@ -275,10 +275,10 @@
           </div>
           <div class="border-b border-black/6 px-5 py-5 sm:border-b-0 sm:border-r sm:px-7">
             <dt class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cheer-ink/40">
-              TippyMe wallet
+              Settles to
             </dt>
             <dd class="mt-2 text-base font-bold text-cheer-ink">
-              None — not a bank
+              {{ settlementReady ? 'Your Bachs balance' : 'Bachs (after Connect)' }}
             </dd>
           </div>
           <div class="px-5 py-5 sm:px-7">
