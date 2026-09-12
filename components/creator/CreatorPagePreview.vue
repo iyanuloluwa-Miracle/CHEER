@@ -31,13 +31,13 @@
         </p>
         <p
           v-if="profile.bio"
-          class="mt-3 max-w-md text-sm leading-relaxed text-cheer-ink/70"
+          class="mt-3 max-w-md text-sm font-semibold leading-relaxed text-cheer-ink/90"
         >
           {{ profile.bio }}
         </p>
         <p
           v-if="profile.supportMessage"
-          class="mt-4 max-w-md rounded-xl bg-white/70 px-4 py-3 text-sm text-cheer-ink/80"
+          class="mt-4 max-w-md rounded-xl bg-white/70 px-4 py-3 text-sm font-semibold text-cheer-ink/90"
         >
           {{ profile.supportMessage }}
         </p>

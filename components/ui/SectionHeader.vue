@@ -2,7 +2,7 @@
   <header class="mx-auto max-w-2xl" :class="align === 'left' ? 'text-left' : 'text-center'">
     <p
       v-if="eyebrow"
-      class="text-sm font-semibold uppercase tracking-widest text-cheer-leaf"
+      class="text-sm font-bold uppercase tracking-widest text-cheer-leaf"
     >
       {{ eyebrow }}
     </p>
@@ -15,7 +15,7 @@
     </component>
     <p
       v-if="description"
-      class="mt-4 text-base leading-relaxed text-cheer-ink/70 sm:text-lg"
+      class="mt-4 text-base font-semibold leading-relaxed text-cheer-ink/90 sm:text-lg"
     >
       {{ description }}
     </p>

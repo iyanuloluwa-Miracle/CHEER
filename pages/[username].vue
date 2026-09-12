@@ -36,7 +36,7 @@
       <h1 class="mt-6 text-2xl font-bold tracking-tight text-cheer-ink sm:text-3xl">
         Page not found
       </h1>
-      <p class="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-cheer-ink/65">
+      <p class="mx-auto mt-2 max-w-sm text-sm font-semibold leading-relaxed text-cheer-ink/85">
         {{ error }}
       </p>
       <NuxtLink
@@ -138,7 +138,7 @@
           aria-labelledby="support-heading"
         >
           <header class="mb-7">
-            <p class="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-cheer-leaf">
+            <p class="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-cheer-leaf">
               Send support
             </p>
             <h2
@@ -147,7 +147,7 @@
             >
               Support {{ profile.displayName }}
             </h2>
-            <p class="mt-2 max-w-md text-sm leading-relaxed text-cheer-ink/60">
+            <p class="mt-2 max-w-md text-sm font-semibold leading-relaxed text-cheer-ink/80">
               Choose an amount, leave a note if you like, then continue to secure payment.
             </p>
           </header>
@@ -156,13 +156,13 @@
             v-if="supportGoal"
             class="mb-7 rounded-2xl border border-cheer-leaf/20 bg-cheer-mint/20 px-4 py-4"
           >
-            <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cheer-leaf">
+            <p class="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-cheer-leaf">
               Support goal
             </p>
             <p class="mt-1 text-base font-bold text-cheer-ink">
               {{ supportGoal.title }}
             </p>
-            <p class="mt-1 text-sm text-cheer-ink/65">
+            <p class="mt-1 text-sm font-semibold text-cheer-ink/85">
               {{ formatGoalMoney(supportGoal.raisedAmount, supportGoal.currency) }}
               of
               {{ formatGoalMoney(supportGoal.targetAmount, supportGoal.currency) }}

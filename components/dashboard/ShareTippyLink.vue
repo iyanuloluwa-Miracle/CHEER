@@ -98,7 +98,7 @@
         </button>
       </div>
       <div class="flex flex-col justify-center gap-1.5 text-sm leading-relaxed">
-        <p :class="isDark ? 'text-white/70' : 'text-cheer-ink/65'">
+        <p :class="isDark ? 'font-semibold text-white/85' : 'font-semibold text-cheer-ink/85'">
           Paste your Tippy link in WhatsApp, X, or your bio — no bank details in the chat.
         </p>
         <p

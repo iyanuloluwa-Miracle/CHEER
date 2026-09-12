@@ -2,7 +2,7 @@
   <div class="mx-auto max-w-md px-4 py-16">
     <div
       v-if="loading"
-      class="text-center text-sm text-cheer-ink/60"
+      class="text-center text-sm font-semibold text-cheer-ink/80"
       role="status"
       aria-live="polite"
     >
@@ -15,7 +15,7 @@
       <h1 class="text-2xl font-bold text-cheer-ink">
         Checkout unavailable
       </h1>
-      <p class="mt-2 text-sm text-cheer-ink/65">
+      <p class="mt-2 text-sm font-semibold text-cheer-ink/85">
         {{ error }}
       </p>
       <NuxtLink
@@ -29,13 +29,13 @@
       v-else-if="tip"
       class="rounded-2xl border border-black/10 bg-white p-8 text-center shadow-sm"
     >
-      <p class="text-xs font-semibold uppercase tracking-wide text-cheer-leaf">
+      <p class="text-xs font-bold uppercase tracking-wide text-cheer-leaf">
         Secure checkout
       </p>
       <h1 class="mt-3 text-2xl font-bold text-cheer-ink">
         Continue to payment
       </h1>
-      <p class="mt-3 text-sm leading-relaxed text-cheer-ink/70">
+      <p class="mt-3 text-sm font-semibold leading-relaxed text-cheer-ink/90">
         You’re supporting {{ tip.creator.displayName }}. Payment is processed through Bachs.
         In this demo environment, you can continue to the confirmation step.
       </p>

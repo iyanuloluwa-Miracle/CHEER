@@ -7,7 +7,7 @@
       <h1 class="text-2xl font-bold tracking-tight text-cheer-ink sm:text-3xl">
         {{ title }}
       </h1>
-      <p class="mt-2 text-sm leading-relaxed text-cheer-ink/65 sm:text-base">
+      <p class="mt-2 text-sm font-semibold leading-relaxed text-cheer-ink/85 sm:text-base">
         <template v-if="step === 'email'">
           Start with your email. We’ll send a one-time code, then you set a password and claim your link.
         </template>
@@ -142,7 +142,7 @@
       </template>
     </button>
 
-    <p class="mt-6 text-center text-sm text-cheer-ink/65">
+    <p class="mt-6 text-center text-sm font-semibold text-cheer-ink/85">
       Already have an account?
       <NuxtLink
         to="/login"

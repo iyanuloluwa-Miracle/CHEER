@@ -4,7 +4,7 @@
     aria-labelledby="supporter-notes-heading"
   >
     <div class="border-b border-black/6 px-5 py-5 sm:px-7 sm:py-6">
-      <p class="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-cheer-leaf">
+      <p class="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-cheer-leaf">
         From supporters
       </p>
       <h2
@@ -41,7 +41,7 @@
           <p class="mt-1 text-xs text-cheer-ink/45">
             {{ formatRelativeDay(note.createdAt) }}
           </p>
-          <p class="mt-2.5 text-sm leading-relaxed text-cheer-ink/80">
+          <p class="mt-2.5 text-sm font-semibold leading-relaxed text-cheer-ink/90">
             “{{ note.message }}”
           </p>
         </div>

@@ -3,7 +3,7 @@
     <h1 class="text-2xl font-bold text-cheer-ink">
       Bachs Connect
     </h1>
-    <p class="mt-3 text-sm leading-relaxed text-cheer-ink/65">
+    <p class="mt-3 text-sm font-semibold leading-relaxed text-cheer-ink/85">
       {{ message }}
     </p>
     <div class="mt-8 flex flex-col gap-3">

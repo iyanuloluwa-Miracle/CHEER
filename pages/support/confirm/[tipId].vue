@@ -2,7 +2,7 @@
   <div class="mx-auto max-w-md px-4 py-16">
     <div
       v-if="loading"
-      class="text-center text-sm text-cheer-ink/60"
+      class="text-center text-sm font-semibold text-cheer-ink/80"
     >
       Checking your support…
     </div>
@@ -13,7 +13,7 @@
       <h1 class="text-2xl font-bold text-cheer-ink">
         Something’s off
       </h1>
-      <p class="mt-2 text-sm text-cheer-ink/65">
+      <p class="mt-2 text-sm font-semibold text-cheer-ink/85">
         {{ error }}
       </p>
       <NuxtLink
@@ -34,7 +34,7 @@
         <h1 class="mt-2 text-2xl font-bold text-cheer-ink">
           {{ title }}
         </h1>
-        <p class="mt-3 text-sm leading-relaxed text-cheer-ink/70">
+        <p class="mt-3 text-sm font-semibold leading-relaxed text-cheer-ink/90">
           {{ body }}
         </p>
         <p
@@ -57,7 +57,7 @@
         v-if="thankYou"
         class="rounded-xl border border-cheer-leaf/25 bg-cheer-mint/30 px-4 py-3 text-sm text-cheer-ink/85"
       >
-        <p class="text-xs font-semibold uppercase tracking-wide text-cheer-leaf">
+        <p class="text-xs font-bold uppercase tracking-wide text-cheer-leaf">
           A note from {{ tip.creator.displayName }}
         </p>
         <p class="mt-1.5 whitespace-pre-wrap leading-relaxed">
@@ -67,7 +67,7 @@
 
       <div
         v-if="tip.message"
-        class="rounded-xl border border-black/8 bg-white px-4 py-3 text-sm text-cheer-ink/80"
+        class="rounded-xl border border-black/8 bg-white px-4 py-3 text-sm font-semibold text-cheer-ink/90"
       >
         <p class="text-xs font-semibold uppercase tracking-wide text-cheer-ink/45">
           Your note

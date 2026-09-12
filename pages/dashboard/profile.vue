@@ -1,13 +1,13 @@
 <template>
   <div class="w-full px-3 py-4 sm:px-5 sm:py-6 lg:px-8 lg:py-8">
     <header class="mb-6 sm:mb-8">
-      <p class="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-cheer-leaf">
+      <p class="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-cheer-leaf">
         Workspace
       </p>
       <h1 class="mt-2 text-3xl font-bold tracking-tight text-cheer-ink sm:text-4xl">
         Edit profile
       </h1>
-      <p class="mt-2 max-w-xl text-sm text-cheer-ink/65">
+      <p class="mt-2 max-w-xl text-sm font-semibold text-cheer-ink/85">
         Update how you appear on your Tippy page, your social links, and support settings.
       </p>
     </header>

@@ -1,13 +1,13 @@
 <template>
   <div class="mx-auto w-full max-w-xl px-4 py-10 sm:py-14">
     <header class="mb-8">
-      <p class="text-sm font-semibold uppercase tracking-wide text-cheer-leaf">
+      <p class="text-sm font-bold uppercase tracking-wide text-cheer-leaf">
         Creator setup
       </p>
       <h1 class="mt-2 text-3xl font-bold tracking-tight text-cheer-ink">
         {{ stepTitle }}
       </h1>
-      <p class="mt-2 text-sm text-cheer-ink/65">
+      <p class="mt-2 text-sm font-semibold text-cheer-ink/85">
         {{ stepDescription }}
       </p>
 
@@ -48,7 +48,7 @@
       </div>
       <p
         v-if="claimPathPreview"
-        class="mt-2 text-sm font-medium text-cheer-ink/70"
+        class="mt-2 text-sm font-semibold text-cheer-ink/90"
       >
         Your page will be
         <span class="font-semibold text-cheer-ink">{{ claimPathPreview }}</span>
@@ -165,7 +165,7 @@
       v-else-if="step === 'social'"
       class="rounded-2xl border border-black/10 bg-white p-6 shadow-sm sm:p-8"
     >
-      <p class="text-sm text-cheer-ink/65">
+      <p class="text-sm font-semibold text-cheer-ink/85">
         Optional — add up to a few links supporters can follow.
       </p>
       <div class="mt-4 space-y-3">
@@ -320,7 +320,7 @@
         <h2 class="mt-2 text-2xl font-bold text-cheer-ink">
           Your Tippy page is ready
         </h2>
-        <p class="mt-2 text-sm text-cheer-ink/65">
+        <p class="mt-2 text-sm font-semibold text-cheer-ink/85">
           Share
           <span class="font-semibold text-cheer-ink">{{ publicUrlLabel }}</span>
           with supporters.

@@ -213,7 +213,7 @@
                 Payout &amp; settlement
               </h2>
             </div>
-            <p class="mt-3 text-sm leading-relaxed text-cheer-ink/65">
+            <p class="mt-3 text-sm font-semibold leading-relaxed text-cheer-ink/85">
               {{ dashboard.settlement.message }}
             </p>
             <div class="mt-4 flex flex-wrap gap-2.5">
@@ -297,13 +297,13 @@
         class="motion-animate mt-5 overflow-hidden rounded-[1.75rem] border border-black/6 bg-white/80 p-5 shadow-[0_1px_0_rgba(26, 18, 40,0.04)] backdrop-blur-md sm:p-7"
         aria-label="Support goal"
       >
-        <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cheer-leaf">
+        <p class="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-cheer-leaf">
           Support goal
         </p>
         <h2 class="mt-1 text-xl font-bold tracking-tight text-cheer-ink">
           {{ dashboard.supportGoal.title }}
         </h2>
-        <p class="mt-2 text-sm text-cheer-ink/65">
+        <p class="mt-2 text-sm font-semibold text-cheer-ink/85">
           {{ formatMoney(dashboard.supportGoal.raisedAmount, dashboard.supportGoal.currency) }}
           of
           {{ formatMoney(dashboard.supportGoal.targetAmount, dashboard.supportGoal.currency) }}
@@ -326,7 +326,7 @@
         >
           <div class="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cheer-leaf">
+              <p class="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-cheer-leaf">
                 Activity
               </p>
               <h2 class="mt-1 text-xl font-bold tracking-tight text-cheer-ink">
@@ -409,7 +409,7 @@
         <section
           class="rounded-[1.75rem] border border-black/6 bg-white/85 p-5 shadow-[0_1px_0_rgba(26, 18, 40,0.04)] backdrop-blur-md sm:p-7"
         >
-          <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cheer-leaf">
+          <p class="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-cheer-leaf">
             From supporters
           </p>
           <h2 class="mt-1 text-xl font-bold tracking-tight text-cheer-ink">

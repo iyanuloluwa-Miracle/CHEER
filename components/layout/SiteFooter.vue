@@ -21,7 +21,7 @@
               TippyMe
             </span>
           </NuxtLink>
-          <p class="mt-3 text-sm leading-relaxed text-cheer-ink/60">
+          <p class="mt-3 text-sm font-semibold leading-relaxed text-cheer-ink/80">
             One link for everyone who wants to support your work.
           </p>
           <p class="mt-2 text-xs text-cheer-ink/45">
@@ -82,7 +82,7 @@
         <p class="text-xs text-cheer-ink/45">
           © {{ year }} TippyMe
         </p>
-        <p class="text-sm text-cheer-ink/60">
+        <p class="text-sm font-semibold text-cheer-ink/80">
           Questions or support:
           <a
             href="mailto:hello@tippy.me"

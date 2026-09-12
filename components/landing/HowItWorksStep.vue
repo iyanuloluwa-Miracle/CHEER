@@ -9,14 +9,14 @@
       :class="reversed ? 'lg:order-2' : ''"
     >
       <span
-        class="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cheer-leaf"
+        class="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-bold uppercase tracking-wider text-cheer-leaf"
       >
         Step {{ stepNumber }}
       </span>
       <h3 class="mt-4 text-2xl font-bold tracking-tight text-cheer-ink sm:text-3xl">
         {{ step.title }}
       </h3>
-      <p class="mt-3 text-base leading-relaxed text-cheer-ink/70 sm:text-lg">
+      <p class="mt-3 text-base font-semibold leading-relaxed text-cheer-ink/90 sm:text-lg">
         {{ step.description }}
       </p>
     </div>

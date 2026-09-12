@@ -36,7 +36,7 @@
             <h3 class="text-lg font-bold tracking-tight text-cheer-ink">
               {{ point.title }}
             </h3>
-            <p class="mt-2 text-sm leading-relaxed text-cheer-ink/70 sm:text-base">
+            <p class="mt-2 text-sm font-semibold leading-relaxed text-cheer-ink/90 sm:text-base">
               {{ point.description }}
             </p>
           </div>

@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <p class="mt-5 flex-1 text-base leading-relaxed text-cheer-ink/70">
+    <p class="mt-5 flex-1 text-base font-semibold leading-relaxed text-cheer-ink/90">
       “{{ testimonial.quote }}”
     </p>
   </article>

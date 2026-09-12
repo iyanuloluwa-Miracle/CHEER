@@ -19,7 +19,7 @@
             {{ formatDate(tip.createdAt) }}
           </p>
         </div>
-        <div class="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-cheer-ink/65">
+        <div class="mt-1.5 flex flex-wrap items-center gap-2 text-sm font-semibold text-cheer-ink/85">
           <span class="font-medium">{{ supporterLabel }}</span>
           <span
             class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
@@ -36,7 +36,7 @@
         </div>
         <p
           v-if="tip.message"
-          class="mt-2.5 rounded-2xl border border-black/5 bg-cheer-sand/55 px-3.5 py-2.5 text-sm leading-relaxed text-cheer-ink/80 transition group-hover:bg-cheer-mint/25"
+          class="mt-2.5 rounded-2xl border border-black/5 bg-cheer-sand/55 px-3.5 py-2.5 text-sm font-semibold leading-relaxed text-cheer-ink/90 transition group-hover:bg-cheer-mint/25"
         >
           “{{ tip.message }}”
         </p>

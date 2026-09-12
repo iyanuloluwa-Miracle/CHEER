@@ -1,18 +1,18 @@
 <template>
   <article class="mx-auto max-w-2xl py-4 sm:py-8">
     <header class="mb-8">
-      <p class="text-sm font-semibold uppercase tracking-wide text-cheer-leaf">
+      <p class="text-sm font-bold uppercase tracking-wide text-cheer-leaf">
         Legal
       </p>
       <h1 class="mt-2 text-3xl font-bold tracking-tight text-cheer-ink sm:text-4xl">
         Terms of use
       </h1>
-      <p class="mt-3 text-sm text-cheer-ink/60">
+      <p class="mt-3 text-sm font-semibold text-cheer-ink/80">
         Last updated: September 8, 2026
       </p>
     </header>
 
-    <div class="space-y-6 text-base leading-relaxed text-cheer-ink/80">
+    <div class="space-y-6 text-base font-semibold leading-relaxed text-cheer-ink/90">
       <section>
         <h2 class="text-lg font-bold text-cheer-ink">
           What TippyMe is

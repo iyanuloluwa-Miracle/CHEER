@@ -7,7 +7,7 @@
     </h1>
 
     <p
-      class="motion-animate motion-animate-delay-2 mt-5 max-w-2xl text-base leading-relaxed text-cheer-ink/70 sm:text-lg"
+      class="motion-animate motion-animate-delay-2 mt-5 max-w-2xl text-base font-semibold leading-relaxed text-cheer-ink/90 sm:text-lg"
     >
       {{ description }}
     </p>

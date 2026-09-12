@@ -7,7 +7,7 @@
       <h1 class="text-2xl font-bold tracking-tight text-cheer-ink sm:text-3xl">
         {{ title }}
       </h1>
-      <p v-if="description" class="mt-2 text-sm leading-relaxed text-cheer-ink/65 sm:text-base">
+      <p v-if="description" class="mt-2 text-sm font-semibold leading-relaxed text-cheer-ink/85 sm:text-base">
         {{ description }}
       </p>
     </header>
@@ -61,7 +61,7 @@
       {{ pending ? pendingLabel : submitLabel }}
     </button>
 
-    <p class="mt-6 text-center text-sm text-cheer-ink/65">
+    <p class="mt-6 text-center text-sm font-semibold text-cheer-ink/85">
       {{ switchPrompt }}
       <NuxtLink
         :to="switchTo"
