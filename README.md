@@ -9,7 +9,7 @@ Creator support platform for African builders — **one link** to receive tips v
 | App | Vue 3 + Nuxt 3 + Nitro (SSR + `/api`) + TypeScript + Tailwind + Pinia |
 | DB | PostgreSQL + Prisma |
 | Payments | Bachs |
-| Email | SendByte |
+| Email | Resend |
 
 ## Setup
 

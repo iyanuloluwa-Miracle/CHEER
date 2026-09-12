@@ -27,8 +27,8 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 | Production domain | `NUXT_PUBLIC_APP_URL=https://<domain>` | ☐ |
 | HTTPS | TLS at edge (Cloudflare / Caddy / load balancer) | ☐ |
 | Production API routing | Same-origin Nitro `/api` — leave `NUXT_PUBLIC_API_URL` empty | ☐ |
-| Runtime configuration | Server secrets via env / `runtimeConfig` (`DATABASE_URL`, `AUTH_*`, `BACHS_*`, `SENDBYTE_*`) | ☐ |
-| No secrets in bundle | Confirm build output has no `BACHS_*`, `SENDBYTE_*`, `DATABASE_URL`, `AUTH_*` | ☐ |
+| Runtime configuration | Server secrets via env / `runtimeConfig` (`DATABASE_URL`, `AUTH_*`, `BACHS_*`, `RESEND_*`) | ☐ |
+| No secrets in bundle | Confirm build output has no `BACHS_*`, `RESEND_*`, `DATABASE_URL`, `AUTH_*` | ☐ |
 | Privacy / terms pages | `/privacy`, `/terms` reachable | ☐ |
 
 ---
@@ -72,15 +72,15 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 
 ---
 
-## 5. SendByte
+## 5. Resend
 
 | Check | Notes | Done |
 |-------|-------|------|
-| Production credentials | `SENDBYTE_API_KEY` live/test as appropriate | ☐ |
-| Sender / domain verified | `SENDBYTE_FROM_EMAIL` matches verified domain | ☐ |
+| Production credentials | `RESEND_API_KEY` | ☐ |
+| Sender / domain verified | `RESEND_FROM_EMAIL` matches verified domain | ☐ |
 | OTP email | Signup OTP delivers; code never in API/logs | ☐ |
 | Transactional notifications | Tip paid / account events deliver | ☐ |
-| Rate limits | Auth throttle + SendByte provider limits understood | ☐ |
+| Rate limits | Auth throttle + Resend provider limits understood | ☐ |
 | Key not in frontend | Absent from Nuxt env / bundle | ☐ |
 
 ---
@@ -109,8 +109,8 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 | `BACHS_API_KEY` | Yes | Web server-only |
 | `BACHS_WEBHOOK_SECRET` | Yes | Web server-only |
 | `BACHS_API_BASE_URL` | Live base when live | Web server-only |
-| `SENDBYTE_API_KEY` | Yes | Web server-only |
-| `SENDBYTE_FROM_EMAIL` | Verified sender | Web server-only |
+| `RESEND_API_KEY` | Yes | Web server-only |
+| `RESEND_FROM_EMAIL` | Verified sender | Web server-only |
 | `LOG_FORMAT` | `json` recommended | Web |
 | `ERROR_MONITORING_DSN` | Optional | Web |
 | `NUXT_PUBLIC_APP_URL` | `https://…` | Web (public) |
@@ -133,7 +133,7 @@ AIB-mandated host remains **UNKNOWN** ([aib-stack.md](./aib-stack.md)). Default 
 | Health checks | Container + `GET /api/health` | ☐ |
 | Payment failure logging | Tips/Bachs providers log kinds without secrets | ☐ |
 | Webhook failure logging | Signature / mismatch / verify failures logged | ☐ |
-| Notification failure logging | SendByte errors logged without OTP body | ☐ |
+| Notification failure logging | Resend errors logged without OTP body | ☐ |
 | Never log OTP / API secrets / passwords / card data | Scrubber on structured logger | ☐ |
 
 ---

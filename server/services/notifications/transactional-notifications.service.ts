@@ -5,7 +5,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { usePrisma } from '../../lib/prisma';
-import { SendByteService } from './sendbyte.service';
+import { ResendService } from './resend.service';
 import {
   accountVerifiedEmail,
   otpEmail,
@@ -20,8 +20,8 @@ export interface TransactionalSendResult {
 }
 
 /**
- * Idempotent transactional emails on top of SendByteService.
- * Never creates a second SendByte client.
+ * Idempotent transactional emails on top of ResendService.
+ * Never creates a second Resend client.
  *
  * Financial state and communication state stay separate: tip payment
  * success must not be reversed when email delivery fails.
@@ -29,7 +29,7 @@ export interface TransactionalSendResult {
 export class TransactionalNotificationsService {
   constructor(
     private readonly prisma = usePrisma(),
-    private readonly sendByte = new SendByteService(),
+    private readonly resend = new ResendService(),
   ) {}
 
   /**
@@ -39,7 +39,7 @@ export class TransactionalNotificationsService {
    * - missing → send and persist
    * - critical=true → rethrow after recording FAILED (OTP)
    * - critical=false → swallow after FAILED (tips / account / security)
-   * - retryOnce → one immediate retry after first SendByte failure
+   * - retryOnce → one immediate retry after first Resend failure
    */
   async send(params: {
     type: NotificationType;
@@ -76,7 +76,7 @@ export class TransactionalNotificationsService {
     }
 
     const attempt = async (): Promise<TransactionalSendResult> => {
-      const result = await this.sendByte.sendEmail({
+      const result = await this.resend.sendEmail({
         to: params.to,
         subject: params.subject,
         html: params.html,
@@ -85,8 +85,8 @@ export class TransactionalNotificationsService {
       });
 
       const provider =
-        result.provider === 'SENDBYTE'
-          ? NotificationProvider.SENDBYTE
+        result.provider === 'RESEND'
+          ? NotificationProvider.RESEND
           : NotificationProvider.DEV_LOG;
 
       if (existing) {
@@ -128,7 +128,7 @@ export class TransactionalNotificationsService {
       return await attempt();
     } catch (firstErr) {
       console.error(
-        `SendByte failed key=${params.idempotencyKey}: ${firstErr instanceof Error ? firstErr.message : 'unknown'}`,
+        `Resend failed key=${params.idempotencyKey}: ${firstErr instanceof Error ? firstErr.message : 'unknown'}`,
       );
 
       if (params.retryOnce) {
@@ -136,7 +136,7 @@ export class TransactionalNotificationsService {
           return await attempt();
         } catch (retryErr) {
           console.error(
-            `SendByte retry failed key=${params.idempotencyKey}: ${retryErr instanceof Error ? retryErr.message : 'unknown'}`,
+            `Resend retry failed key=${params.idempotencyKey}: ${retryErr instanceof Error ? retryErr.message : 'unknown'}`,
           );
           const failed = await this.persistFailed({
             existingId: existing?.id,
@@ -322,7 +322,7 @@ export class TransactionalNotificationsService {
         userId: params.userId ?? undefined,
         email: params.to,
         type: params.type,
-        provider: NotificationProvider.SENDBYTE,
+        provider: NotificationProvider.RESEND,
         status: NotificationStatus.FAILED,
         metadata: failureMeta,
       },

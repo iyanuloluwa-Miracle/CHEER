@@ -313,10 +313,10 @@ export const stackPartners: readonly StackTool[] = [
     href: 'https://docs.bachs.io',
   },
   {
-    id: 'sendbyte',
-    name: 'SendByte',
+    id: 'resend',
+    name: 'Resend',
     role: 'Email OTP and transactional messages',
-    href: 'https://docs.sendbyte.africa',
+    href: 'https://resend.com/docs',
   },
   {
     id: 'outray',

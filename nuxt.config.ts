@@ -22,10 +22,9 @@ export default defineNuxtConfig({
       process.env.BACHS_API_BASE_URL || 'https://sandbox-api.bachs.io',
     bachsWebhookSecret: process.env.BACHS_WEBHOOK_SECRET || '',
     bachsPlatformFeePercent: process.env.BACHS_PLATFORM_FEE_PERCENT || '5',
-    sendbyteApiKey: process.env.SENDBYTE_API_KEY || '',
-    sendbyteWebhookSecret: process.env.SENDBYTE_WEBHOOK_SECRET || '',
-    sendbyteFromEmail:
-      process.env.SENDBYTE_FROM_EMAIL || 'TippyMe <noreply@example.com>',
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    resendFromEmail:
+      process.env.RESEND_FROM_EMAIL || 'TippyMe <noreply@example.com>',
     byteshipApiKey: process.env.BYTESHIP_API_KEY || '',
     cencoriApiKey: process.env.CENCORI_API_KEY || '',
     cencoriApiBaseUrl:

@@ -1,4 +1,4 @@
-import { SendByte, SendByteError } from '@sendbyte/node';
+import { Resend } from 'resend';
 import { ApiError } from '../../lib/errors';
 import { getServerEnv } from '../../lib/env';
 
@@ -12,41 +12,41 @@ export interface SendEmailParams {
 
 export interface SendEmailResult {
   id: string;
-  provider: 'SENDBYTE' | 'DEV_LOG';
+  provider: 'RESEND' | 'DEV_LOG';
 }
 
-export interface SendByteServiceOptions {
+export interface ResendServiceOptions {
   apiKey?: string | null;
   fromEmail?: string;
   nodeEnv?: string;
 }
 
 /**
- * Isolated SendByte provider. Auth and other modules must call this —
- * never the SendByte SDK directly.
+ * Isolated Resend provider. Auth and other modules must call this —
+ * never the Resend SDK directly.
  */
-export class SendByteService {
-  private readonly client: SendByte | null;
+export class ResendService {
+  private readonly client: Resend | null;
   private readonly fromEmail: string;
   private readonly nodeEnv: string;
 
-  constructor(options?: SendByteServiceOptions) {
+  constructor(options?: ResendServiceOptions) {
     const env = getServerEnv();
-    const apiKey = (options?.apiKey ?? env.SENDBYTE_API_KEY)?.trim();
+    const apiKey = (options?.apiKey ?? env.RESEND_API_KEY)?.trim();
     this.fromEmail =
       options?.fromEmail ??
-      env.SENDBYTE_FROM_EMAIL ??
+      env.RESEND_FROM_EMAIL ??
       'TippyMe <noreply@example.com>';
     this.nodeEnv = options?.nodeEnv ?? env.NODE_ENV ?? 'development';
 
     if (apiKey) {
-      this.client = new SendByte(apiKey);
+      this.client = new Resend(apiKey);
     } else if (this.nodeEnv === 'production') {
-      throw new Error('SENDBYTE_API_KEY is required in production');
+      throw new Error('RESEND_API_KEY is required in production');
     } else {
       this.client = null;
       console.warn(
-        'SENDBYTE_API_KEY not set — OTP emails will use DEV_LOG transport',
+        'RESEND_API_KEY not set — OTP emails will use DEV_LOG transport',
       );
     }
   }
@@ -77,7 +77,6 @@ export class SendByteService {
         subject: string;
         html: string;
         text?: string;
-        idempotency_key?: string;
       } = {
         from: this.fromEmail,
         to: params.to,
@@ -88,20 +87,39 @@ export class SendByteService {
       if (params.text) {
         payload.text = params.text;
       }
-      if (params.idempotencyKey) {
-        payload.idempotency_key = params.idempotencyKey;
+
+      const { data, error } = await this.client.emails.send(
+        payload,
+        params.idempotencyKey
+          ? { idempotencyKey: params.idempotencyKey }
+          : undefined,
+      );
+
+      if (error) {
+        console.error(
+          `Resend error name=${error.name} message=${error.message}`,
+        );
+        throw new ApiError(
+          503,
+          'SERVICE_UNAVAILABLE',
+          'Unable to send email. Please try again shortly.',
+        );
       }
 
-      const { id } = await this.client.emails.send(payload);
-      return { id, provider: 'SENDBYTE' };
-    } catch (err) {
-      if (err instanceof SendByteError) {
-        console.error(
-          `SendByte error code=${err.code} status=${err.status}`,
+      const id = data?.id;
+      if (!id) {
+        console.error('Resend send returned no message id');
+        throw new ApiError(
+          503,
+          'SERVICE_UNAVAILABLE',
+          'Unable to send email. Please try again shortly.',
         );
-      } else {
-        console.error('SendByte send failed');
       }
+
+      return { id, provider: 'RESEND' };
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      console.error('Resend send failed');
       throw new ApiError(
         503,
         'SERVICE_UNAVAILABLE',

@@ -68,6 +68,7 @@ enum NotificationStatus {
 
 enum NotificationProvider {
   SENDBYTE
+  RESEND
   DEV_LOG
 }
 
@@ -265,7 +266,7 @@ model OtpChallenge {
 }
 
 // ---------------------------------------------------------------------------
-// Notifications (SendByte delivery tracking)
+// Notifications (email delivery tracking — Resend)
 // ---------------------------------------------------------------------------
 
 model Notification {
@@ -273,7 +274,7 @@ model Notification {
   userId            String?
   email             String
   type              NotificationType
-  provider          NotificationProvider @default(SENDBYTE)
+  provider          NotificationProvider @default(RESEND)
   providerMessageId String?
   status            NotificationStatus   @default(QUEUED)
   metadata          Json?

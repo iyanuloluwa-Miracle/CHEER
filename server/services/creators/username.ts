@@ -65,6 +65,7 @@ export const RESERVED_USERNAMES = new Set([
   'cheers',
   'bachs',
   'sendbyte',
+  'resend',
   'outray',
 ]);
 

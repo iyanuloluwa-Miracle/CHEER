@@ -9,9 +9,8 @@ export type ServerEnv = {
   BACHS_API_BASE_URL?: string;
   BACHS_WEBHOOK_SECRET?: string;
   BACHS_PLATFORM_FEE_PERCENT?: string;
-  SENDBYTE_API_KEY?: string;
-  SENDBYTE_WEBHOOK_SECRET?: string;
-  SENDBYTE_FROM_EMAIL?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
   BYTESHIP_API_KEY?: string;
   CENCORI_API_KEY?: string;
   CENCORI_API_BASE_URL?: string;
@@ -139,8 +138,8 @@ export function getServerEnv(): ServerEnv {
       (config.bachsWebhookSecret as string) || process.env.BACHS_WEBHOOK_SECRET,
     );
     requireNonEmpty(
-      'SENDBYTE_API_KEY',
-      (config.sendbyteApiKey as string) || process.env.SENDBYTE_API_KEY,
+      'RESEND_API_KEY',
+      (config.resendApiKey as string) || process.env.RESEND_API_KEY,
     );
     appUrl = requireNonEmpty('APP_URL', appUrl);
     if (!appUrl.startsWith('https://')) {
@@ -183,18 +182,12 @@ export function getServerEnv(): ServerEnv {
         (config.bachsPlatformFeePercent as string) ||
         process.env.BACHS_PLATFORM_FEE_PERCENT
       )?.trim() || '5',
-    SENDBYTE_API_KEY:
+    RESEND_API_KEY:
+      ((config.resendApiKey as string) || process.env.RESEND_API_KEY)?.trim() ||
+      undefined,
+    RESEND_FROM_EMAIL:
       (
-        (config.sendbyteApiKey as string) || process.env.SENDBYTE_API_KEY
-      )?.trim() || undefined,
-    SENDBYTE_WEBHOOK_SECRET:
-      (
-        (config.sendbyteWebhookSecret as string) ||
-        process.env.SENDBYTE_WEBHOOK_SECRET
-      )?.trim() || undefined,
-    SENDBYTE_FROM_EMAIL:
-      (
-        (config.sendbyteFromEmail as string) || process.env.SENDBYTE_FROM_EMAIL
+        (config.resendFromEmail as string) || process.env.RESEND_FROM_EMAIL
       )?.trim() || 'TippyMe <noreply@example.com>',
     BYTESHIP_API_KEY:
       (
