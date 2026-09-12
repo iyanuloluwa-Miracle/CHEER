@@ -49,9 +49,8 @@ const userSchema = new Schema(
   baseOptions,
 );
 userSchema.index({ createdAt: 1 });
-userSchema.pre('save', function (next) {
+userSchema.pre('save', function () {
   this.updatedAt = new Date();
-  next();
 });
 
 const creatorProfileSchema = new Schema(
@@ -77,9 +76,8 @@ const creatorProfileSchema = new Schema(
 );
 creatorProfileSchema.index({ isActive: 1 });
 creatorProfileSchema.index({ createdAt: 1 });
-creatorProfileSchema.pre('save', function (next) {
+creatorProfileSchema.pre('save', function () {
   this.updatedAt = new Date();
-  next();
 });
 
 const tipPageViewSchema = new Schema(
@@ -109,9 +107,8 @@ const socialLinkSchema = new Schema(
 );
 socialLinkSchema.index({ creatorId: 1, platform: 1, url: 1 }, { unique: true });
 socialLinkSchema.index({ creatorId: 1, sortOrder: 1 });
-socialLinkSchema.pre('save', function (next) {
+socialLinkSchema.pre('save', function () {
   this.updatedAt = new Date();
-  next();
 });
 
 const paymentTransactionSchema = new Schema(
@@ -145,9 +142,8 @@ paymentTransactionSchema.index(
 paymentTransactionSchema.index({ status: 1, createdAt: 1 });
 paymentTransactionSchema.index({ provider: 1, status: 1 });
 paymentTransactionSchema.index({ createdAt: 1 });
-paymentTransactionSchema.pre('save', function (next) {
+paymentTransactionSchema.pre('save', function () {
   this.updatedAt = new Date();
-  next();
 });
 
 const tipSchema = new Schema(
@@ -182,9 +178,8 @@ tipSchema.index({ creatorId: 1, status: 1 });
 tipSchema.index({ creatorId: 1, status: 1, createdAt: 1 });
 tipSchema.index({ creatorId: 1, amount: 1 });
 tipSchema.index({ status: 1, createdAt: 1 });
-tipSchema.pre('save', function (next) {
+tipSchema.pre('save', function () {
   this.updatedAt = new Date();
-  next();
 });
 
 const webhookEventSchema = new Schema(
@@ -257,9 +252,8 @@ const notificationSchema = new Schema(
 notificationSchema.index({ userId: 1, createdAt: 1 });
 notificationSchema.index({ providerMessageId: 1 });
 notificationSchema.index({ status: 1, createdAt: 1 });
-notificationSchema.pre('save', function (next) {
+notificationSchema.pre('save', function () {
   this.updatedAt = new Date();
-  next();
 });
 
 const auditLogSchema = new Schema(
