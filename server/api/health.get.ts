@@ -1,9 +1,8 @@
 import { defineApiHandler } from '../lib/define-api';
 
 /**
- * Process liveness only — do not touch Postgres here.
- * Pxxl/Docker healthchecks would otherwise wake Neon and spam
- * connection errors when the compute is idle.
+ * Process liveness only — do not probe MongoDB here.
+ * Keeps Docker/platform healthchecks cheap and independent of Atlas.
  */
 export default defineApiHandler(async () => {
   return {

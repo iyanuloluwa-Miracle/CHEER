@@ -1,7 +1,7 @@
-import { eq } from 'drizzle-orm';
-import { useDb } from '../../../db';
+import { CreatorProfileModel, TipModel, toPlain, useDb } from '../../../db';
+import type { LeanDoc } from '../../../db/lean';
 import { TipStatus } from '../../../db/enums';
-import { tips } from '../../../db/schema';
+import type { CreatorProfile, Tip } from '../../../db/types';
 import { OpenRouterAiService } from '../../../services/ai/openrouter.service';
 import { ApiError } from '../../../lib/errors';
 import { defineApiHandler } from '../../../lib/define-api';
@@ -17,18 +17,10 @@ export default defineApiHandler(async (event) => {
     throw new ApiError(400, 'INVALID_TIP', 'Tip id is required.');
   }
 
-  const db = useDb();
-  const tip = await db.query.tips.findFirst({
-    where: eq(tips.id, tipId),
-    with: {
-      creator: {
-        columns: {
-          displayName: true,
-          supportMessage: true,
-        },
-      },
-    },
-  });
+  await useDb();
+  const tip = toPlain<Tip>(
+    await TipModel.findOne({ _id: tipId }).lean<LeanDoc | null>(),
+  );
 
   if (!tip) {
     throw new ApiError(404, 'TIP_NOT_FOUND', 'Tip not found.');
@@ -49,25 +41,34 @@ export default defineApiHandler(async (event) => {
     };
   }
 
+  const creator = toPlain<CreatorProfile>(
+    await CreatorProfileModel.findOne({ _id: tip.creatorId }).lean<
+      LeanDoc | null
+    >(),
+  );
+
+  if (!creator) {
+    throw new ApiError(404, 'TIP_NOT_FOUND', 'Tip not found.');
+  }
+
   const ai = new OpenRouterAiService();
   const generated = await ai.thankYouNote({
-    creatorDisplayName: tip.creator.displayName,
+    creatorDisplayName: creator.displayName,
     supporterName: tip.supporterName,
     isAnonymous: tip.isAnonymous,
     tipMessage: tip.message,
     amount: decimalToAmountString(tip.amount),
     currency: tip.currency,
-    supportMessage: tip.creator.supportMessage,
+    supportMessage: creator.supportMessage,
   });
 
-  const [updated] = await db
-    .update(tips)
-    .set({ aiThankYouMessage: generated.message })
-    .where(eq(tips.id, tip.id))
-    .returning();
+  await TipModel.updateOne(
+    { _id: tip.id },
+    { $set: { aiThankYouMessage: generated.message, updatedAt: new Date() } },
+  );
 
   return {
-    message: updated.aiThankYouMessage!,
+    message: generated.message,
     source: generated.source,
   };
 });

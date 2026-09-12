@@ -1,5 +1,5 @@
 import { TipStatus } from '../../../db/enums';
-import type { TipStatus as TipStatusType } from '../../../db/schema';
+import type { TipStatus as TipStatusType } from '../../../db/types';
 import { CreatorsService } from '../../../services/creators/creators.service';
 import type { ListTipsQuery } from '../../../services/creators/dashboard.types';
 import { TIP_AMOUNT_PATTERN } from '../../../services/tips/tips.constants';
